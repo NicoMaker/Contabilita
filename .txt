@@ -12,3 +12,6 @@ e che controlli in automatico il caso per capire quanti casi ci sono se trimestr
 
  non mi funzionano le ricerche in tutte le sezioni e anche ricerca nella dashbaord dammi tutto il js compelto pero e tutti i codici da risolvere se serve html e css
  nei clienti e adempimenti non va ricerca
+
+
+ non vanno ricerhe in adempimenti, dashboard e clienti e tutte le categorie anche filtro li 
