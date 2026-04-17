@@ -1,0 +1,61 @@
+erDiagram
+    TIPOLOGIE_CLIENTE {
+        int id PK
+        text codice UK
+        text nome
+        text descrizione
+    }
+
+    SOTTOTIPOLOGIE {
+        int id PK
+        int id_tipologia FK
+        text codice
+        text nome
+    }
+
+    CLIENTI {
+        int id PK
+        text nome
+        int id_tipologia FK
+        int id_sottotipologia FK
+        text codice_fiscale
+        text partita_iva
+        text email
+        text telefono
+        text indirizzo
+        text note
+        text categorie_attive
+        int attivo
+        text created_at
+    }
+
+    ADEMPIMENTI {
+        int id PK
+        text codice UK
+        text nome
+        text descrizione
+        text categoria
+        text scadenza_tipo
+        int attivo
+    }
+
+    ADEMPIMENTI_CLIENTE {
+        int id PK
+        int id_cliente FK
+        int id_adempimento FK
+        int anno
+        int mese
+        int trimestre
+        int semestre
+        text stato
+        text data_scadenza
+        text data_completamento
+        text note
+        real importo
+    }
+
+    TIPOLOGIE_CLIENTE ||--o{ SOTTOTIPOLOGIE : "ha (1:N)"
+    TIPOLOGIE_CLIENTE ||--o{ CLIENTI : "classifica (1:N)"
+    SOTTOTIPOLOGIE ||--o{ CLIENTI : "dettaglia (1:N)"
+    ADEMPIMENTI ||--o{ ADEMPIMENTI_CLIENTE : "assegnato a (1:N)"
+    CLIENTI ||--o{ ADEMPIMENTI_CLIENTE : "ha scadenze (1:N)"
