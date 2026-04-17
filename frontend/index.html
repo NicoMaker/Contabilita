@@ -10,7 +10,6 @@
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-main">📁 Studio</div>
@@ -23,12 +22,11 @@
     <div class="nav-item" data-page="scadenzario_globale"><span class="nav-icon">🌐</span> Vista Globale</div>
     <div class="nav-sep"></div>
     <div class="nav-item" data-page="adempimenti"><span class="nav-icon">📋</span> Adempimenti</div>
-    <div class="nav-item" data-page="tipologie"><span class="nav-icon">🏷️</span> Tipologie</div>
+    <div class="nav-item" data-page="tipologie"><span class="nav-icon">🏷️</span> Tipologie Clienti</div>
   </nav>
   <div class="sidebar-footer" id="conn-status">● Connessione...</div>
 </aside>
 
-<!-- MAIN -->
 <main class="main">
   <div class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
@@ -38,8 +36,6 @@
 </main>
 
 <div class="notif-container" id="notif-container"></div>
-
-<!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
 
 <!-- MODAL CLIENTE -->
 <div class="modal-overlay" id="modal-cliente">
@@ -88,9 +84,16 @@
       <label>Note</label>
       <input class="input" id="c-note" placeholder="Note aggiuntive...">
     </div>
-    <div class="infobox" id="new-cliente-info" style="display:none">
-      💡 Alla creazione, <strong>lo scadenzario dell'anno corrente verrà generato automaticamente</strong> con tutti gli adempimenti applicabili. Potrai poi rimuovere quelli non necessari.
+    
+    <div class="form-group">
+      <label>📋 Categorie Adempimenti Applicabili</label>
+      <div class="infobox" style="margin-bottom:12px">
+        💡 Seleziona le categorie di adempimenti che questo cliente deve avere.<br>
+        Lo scadenzario verrà generato automaticamente.
+      </div>
+      <div class="categorie-group" id="categorie-attive"></div>
     </div>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Annulla</button>
       <button class="btn btn-primary" onclick="saveCliente()">💾 Salva</button>
@@ -98,7 +101,7 @@
   </div>
 </div>
 
-<!-- MODAL ADEMPIMENTO (scadenzario) -->
+<!-- MODAL ADEMPIMENTO -->
 <div class="modal-overlay" id="modal-adempimento">
   <div class="modal modal-sm">
     <div class="modal-title">✏️ Adempimento: <span id="adp-nome-label" style="color:var(--accent);font-size:14px"></span></div>
@@ -109,7 +112,7 @@
         <option value="da_fare">⭕ Da fare</option>
         <option value="in_corso">🔄 In corso</option>
         <option value="completato">✅ Completato</option>
-        <option value="n_a">➖ N/A (non applicabile)</option>
+        <option value="n_a">➖ N/A</option>
       </select>
     </div>
     <div class="form-row">
@@ -139,7 +142,7 @@
   </div>
 </div>
 
-<!-- MODAL ADEMPIMENTO DEF (crea/edit) -->
+<!-- MODAL ADEMPIMENTO DEF -->
 <div class="modal-overlay" id="modal-adp-def">
   <div class="modal">
     <div class="modal-title">📋 <span id="modal-adp-def-title">Nuovo Adempimento</span></div>
@@ -147,15 +150,15 @@
     <div class="form-row">
       <div class="form-group">
         <label>Codice *</label>
-        <input class="input" id="adp-def-codice" placeholder="Es. IMU_2" style="text-transform:uppercase;font-family:var(--mono)">
+        <input class="input" id="adp-def-codice" placeholder="Es. IMU_2" style="text-transform:uppercase">
       </div>
       <div class="form-group">
         <label>Tipo Scadenza *</label>
         <select class="select" id="adp-def-scadenza">
-          <option value="annuale">Annuale</option>
-          <option value="semestrale">Semestrale</option>
-          <option value="trimestrale">Trimestrale</option>
-          <option value="mensile">Mensile</option>
+          <option value="annuale">Annuale (1 record)</option>
+          <option value="semestrale">Semestrale (2 record)</option>
+          <option value="trimestrale">Trimestrale (4 record)</option>
+          <option value="mensile">Mensile (12 record)</option>
         </select>
       </div>
     </div>
@@ -168,8 +171,16 @@
       <input class="input" id="adp-def-desc" placeholder="Descrizione breve">
     </div>
     <div class="form-group">
-      <label>Tipologie Applicabili</label>
-      <div class="chip-group" id="adp-def-tipologie"></div>
+      <label>Categoria</label>
+      <select class="select" id="adp-def-categoria">
+        <option value="TUTTI">📌 TUTTI (sempre presente)</option>
+        <option value="IVA">💰 IVA</option>
+        <option value="DICHIARAZIONI">📄 Dichiarazioni</option>
+        <option value="PREVIDENZA">🏦 Previdenza</option>
+        <option value="LAVORO">👔 Lavoro</option>
+        <option value="TRIBUTI">🏛️ Tributi</option>
+        <option value="BILANCIO">📊 Bilancio</option>
+      </select>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-adp-def')">Annulla</button>
@@ -200,7 +211,7 @@
   </div>
 </div>
 
-<!-- MODAL AGGIUNGI ADEMPIMENTO A SCADENZARIO -->
+<!-- MODAL AGGIUNGI ADEMPIMENTO -->
 <div class="modal-overlay" id="modal-add-adp">
   <div class="modal modal-sm">
     <div class="modal-title">➕ Aggiungi Adempimento</div>
@@ -211,23 +222,21 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Trimestre (se applicabile)</label>
-        <select class="select" id="add-adp-trim">
-          <option value="">—</option>
-          <option value="1">T1</option>
-          <option value="2">T2</option>
-          <option value="3">T3</option>
-          <option value="4">T4</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Mese (se applicabile)</label>
-        <select class="select" id="add-adp-mese">
-          <option value="">—</option>
-          <option value="1">Gennaio</option><option value="2">Febbraio</option><option value="3">Marzo</option>
-          <option value="4">Aprile</option><option value="5">Maggio</option><option value="6">Giugno</option>
-          <option value="7">Luglio</option><option value="8">Agosto</option><option value="9">Settembre</option>
-          <option value="10">Ottobre</option><option value="11">Novembre</option><option value="12">Dicembre</option>
+        <label>Periodo</label>
+        <select class="select" id="add-adp-periodo">
+          <option value="">— Seleziona —</option>
+          <option value="trimestre_1">1° Trimestre</option>
+          <option value="trimestre_2">2° Trimestre</option>
+          <option value="trimestre_3">3° Trimestre</option>
+          <option value="trimestre_4">4° Trimestre</option>
+          <option value="semestre_1">1° Semestre</option>
+          <option value="semestre_2">2° Semestre</option>
+          <option value="mese_1">Gennaio</option><option value="mese_2">Febbraio</option>
+          <option value="mese_3">Marzo</option><option value="mese_4">Aprile</option>
+          <option value="mese_5">Maggio</option><option value="mese_6">Giugno</option>
+          <option value="mese_7">Luglio</option><option value="mese_8">Agosto</option>
+          <option value="mese_9">Settembre</option><option value="mese_10">Ottobre</option>
+          <option value="mese_11">Novembre</option><option value="mese_12">Dicembre</option>
         </select>
       </div>
     </div>
