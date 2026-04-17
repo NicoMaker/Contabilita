@@ -1,2 +1,4 @@
 e se e t1 t2 t3 non vedere cosi ma scrivi i mesi gennaio febbraio marzo aprile maggio giugno in base ai dati con il nome del mese e ricerca anche dentro al cliente in adempimenti 
 quando crei adempimenti crei per tutte e dopo per singolo cliente puoi fleggare se non appartiene a quel cliente
+
+mi spiego meglo se crei adempimento in automatico per tutti e puoi decidre quando creo eventi se non applicabile per quel cliente quando crei scheda per quell'anno dammi tutto compeleto 
