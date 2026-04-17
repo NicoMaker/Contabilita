@@ -9,3 +9,5 @@ e che controlli in automatico il caso per capire quanti casi ci sono se trimestr
  
 
  e crea in automatico anche se metto uno per il triemestre tutti i dati per l'anno per il cliente quindi 4 dati per quello semestrale 2 e cosi via per altro annuale 1 e mensile 12 dammi tutti i file completi 
+
+ non mi funzionano le ricerche in tutte le sezioni e anche ricerca nella dashbaord dammi tutto il js compelto pero e tutti i codici da risolvere se serve html e css
