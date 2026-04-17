@@ -1,8 +1,18 @@
 const socket = io();
 
 const MESI = [
-  "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-  "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+  "Gennaio",
+  "Febbraio",
+  "Marzo",
+  "Aprile",
+  "Maggio",
+  "Giugno",
+  "Luglio",
+  "Agosto",
+  "Settembre",
+  "Ottobre",
+  "Novembre",
+  "Dicembre",
 ];
 
 const STATI = {
@@ -18,7 +28,7 @@ const CATEGORIE_DISPONIBILI = [
   { codice: "PREVIDENZA", nome: "🏦 Previdenza", icona: "🏦" },
   { codice: "LAVORO", nome: "👔 Lavoro", icona: "👔" },
   { codice: "TRIBUTI", nome: "🏛️ Tributi", icona: "🏛️" },
-  { codice: "BILANCIO", nome: "📊 Bilancio", icona: "📊" }
+  { codice: "BILANCIO", nome: "📊 Bilancio", icona: "📊" },
 ];
 
 let state = {
@@ -36,7 +46,7 @@ let state = {
 // Debounce
 function debounce(func, wait) {
   let timeout;
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
@@ -181,7 +191,9 @@ socket.on("res:add:adempimento_cliente", ({ success }) => {
 // ─── NAVIGAZIONE ─────────────────────────────────────────────────────────
 document.querySelectorAll(".nav-item").forEach((el) => {
   el.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
+    document
+      .querySelectorAll(".nav-item")
+      .forEach((x) => x.classList.remove("active"));
     el.classList.add("active");
     renderPage(el.dataset.page);
   });
@@ -264,7 +276,10 @@ function printPage() {
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────
 function renderDashboard(stats) {
-  const perc = stats.totAdempimenti > 0 ? Math.round((stats.completati / stats.totAdempimenti) * 100) : 0;
+  const perc =
+    stats.totAdempimenti > 0
+      ? Math.round((stats.completati / stats.totAdempimenti) * 100)
+      : 0;
   document.getElementById("content").innerHTML = `
     <div class="print-header" style="display:none"></div>
     <div class="stats-grid">
@@ -277,7 +292,7 @@ function renderDashboard(stats) {
     <div class="table-wrap">
       <div class="table-header"><h3>📊 Clienti per Tipologia — ${stats.anno}</h3></div>
       <table><thead><tr><th>Tipologia</th><th>Codice</th><th>N° Clienti</th></tr></thead>
-      <tbody>${stats.perTipologia.map(t => `<tr><td><strong>${t.nome}</strong></td><td><span class="badge b-${t.codice.toLowerCase()}">${t.codice}</span></td><td><strong>${t.n}</strong></td></tr>`).join("")}</tbody>
+      <tbody>${stats.perTipologia.map((t) => `<tr><td><strong>${t.nome}</strong></td><td><span class="badge b-${t.codice.toLowerCase()}">${t.codice}</span></td><td><strong>${t.n}</strong></td></tr>`).join("")}</tbody>
     </table>
     </div>
   `;
@@ -295,7 +310,10 @@ function renderClientiPage() {
 }
 
 function renderClientiTabella(clienti) {
-  const tbody = clienti.length ? clienti.map(c => `
+  const tbody = clienti.length
+    ? clienti
+        .map(
+          (c) => `
     <tr>
       <td><strong>${c.nome}</strong></td>
       <td><span class="badge b-${(c.tipologia_codice || "").toLowerCase()}">${c.tipologia_codice || "-"}</span></td>
@@ -311,7 +329,10 @@ function renderClientiTabella(clienti) {
         </div>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
+  `,
+        )
+        .join("")
+    : `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
 
   document.getElementById("content").innerHTML = `
     <div class="print-header"><strong>Studio Commerciale — Elenco Clienti</strong><br>Data stampa: ${new Date().toLocaleDateString("it-IT")} — Totale: ${clienti.length} clienti</div>
@@ -322,7 +343,12 @@ function renderClientiTabella(clienti) {
 
 // ─── SCADENZARIO CLIENTE ──────────────────────────────────────────────────
 function renderScadenzarioPage() {
-  const opts = state.clienti.map(c => `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice}] ${c.nome}</option>`).join("");
+  const opts = state.clienti
+    .map(
+      (c) =>
+        `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice}] ${c.nome}</option>`,
+    )
+    .join("");
   document.getElementById("topbar-actions").innerHTML = `
     <select class="select" id="sel-cliente" style="width:250px" onchange="onClienteChange()"><option value="">-- Seleziona Cliente --</option>${opts}</select>
     <div class="year-sel"><button onclick="changeAnnoScad(-1)">◀</button><span class="year-num">${state.anno}</span><button onclick="changeAnnoScad(1)">▶</button></div>
@@ -332,29 +358,33 @@ function renderScadenzarioPage() {
     </div>
   `;
   if (state.selectedCliente) loadScadenzario();
-  else document.getElementById("content").innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Seleziona un cliente per visualizzare il suo scadenzario</p></div>`;
+  else
+    document.getElementById("content").innerHTML =
+      `<div class="empty"><div class="empty-icon">📅</div><p>Seleziona un cliente per visualizzare il suo scadenzario</p></div>`;
 }
 
 function onClienteChange() {
   const id = parseInt(document.getElementById("sel-cliente").value);
-  state.selectedCliente = state.clienti.find(c => c.id === id) || null;
+  state.selectedCliente = state.clienti.find((c) => c.id === id) || null;
   if (state.selectedCliente) loadScadenzario();
 }
 
 function changeAnnoScad(d) {
   state.anno += d;
-  document.querySelectorAll(".year-num").forEach(el => el.textContent = state.anno);
+  document
+    .querySelectorAll(".year-num")
+    .forEach((el) => (el.textContent = state.anno));
   if (state.selectedCliente) loadScadenzario();
 }
 
 function loadScadenzario() {
   const searchVal = document.getElementById("scad-search")?.value || "";
   state.filtri.adempimento = searchVal;
-  socket.emit("get:scadenzario", { 
-    id_cliente: state.selectedCliente.id, 
-    anno: state.anno, 
-    filtro_stato: state.filtri.stato, 
-    filtro_adempimento: searchVal 
+  socket.emit("get:scadenzario", {
+    id_cliente: state.selectedCliente.id,
+    anno: state.anno,
+    filtro_stato: state.filtri.stato,
+    filtro_adempimento: searchVal,
   });
 }
 
@@ -365,34 +395,44 @@ function applyScadFiltri() {
 
 function resetScadFiltri() {
   state.filtri.stato = "tutti";
-  if (document.getElementById("f-stato")) document.getElementById("f-stato").value = "tutti";
-  if (document.getElementById("scad-search")) document.getElementById("scad-search").value = "";
+  if (document.getElementById("f-stato"))
+    document.getElementById("f-stato").value = "tutti";
+  if (document.getElementById("scad-search"))
+    document.getElementById("scad-search").value = "";
   loadScadenzario();
 }
 
 function getPeriodoLabel(r) {
-  if (r.scadenza_tipo === 'trimestrale') return `${r.trimestre}° Trimestre`;
-  if (r.scadenza_tipo === 'semestrale') return r.semestre === 1 ? "1° Semestre" : "2° Semestre";
-  if (r.scadenza_tipo === 'mensile') return MESI[r.mese - 1];
+  if (r.scadenza_tipo === "trimestrale") return `${r.trimestre}° Trimestre`;
+  if (r.scadenza_tipo === "semestrale")
+    return r.semestre === 1 ? "1° Semestre" : "2° Semestre";
+  if (r.scadenza_tipo === "mensile") return MESI[r.mese - 1];
   return "Annuale";
 }
 
 function renderScadenzarioTabella(righe) {
   const c = state.selectedCliente;
   const tot = righe.length;
-  const comp = righe.filter(r => r.stato === "completato").length;
-  const daF = righe.filter(r => r.stato === "da_fare").length;
-  const inC = righe.filter(r => r.stato === "in_corso").length;
-  const na = righe.filter(r => r.stato === "n_a").length;
+  const comp = righe.filter((r) => r.stato === "completato").length;
+  const daF = righe.filter((r) => r.stato === "da_fare").length;
+  const inC = righe.filter((r) => r.stato === "in_corso").length;
+  const na = righe.filter((r) => r.stato === "n_a").length;
   const perc = tot > 0 ? Math.round((comp / tot) * 100) : 0;
 
   const grouped = {};
-  righe.forEach(r => { if (!grouped[r.codice]) grouped[r.codice] = []; grouped[r.codice].push(r); });
+  righe.forEach((r) => {
+    if (!grouped[r.codice]) grouped[r.codice] = [];
+    grouped[r.codice].push(r);
+  });
 
-  const tbody = Object.entries(grouped).map(([codice, rows]) => rows.map((r, idx) => {
-    const periodo = getPeriodoLabel(r);
-    return `<tr class="clickable s-${r.stato}" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ""}','${r.data_completamento || ""}','${r.importo || ""}','${esc(r.note || "")}','${esc(r.adempimento_nome)}')">
-      ${idx === 0 ? `<td rowspan="${rows.length}" style="border-right:1px solid var(--border);font-weight:700;vertical-align:top;padding-top:14px"><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${codice}</span><br><span style="font-size:12px">${r.adempimento_nome}</span><br><span class="badge b-categoria" style="font-size:9px;margin-top:4px">${r.categoria || '-'}</span></td>` : ""}
+  const tbody =
+    Object.entries(grouped)
+      .map(([codice, rows]) =>
+        rows
+          .map((r, idx) => {
+            const periodo = getPeriodoLabel(r);
+            return `<tr class="clickable s-${r.stato}" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ""}','${r.data_completamento || ""}','${r.importo || ""}','${esc(r.note || "")}','${esc(r.adempimento_nome)}')">
+      ${idx === 0 ? `<td rowspan="${rows.length}" style="border-right:1px solid var(--border);font-weight:700;vertical-align:top;padding-top:14px"><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${codice}</span><br><span style="font-size:12px">${r.adempimento_nome}</span><br><span class="badge b-categoria" style="font-size:9px;margin-top:4px">${r.categoria || "-"}</span></td>` : ""}
       <td>${periodo}</td>
       <td><span class="badge b-${r.stato}">${STATI[r.stato] || r.stato}</span></td>
       <td class="td-mono td-dim">${r.importo ? "€ " + parseFloat(r.importo).toFixed(2) : "-"}</td>
@@ -400,7 +440,11 @@ function renderScadenzarioTabella(righe) {
       <td class="td-mono td-dim" style="font-size:11px">${r.data_completamento || "-"}</td>
       <td class="td-dim" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.note || ""}</td>
     </tr>`;
-  }).join("")).join("") || `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><p>Nessun adempimento trovato.<br>Clicca <strong>⚡ Genera</strong> per creare lo scadenzario.</p></div></td></tr>`;
+          })
+          .join(""),
+      )
+      .join("") ||
+    `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><p>Nessun adempimento trovato.<br>Clicca <strong>⚡ Genera</strong> per creare lo scadenzario.</p></div></td></tr>`;
 
   document.getElementById("content").innerHTML = `
     <div class="print-header"><strong>Studio Commerciale — Scadenzario Fiscale</strong><br>Cliente: <strong>${c.nome}</strong> | Anno: <strong>${state.anno}</strong> | Data stampa: ${new Date().toLocaleDateString("it-IT")}</div>
@@ -427,11 +471,16 @@ function renderScadenzarioTabella(righe) {
     <table><thead><tr><th>Adempimento</th><th>Periodo</th><th>Stato</th><th>Importo</th><th>Scadenza</th><th>Completato</th><th>Note</th></tr></thead>
     <tbody>${tbody}</tbody></table></div>
   `;
-  if (document.getElementById("f-stato")) document.getElementById("f-stato").value = state.filtri.stato;
+  if (document.getElementById("f-stato"))
+    document.getElementById("f-stato").value = state.filtri.stato;
 }
 
 function generaScad(id) {
-  if (confirm(`Generare/rigenera lo scadenzario ${state.anno} per questo cliente?`))
+  if (
+    confirm(
+      `Generare/rigenera lo scadenzario ${state.anno} per questo cliente?`,
+    )
+  )
     socket.emit("genera:scadenzario", { id_cliente: id, anno: state.anno });
 }
 
@@ -446,12 +495,19 @@ function renderGlobalePage() {
     <button class="btn btn-print btn-sm no-print" onclick="window.print()">🖨️ Stampa</button>
   `;
   renderGlobaleFiltri();
-  socket.emit("get:scadenzario_globale", { anno: state.anno, filtro_stato: state.filtri.stato, filtro_categoria: state.filtri.categoria, search: "" });
+  socket.emit("get:scadenzario_globale", {
+    anno: state.anno,
+    filtro_stato: state.filtri.stato,
+    filtro_categoria: state.filtri.categoria,
+    search: "",
+  });
 }
 
 function changeAnnoGlobale(d) {
   state.anno += d;
-  document.querySelectorAll(".year-num").forEach(el => el.textContent = state.anno);
+  document
+    .querySelectorAll(".year-num")
+    .forEach((el) => (el.textContent = state.anno));
   applyGlobaleSearch();
 }
 
@@ -465,64 +521,75 @@ function renderGlobaleFiltri() {
       </select>
       <label>Categoria:</label><select class="select" style="width:160px" id="fg-categoria" onchange="applyGlobaleFiltri()">
         <option value="tutti">Tutte</option>
-        ${CATEGORIE_DISPONIBILI.map(c => `<option value="${c.codice}">${c.icona} ${c.nome}</option>`).join('')}
+        ${CATEGORIE_DISPONIBILI.map((c) => `<option value="${c.codice}">${c.icona} ${c.nome}</option>`).join("")}
         <option value="TUTTI">📌 TUTTI</option>
       </select>
     </div>
     <div id="globale-content"><div class="empty">⏳ Caricamento...</div></div>
   `;
-  if (document.getElementById("fg-stato")) document.getElementById("fg-stato").value = state.filtri.stato;
-  if (document.getElementById("fg-categoria")) document.getElementById("fg-categoria").value = state.filtri.categoria;
+  if (document.getElementById("fg-stato"))
+    document.getElementById("fg-stato").value = state.filtri.stato;
+  if (document.getElementById("fg-categoria"))
+    document.getElementById("fg-categoria").value = state.filtri.categoria;
 }
 
 function applyGlobaleFiltri() {
   state.filtri.stato = document.getElementById("fg-stato")?.value || "tutti";
-  state.filtri.categoria = document.getElementById("fg-categoria")?.value || "tutti";
+  state.filtri.categoria =
+    document.getElementById("fg-categoria")?.value || "tutti";
   applyGlobaleSearch();
 }
 
 function applyGlobaleSearch() {
   const search = document.getElementById("global-search-globale")?.value || "";
-  socket.emit("get:scadenzario_globale", { 
-    anno: state.anno, 
-    filtro_stato: state.filtri.stato, 
-    filtro_categoria: state.filtri.categoria, 
-    search: search 
+  socket.emit("get:scadenzario_globale", {
+    anno: state.anno,
+    filtro_stato: state.filtri.stato,
+    filtro_categoria: state.filtri.categoria,
+    search: search,
   });
 }
 
 function renderGlobaleTabella(righe) {
   const container = document.getElementById("globale-content");
   if (!container) return;
-  
+
   const perCliente = {};
-  righe.forEach(r => { 
-    if (!perCliente[r.id_cliente]) 
-      perCliente[r.id_cliente] = { nome: r.cliente_nome, tipo: r.tipologia_codice, righe: [] }; 
-    perCliente[r.id_cliente].righe.push(r); 
+  righe.forEach((r) => {
+    if (!perCliente[r.id_cliente])
+      perCliente[r.id_cliente] = {
+        nome: r.cliente_nome,
+        tipo: r.tipologia_codice,
+        righe: [],
+      };
+    perCliente[r.id_cliente].righe.push(r);
   });
-  
+
   if (!Object.keys(perCliente).length) {
     container.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>Nessun risultato</p></div>`;
     return;
   }
-  
-  const html = Object.entries(perCliente).map(([id, cl]) => {
-    const comp = cl.righe.filter(r => r.stato === "completato").length;
-    const perc = cl.righe.length > 0 ? Math.round((comp / cl.righe.length) * 100) : 0;
-    const tbody = cl.righe.map(r => {
-      const periodo = getPeriodoLabel(r);
-      return `<tr class="clickable" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ""}','${r.data_completamento || ""}','${r.importo || ""}','${esc(r.note || "")}','${esc(r.adempimento_nome)}')">
+
+  const html = Object.entries(perCliente)
+    .map(([id, cl]) => {
+      const comp = cl.righe.filter((r) => r.stato === "completato").length;
+      const perc =
+        cl.righe.length > 0 ? Math.round((comp / cl.righe.length) * 100) : 0;
+      const tbody = cl.righe
+        .map((r) => {
+          const periodo = getPeriodoLabel(r);
+          return `<tr class="clickable" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ""}','${r.data_completamento || ""}','${r.importo || ""}','${esc(r.note || "")}','${esc(r.adempimento_nome)}')">
         <td class="td-mono" style="font-size:10px;color:var(--accent)">${r.codice}</td>
         <td>${r.adempimento_nome}</td>
-        <td><span class="badge b-categoria">${r.categoria || '-'}</span></td>
+        <td><span class="badge b-categoria">${r.categoria || "-"}</span></td>
         <td style="font-size:12px">${periodo}</td>
         <td><span class="badge b-${r.stato}">${STATI[r.stato] || r.stato}</span></td>
         <td class="td-mono td-dim">${r.importo ? "€ " + parseFloat(r.importo).toFixed(2) : "-"}</td>
         <td class="td-mono td-dim">${r.data_completamento || "-"}</td>
       </tr>`;
-    }).join("");
-    return `<div class="table-wrap" style="margin-bottom:16px">
+        })
+        .join("");
+      return `<div class="table-wrap" style="margin-bottom:16px">
       <div class="table-header" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
         <span class="badge b-${(cl.tipo || "").toLowerCase()}" style="margin-right:6px">${cl.tipo}</span>
         <h3>${cl.nome}</h3>
@@ -535,7 +602,8 @@ function renderGlobaleTabella(righe) {
         <tbody>${tbody}</tbody></table>
       </div>
     </div>`;
-  }).join("");
+    })
+    .join("");
   container.innerHTML = html;
 }
 
@@ -550,12 +618,15 @@ function renderAdempimentiPage() {
 }
 
 function renderAdempimentiTabella(adempimenti) {
-  const rows = adempimenti.map(a => `
+  const rows =
+    adempimenti
+      .map(
+        (a) => `
     <tr>
       <td><span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${a.codice}</span></td>
       <td><strong>${a.nome}</strong></td>
       <td class="td-dim">${a.descrizione || "-"}</td>
-      <td><span class="badge b-categoria">${a.categoria || '-'}</span></td>
+      <td><span class="badge b-categoria">${a.categoria || "-"}</span></td>
       <td><span style="font-family:var(--mono);font-size:11px">${a.scadenza_tipo || "-"}</span></td>
       <td class="col-actions no-print">
         <div style="display:flex;gap:5px">
@@ -564,8 +635,11 @@ function renderAdempimentiTabella(adempimenti) {
         </div>
       </td>
     </tr>
-  `).join("") || `<tr><td colspan="6"><div class="empty">📋 Nessun adempimento</div></td></tr>`;
-  
+  `,
+      )
+      .join("") ||
+    `<tr><td colspan="6"><div class="empty">📋 Nessun adempimento</div></td></tr>`;
+
   document.getElementById("content").innerHTML = `
     <div class="print-header"><strong>Studio Commerciale — Adempimenti Fiscali</strong><br>Data stampa: ${new Date().toLocaleDateString("it-IT")} — Totale: ${adempimenti.length}</div>
     <div class="table-wrap"><div class="table-header no-print"><h3>Adempimenti (${adempimenti.length})</h3></div>
@@ -575,61 +649,95 @@ function renderAdempimentiTabella(adempimenti) {
 
 // ─── TIPOLOGIE CLIENTI ────────────────────────────────────────────────────
 function renderTipologiePage() {
-  const cards = state.tipologie.map(t => {
-    const subs = t.sottotipologie || [];
-    const color = { PF: "var(--accent)", SP: "var(--purple)", SC: "var(--green)", ASS: "var(--yellow)" }[t.codice] || "var(--accent)";
-    return `<div class="tipo-card">
+  const cards = state.tipologie
+    .map((t) => {
+      const subs = t.sottotipologie || [];
+      const color =
+        {
+          PF: "var(--accent)",
+          SP: "var(--purple)",
+          SC: "var(--green)",
+          ASS: "var(--yellow)",
+        }[t.codice] || "var(--accent)";
+      return `<div class="tipo-card">
       <div class="tipo-codice" style="color:${color}">${t.codice}</div>
       <div class="tipo-nome">${t.nome}</div>
       <div class="tipo-desc">${t.descrizione || ""}</div>
       <div class="divider"></div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:700">Sottotipologie</div>
-      <div>${subs.map(s => `<div style="font-size:12px;padding:4px 8px;background:var(--surface2);border-radius:5px;border-left:2px solid ${color};margin-bottom:4px">${s.nome}</div>`).join("")}</div>
+      <div>${subs.map((s) => `<div style="font-size:12px;padding:4px 8px;background:var(--surface2);border-radius:5px;border-left:2px solid ${color};margin-bottom:4px">${s.nome}</div>`).join("")}</div>
     </div>`;
-  }).join("");
-  document.getElementById("content").innerHTML = `<div class="tipo-cards">${cards}</div>`;
+    })
+    .join("");
+  document.getElementById("content").innerHTML =
+    `<div class="tipo-cards">${cards}</div>`;
 }
 
 // ─── MODAL CLIENTE ────────────────────────────────────────────────────────
 function populateTipologiaSelect() {
   const sel = document.getElementById("c-tipologia");
   if (!sel) return;
-  sel.innerHTML = state.tipologie.map(t => `<option value="${t.id}">${t.codice} – ${t.nome}</option>`).join("");
+  sel.innerHTML = state.tipologie
+    .map((t) => `<option value="${t.id}">${t.codice} – ${t.nome}</option>`)
+    .join("");
   onTipologiaChange();
 }
 
 function onTipologiaChange() {
   const tipId = parseInt(document.getElementById("c-tipologia")?.value);
-  const tip = state.tipologie.find(t => t.id === tipId);
+  const tip = state.tipologie.find((t) => t.id === tipId);
   const sel = document.getElementById("c-sottotipologia");
   if (!sel || !tip) return;
-  sel.innerHTML = '<option value="">-- Nessuna --</option>' + (tip.sottotipologie || []).map(s => `<option value="${s.id}">${s.nome}</option>`).join("");
+  sel.innerHTML =
+    '<option value="">-- Nessuna --</option>' +
+    (tip.sottotipologie || [])
+      .map((s) => `<option value="${s.id}">${s.nome}</option>`)
+      .join("");
 }
 
 function renderCategorieSelect(categorieAttuali = []) {
   const container = document.getElementById("categorie-attive");
   if (!container) return;
-  container.innerHTML = CATEGORIE_DISPONIBILI.map(cat => `
-    <label class="categoria-chip" style="display:inline-flex;align-items:center;gap:8px;margin:4px 8px 4px 0;padding:8px 12px;background:var(--surface2);border-radius:var(--r-sm);cursor:pointer;border:1px solid ${categorieAttuali.includes(cat.codice) ? 'var(--accent)' : 'var(--border)'}">
-      <input type="checkbox" value="${cat.codice}" ${categorieAttuali.includes(cat.codice) ? 'checked' : ''} style="accent-color:var(--accent)" onchange="this.parentElement.style.borderColor=this.checked?'var(--accent)':'var(--border)'">
+  container.innerHTML = CATEGORIE_DISPONIBILI.map(
+    (cat) => `
+    <label class="categoria-chip" style="display:inline-flex;align-items:center;gap:8px;margin:4px 8px 4px 0;padding:8px 12px;background:var(--surface2);border-radius:var(--r-sm);cursor:pointer;border:1px solid ${categorieAttuali.includes(cat.codice) ? "var(--accent)" : "var(--border)"}">
+      <input type="checkbox" value="${cat.codice}" ${categorieAttuali.includes(cat.codice) ? "checked" : ""} style="accent-color:var(--accent)" onchange="this.parentElement.style.borderColor=this.checked?'var(--accent)':'var(--border)'">
       <span>${cat.icona} ${cat.nome}</span>
     </label>
-  `).join('');
+  `,
+  ).join("");
 }
 
 function getSelectedCategorie() {
   const checkboxes = document.querySelectorAll("#categorie-attive input");
-  return Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+  return Array.from(checkboxes)
+    .filter((cb) => cb.checked)
+    .map((cb) => cb.value);
 }
 
 function openNuovoCliente() {
   document.getElementById("modal-cliente-title").textContent = "Nuovo Cliente";
   document.getElementById("cliente-id").value = "";
-  ["c-nome","c-cf","c-piva","c-email","c-tel","c-indirizzo","c-note"].forEach(id => { 
-    const el = document.getElementById(id); 
-    if (el) el.value = ""; 
+  [
+    "c-nome",
+    "c-cf",
+    "c-piva",
+    "c-email",
+    "c-tel",
+    "c-indirizzo",
+    "c-note",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
   });
-  renderCategorieSelect(["IVA", "DICHIARAZIONI", "PREVIDENZA", "LAVORO", "TRIBUTI", "BILANCIO"]);
+  renderCategorieSelect([
+    "IVA",
+    "DICHIARAZIONI",
+    "PREVIDENZA",
+    "LAVORO",
+    "TRIBUTI",
+    "BILANCIO",
+  ]);
   populateTipologiaSelect();
   openModal("modal-cliente");
 }
@@ -637,7 +745,8 @@ function openNuovoCliente() {
 function editCliente(id) {
   socket.once("res:cliente", ({ success, data }) => {
     if (!success || !data) return;
-    document.getElementById("modal-cliente-title").textContent = "Modifica Cliente";
+    document.getElementById("modal-cliente-title").textContent =
+      "Modifica Cliente";
     document.getElementById("cliente-id").value = data.id;
     document.getElementById("c-nome").value = data.nome || "";
     document.getElementById("c-cf").value = data.codice_fiscale || "";
@@ -646,12 +755,18 @@ function editCliente(id) {
     document.getElementById("c-tel").value = data.telefono || "";
     document.getElementById("c-indirizzo").value = data.indirizzo || "";
     document.getElementById("c-note").value = data.note || "";
-    const categorieAttuali = JSON.parse(data.categorie_attive || '["IVA","DICHIARAZIONI","PREVIDENZA","LAVORO","TRIBUTI","BILANCIO"]');
+    const categorieAttuali = JSON.parse(
+      data.categorie_attive ||
+        '["IVA","DICHIARAZIONI","PREVIDENZA","LAVORO","TRIBUTI","BILANCIO"]',
+    );
     renderCategorieSelect(categorieAttuali);
     populateTipologiaSelect();
     document.getElementById("c-tipologia").value = data.id_tipologia;
     onTipologiaChange();
-    setTimeout(() => { document.getElementById("c-sottotipologia").value = data.id_sottotipologia || ""; }, 60);
+    setTimeout(() => {
+      document.getElementById("c-sottotipologia").value =
+        data.id_sottotipologia || "";
+    }, 60);
     openModal("modal-cliente");
   });
   socket.emit("get:cliente", { id });
@@ -662,8 +777,10 @@ function saveCliente() {
   const data = {
     nome: document.getElementById("c-nome").value.trim(),
     id_tipologia: parseInt(document.getElementById("c-tipologia").value),
-    id_sottotipologia: document.getElementById("c-sottotipologia").value || null,
-    codice_fiscale: document.getElementById("c-cf").value.trim().toUpperCase() || null,
+    id_sottotipologia:
+      document.getElementById("c-sottotipologia").value || null,
+    codice_fiscale:
+      document.getElementById("c-cf").value.trim().toUpperCase() || null,
     partita_iva: document.getElementById("c-piva").value.trim() || null,
     email: document.getElementById("c-email").value.trim() || null,
     telefono: document.getElementById("c-tel").value.trim() || null,
@@ -671,10 +788,18 @@ function saveCliente() {
     note: document.getElementById("c-note").value.trim() || null,
     categorie_attive: getSelectedCategorie(),
   };
-  if (!data.nome) { showNotif("Il nome è obbligatorio", "error"); return; }
-  if (data.categorie_attive.length === 0) { showNotif("Seleziona almeno una categoria", "error"); return; }
-  if (id) { data.id = parseInt(id); socket.emit("update:cliente", data); }
-  else socket.emit("create:cliente", data);
+  if (!data.nome) {
+    showNotif("Il nome è obbligatorio", "error");
+    return;
+  }
+  if (data.categorie_attive.length === 0) {
+    showNotif("Seleziona almeno una categoria", "error");
+    return;
+  }
+  if (id) {
+    data.id = parseInt(id);
+    socket.emit("update:cliente", data);
+  } else socket.emit("create:cliente", data);
 }
 
 function deleteCliente(id, nome) {
@@ -682,8 +807,10 @@ function deleteCliente(id, nome) {
 }
 
 function goScadenzario(id) {
-  state.selectedCliente = state.clienti.find(c => c.id === id) || null;
-  document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
+  state.selectedCliente = state.clienti.find((c) => c.id === id) || null;
+  document
+    .querySelectorAll(".nav-item")
+    .forEach((x) => x.classList.remove("active"));
   document.querySelector('[data-page="scadenzario"]').classList.add("active");
   state._pending = "scadenzario";
   socket.emit("get:clienti");
@@ -714,12 +841,14 @@ function saveAdpStato() {
 
 function deleteAdpCliente() {
   const id = parseInt(document.getElementById("adp-id").value);
-  if (confirm("Rimuovere questo adempimento?")) socket.emit("delete:adempimento_cliente", { id });
+  if (confirm("Rimuovere questo adempimento?"))
+    socket.emit("delete:adempimento_cliente", { id });
 }
 
 // ─── MODAL ADEMPIMENTO DEF ────────────────────────────────────────────────
 function openNuovoAdpDef() {
-  document.getElementById("modal-adp-def-title").textContent = "Nuovo Adempimento";
+  document.getElementById("modal-adp-def-title").textContent =
+    "Nuovo Adempimento";
   document.getElementById("adp-def-id").value = "";
   document.getElementById("adp-def-codice").value = "";
   document.getElementById("adp-def-nome").value = "";
@@ -730,14 +859,16 @@ function openNuovoAdpDef() {
 }
 
 function editAdpDef(id) {
-  const a = state.adempimenti.find(x => x.id === id);
+  const a = state.adempimenti.find((x) => x.id === id);
   if (!a) return;
-  document.getElementById("modal-adp-def-title").textContent = "Modifica Adempimento";
+  document.getElementById("modal-adp-def-title").textContent =
+    "Modifica Adempimento";
   document.getElementById("adp-def-id").value = a.id;
   document.getElementById("adp-def-codice").value = a.codice;
   document.getElementById("adp-def-nome").value = a.nome;
   document.getElementById("adp-def-desc").value = a.descrizione || "";
-  document.getElementById("adp-def-scadenza").value = a.scadenza_tipo || "annuale";
+  document.getElementById("adp-def-scadenza").value =
+    a.scadenza_tipo || "annuale";
   document.getElementById("adp-def-categoria").value = a.categoria || "TUTTI";
   openModal("modal-adp-def");
 }
@@ -745,19 +876,28 @@ function editAdpDef(id) {
 function saveAdpDef() {
   const id = document.getElementById("adp-def-id").value;
   const data = {
-    codice: document.getElementById("adp-def-codice").value.trim().toUpperCase(),
+    codice: document
+      .getElementById("adp-def-codice")
+      .value.trim()
+      .toUpperCase(),
     nome: document.getElementById("adp-def-nome").value.trim(),
     descrizione: document.getElementById("adp-def-desc").value.trim() || null,
     scadenza_tipo: document.getElementById("adp-def-scadenza").value,
     categoria: document.getElementById("adp-def-categoria").value,
   };
-  if (!data.codice || !data.nome) { showNotif("Codice e Nome obbligatori", "error"); return; }
-  if (id) { data.id = parseInt(id); socket.emit("update:adempimento", data); }
-  else socket.emit("create:adempimento", data);
+  if (!data.codice || !data.nome) {
+    showNotif("Codice e Nome obbligatori", "error");
+    return;
+  }
+  if (id) {
+    data.id = parseInt(id);
+    socket.emit("update:adempimento", data);
+  } else socket.emit("create:adempimento", data);
 }
 
 function deleteAdpDef(id, nome) {
-  if (confirm(`Eliminare "${nome}"?`)) socket.emit("delete:adempimento", { id });
+  if (confirm(`Eliminare "${nome}"?`))
+    socket.emit("delete:adempimento", { id });
 }
 
 // ─── COPIA SCADENZARIO ────────────────────────────────────────────────────
@@ -780,19 +920,29 @@ function eseguiCopia() {
 function openAddAdp(id) {
   document.getElementById("add-adp-cliente-id").value = id;
   const sel = document.getElementById("add-adp-select");
-  sel.innerHTML = state.adempimenti.map(a => `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`).join("");
+  sel.innerHTML = state.adempimenti
+    .map(
+      (a) =>
+        `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`,
+    )
+    .join("");
   document.getElementById("add-adp-periodo").value = "";
   openModal("modal-add-adp");
 }
 
 function eseguiAddAdp() {
   const periodoVal = document.getElementById("add-adp-periodo").value;
-  let trimestre = null, semestre = null, mese = null;
-  
-  if (periodoVal.startsWith("trimestre_")) trimestre = parseInt(periodoVal.split("_")[1]);
-  else if (periodoVal.startsWith("semestre_")) semestre = parseInt(periodoVal.split("_")[1]);
-  else if (periodoVal.startsWith("mese_")) mese = parseInt(periodoVal.split("_")[1]);
-  
+  let trimestre = null,
+    semestre = null,
+    mese = null;
+
+  if (periodoVal.startsWith("trimestre_"))
+    trimestre = parseInt(periodoVal.split("_")[1]);
+  else if (periodoVal.startsWith("semestre_"))
+    semestre = parseInt(periodoVal.split("_")[1]);
+  else if (periodoVal.startsWith("mese_"))
+    mese = parseInt(periodoVal.split("_")[1]);
+
   socket.emit("add:adempimento_cliente", {
     id_cliente: parseInt(document.getElementById("add-adp-cliente-id").value),
     id_adempimento: parseInt(document.getElementById("add-adp-select").value),
@@ -804,14 +954,22 @@ function eseguiAddAdp() {
 }
 
 // ─── MODAL HELPERS ────────────────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).classList.add("open"); }
-function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function openModal(id) {
+  document.getElementById(id).classList.add("open");
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove("open");
+}
 
-document.querySelectorAll(".modal-overlay").forEach(el => { 
-  el.addEventListener("click", (e) => { if (e.target === el) el.classList.remove("open"); }); 
+document.querySelectorAll(".modal-overlay").forEach((el) => {
+  el.addEventListener("click", (e) => {
+    if (e.target === el) el.classList.remove("open");
+  });
 });
 
-function esc(s) { return (s || "").replace(/'/g, "\\'").replace(/\n/g, " "); }
+function esc(s) {
+  return (s || "").replace(/'/g, "\\'").replace(/\n/g, " ");
+}
 
 function showNotif(msg, type = "info") {
   const icons = { success: "✅", info: "ℹ️", error: "❌" };
