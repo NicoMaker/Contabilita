@@ -149,14 +149,8 @@ function seedData() {
   const adempimenti = [
     { codice: 'TASSA_NID', nome: 'Tassa NID', descrizione: 'Tassa numerazione e idoneità documenti', categoria: 'TUTTI', scadenza: 'annuale' },
     { codice: 'INAIL', nome: 'INAIL', descrizione: 'Dichiarazione e pagamenti INAIL', categoria: 'LAVORO', scadenza: 'annuale' },
-    { codice: 'INPS_1', nome: 'INPS 1° Trimestre', descrizione: 'INPS 1° trimestre', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
-    { codice: 'INPS_2', nome: 'INPS 2° Trimestre', descrizione: 'INPS 2° trimestre', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
-    { codice: 'INPS_3', nome: 'INPS 3° Trimestre', descrizione: 'INPS 3° trimestre', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
-    { codice: 'INPS_4', nome: 'INPS 4° Trimestre', descrizione: 'INPS 4° trimestre', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
-    { codice: 'LIPE_1', nome: 'LIPE 1° Trimestre', descrizione: 'Liquidazione IVA periodica 1° trimestre', categoria: 'IVA', scadenza: 'trimestrale' },
-    { codice: 'LIPE_2', nome: 'LIPE 2° Trimestre', descrizione: 'Liquidazione IVA periodica 2° trimestre', categoria: 'IVA', scadenza: 'trimestrale' },
-    { codice: 'LIPE_3', nome: 'LIPE 3° Trimestre', descrizione: 'Liquidazione IVA periodica 3° trimestre', categoria: 'IVA', scadenza: 'trimestrale' },
-    { codice: 'LIPE_4', nome: 'LIPE 4° Trimestre', descrizione: 'Liquidazione IVA periodica 4° trimestre', categoria: 'IVA', scadenza: 'trimestrale' },
+    { codice: 'INPS_TRIM', nome: 'INPS Trimestrale', descrizione: 'INPS trimestrale', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
+    { codice: 'LIPE', nome: 'LIPE', descrizione: 'Liquidazione IVA periodica trimestrale', categoria: 'IVA', scadenza: 'trimestrale' },
     { codice: 'ACCONTO_IVA', nome: 'Acconto IVA', descrizione: 'Acconto IVA annuale', categoria: 'IVA', scadenza: 'annuale' },
     { codice: 'CU', nome: 'Certificazione Unica', descrizione: 'Certificazione Unica', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
     { codice: '770', nome: 'Modello 770', descrizione: 'Dichiarazione sostituti di imposta', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
@@ -166,7 +160,8 @@ function seedData() {
     { codice: 'IRAP', nome: 'IRAP', descrizione: 'Imposta Regionale sulle Attività Produttive', categoria: 'TRIBUTI', scadenza: 'annuale' },
     { codice: 'DICH_REDDITI', nome: 'Dichiarazione Redditi', descrizione: 'Dichiarazione annuale redditi', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
     { codice: '730', nome: 'Modello 730', descrizione: 'Mod. 730 persone fisiche dipendenti', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
-    { codice: 'IMU', nome: 'IMU', descrizione: 'Imposta Municipale Unica', categoria: 'TRIBUTI', scadenza: 'annuale' },
+    { codice: 'IMU', nome: 'IMU', descrizione: 'Imposta Municipale Unica', categoria: 'TRIBUTI', scadenza: 'semestrale' },
+    { codice: 'F24_MENS', nome: 'F24 Mensile', descrizione: 'Versamento F24 mensile', categoria: 'TRIBUTI', scadenza: 'mensile' },
   ];
   adempimenti.forEach(a => db.run(`INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo) VALUES (?,?,?,?,?)`,
     [a.codice, a.nome, a.descrizione, a.categoria, a.scadenza]));
@@ -185,55 +180,118 @@ function seedData() {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GENERAZIONE AUTOMATICA SCADENZARIO
+// genera SEMPRE tutti i periodi dell'anno in base al tipo di scadenza
 // ═══════════════════════════════════════════════════════════════════════════
 function generaScadenzarioInterno(id_cliente, anno) {
   const cliente = queryOne(`SELECT * FROM clienti WHERE id=?`, [id_cliente]);
   if (!cliente) throw new Error('Cliente non trovato');
-  
+
   const categorieAttive = JSON.parse(cliente.categorie_attive || '[]');
   const adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo=1`);
-  
+
   const applicabili = adempimenti.filter(a => {
     if (a.categoria === 'TUTTI') return true;
     return categorieAttive.includes(a.categoria);
   });
 
-  runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=?`, [id_cliente, anno]);
+  // Cancella solo righe con stato da_fare (non tocca completati/in_corso)
+  runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=? AND stato='da_fare'`, [id_cliente, anno]);
 
   let totaleGenerati = 0;
 
   applicabili.forEach(a => {
     const scadenza = a.scadenza_tipo;
-    
+
     if (scadenza === 'trimestrale') {
       for (let t = 1; t <= 4; t++) {
-        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`, 
-          [id_cliente, a.id, anno, t, 'da_fare']);
-        totaleGenerati++;
+        const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND trimestre=?`, [id_cliente, a.id, anno, t]);
+        if (!exists) {
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, t, 'da_fare']);
+          totaleGenerati++;
+        }
       }
-    } 
-    else if (scadenza === 'semestrale') {
+    } else if (scadenza === 'semestrale') {
       for (let s = 1; s <= 2; s++) {
-        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`, 
-          [id_cliente, a.id, anno, s, 'da_fare']);
-        totaleGenerati++;
+        const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND semestre=?`, [id_cliente, a.id, anno, s]);
+        if (!exists) {
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, s, 'da_fare']);
+          totaleGenerati++;
+        }
       }
-    } 
-    else if (scadenza === 'mensile') {
+    } else if (scadenza === 'mensile') {
       for (let m = 1; m <= 12; m++) {
-        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`, 
-          [id_cliente, a.id, anno, m, 'da_fare']);
+        const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND mese=?`, [id_cliente, a.id, anno, m]);
+        if (!exists) {
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, m, 'da_fare']);
+          totaleGenerati++;
+        }
+      }
+    } else {
+      // annuale
+      const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND mese IS NULL AND trimestre IS NULL AND semestre IS NULL`, [id_cliente, a.id, anno]);
+      if (!exists) {
+        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+          [id_cliente, a.id, anno, 'da_fare']);
         totaleGenerati++;
       }
-    } 
-    else {
-      runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`, 
-        [id_cliente, a.id, anno, 'da_fare']);
-      totaleGenerati++;
     }
   });
 
   return totaleGenerati;
+}
+
+// Genera per TUTTI i clienti attivi — usata quando si crea un nuovo adempimento
+function generaAdempimentoPerTutti(id_adempimento, anno) {
+  const adempimento = queryOne(`SELECT * FROM adempimenti WHERE id=?`, [id_adempimento]);
+  if (!adempimento) return 0;
+
+  const clienti = queryAll(`SELECT * FROM clienti WHERE attivo=1`);
+  let totale = 0;
+
+  clienti.forEach(cliente => {
+    const categorieAttive = JSON.parse(cliente.categorie_attive || '[]');
+    const applicabile = adempimento.categoria === 'TUTTI' || categorieAttive.includes(adempimento.categoria);
+    if (!applicabile) return;
+
+    const scadenza = adempimento.scadenza_tipo;
+
+    if (scadenza === 'trimestrale') {
+      for (let t = 1; t <= 4; t++) {
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, t, 'da_fare']);
+          totale++;
+        } catch(e) {}
+      }
+    } else if (scadenza === 'semestrale') {
+      for (let s = 1; s <= 2; s++) {
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, s, 'da_fare']);
+          totale++;
+        } catch(e) {}
+      }
+    } else if (scadenza === 'mensile') {
+      for (let m = 1; m <= 12; m++) {
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, m, 'da_fare']);
+          totale++;
+        } catch(e) {}
+      }
+    } else {
+      try {
+        runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+          [cliente.id, id_adempimento, anno, 'da_fare']);
+        totale++;
+      } catch(e) {}
+    }
+  });
+
+  return totale;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -262,14 +320,14 @@ io.on('connection', (socket) => {
         WHERE c.attivo = 1
       `;
       const params = [];
-      if (filtri.tipologia && filtri.tipologia !== '') { 
-        sql += ` AND t.codice = ?`; 
-        params.push(filtri.tipologia); 
+      if (filtri.tipologia && filtri.tipologia !== '') {
+        sql += ` AND t.codice = ?`;
+        params.push(filtri.tipologia);
       }
-      if (filtri.search && filtri.search.trim() !== '') { 
-        const s = `%${filtri.search}%`; 
-        sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ? OR c.indirizzo LIKE ?)`; 
-        params.push(s, s, s, s, s, s); 
+      if (filtri.search && filtri.search.trim() !== '') {
+        const s = `%${filtri.search.trim()}%`;
+        sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ? OR c.indirizzo LIKE ?)`;
+        params.push(s, s, s, s, s, s);
       }
       sql += ` ORDER BY c.nome`;
       const clienti = queryAll(sql, params);
@@ -308,10 +366,10 @@ io.on('connection', (socket) => {
       const categorieAttive = JSON.stringify(data.categorie_attive || []);
       runQuery(`UPDATE clienti SET nome=?, id_tipologia=?, id_sottotipologia=?, codice_fiscale=?, partita_iva=?, email=?, telefono=?, indirizzo=?, note=?, categorie_attive=? WHERE id=?`,
         [data.nome, data.id_tipologia, data.id_sottotipologia || null, data.codice_fiscale || null, data.partita_iva || null, data.email || null, data.telefono || null, data.indirizzo || null, data.note || null, categorieAttive, data.id]);
-      
+
       const annoCorrente = new Date().getFullYear();
       let totale = 0;
-      for (let anno = annoCorrente; anno <= annoCorrente + 2; anno++) {
+      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) {
         totale += generaScadenzarioInterno(data.id, anno);
       }
       io.emit('notify', { type: 'success', msg: `✅ Cliente aggiornato, scadenzario rigenerato (${totale} adempimenti)` });
@@ -332,9 +390,9 @@ io.on('connection', (socket) => {
       let sql = `SELECT * FROM adempimenti WHERE attivo=1`;
       const params = [];
       if (filtri.search && filtri.search.trim() !== '') {
-        const s = `%${filtri.search}%`;
-        sql += ` AND (codice LIKE ? OR nome LIKE ? OR descrizione LIKE ?)`;
-        params.push(s, s, s);
+        const s = `%${filtri.search.trim()}%`;
+        sql += ` AND (codice LIKE ? OR nome LIKE ? OR descrizione LIKE ? OR categoria LIKE ?)`;
+        params.push(s, s, s, s);
       }
       sql += ` ORDER BY categoria, codice`;
       const adempimenti = queryAll(sql, params);
@@ -348,7 +406,16 @@ io.on('connection', (socket) => {
       if (existing) throw new Error(`Codice "${data.codice}" già esistente`);
       runQuery(`INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo) VALUES (?,?,?,?,?)`,
         [data.codice, data.nome, data.descrizione || null, data.categoria, data.scadenza_tipo]);
-      io.emit('notify', { type: 'success', msg: `✅ Adempimento "${data.nome}" creato` });
+      const newId = queryOne(`SELECT last_insert_rowid() as id`).id;
+
+      // Genera automaticamente per tutti i clienti per l'anno corrente e successivo
+      const annoCorrente = new Date().getFullYear();
+      let totaleRighe = 0;
+      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) {
+        totaleRighe += generaAdempimentoPerTutti(newId, anno);
+      }
+
+      io.emit('notify', { type: 'success', msg: `✅ Adempimento "${data.nome}" creato e assegnato a tutti i clienti (${totaleRighe} righe)` });
       socket.emit('res:create:adempimento', { success: true });
     } catch (e) { socket.emit('res:create:adempimento', { success: false, error: e.message }); }
   });
@@ -382,10 +449,10 @@ io.on('connection', (socket) => {
       `;
       const params = [id_cliente, anno];
       if (filtro_stato && filtro_stato !== 'tutti') { sql += ` AND ac.stato=?`; params.push(filtro_stato); }
-      if (filtro_adempimento && filtro_adempimento.trim() !== '') { 
-        const s = `%${filtro_adempimento}%`; 
-        sql += ` AND (a.codice LIKE ? OR a.nome LIKE ?)`; 
-        params.push(s, s); 
+      if (filtro_adempimento && filtro_adempimento.trim() !== '') {
+        const s = `%${filtro_adempimento.trim()}%`;
+        sql += ` AND (a.codice LIKE ? OR a.nome LIKE ? OR a.categoria LIKE ?)`;
+        params.push(s, s, s);
       }
       sql += ` ORDER BY a.categoria, a.codice, ac.trimestre, ac.semestre, ac.mese`;
       const righe = queryAll(sql, params);
@@ -407,10 +474,10 @@ io.on('connection', (socket) => {
       const params = [anno];
       if (filtro_stato && filtro_stato !== 'tutti') { sql += ` AND ac.stato=?`; params.push(filtro_stato); }
       if (filtro_categoria && filtro_categoria !== 'tutti') { sql += ` AND a.categoria=?`; params.push(filtro_categoria); }
-      if (search && search.trim() !== '') { 
-        const s = `%${search}%`; 
-        sql += ` AND (c.nome LIKE ? OR a.codice LIKE ? OR a.nome LIKE ?)`; 
-        params.push(s, s, s); 
+      if (search && search.trim() !== '') {
+        const s = `%${search.trim()}%`;
+        sql += ` AND (c.nome LIKE ? OR a.codice LIKE ? OR a.nome LIKE ? OR a.categoria LIKE ?)`;
+        params.push(s, s, s, s);
       }
       sql += ` ORDER BY c.nome, a.categoria, a.codice`;
       const righe = queryAll(sql, params);
@@ -420,6 +487,8 @@ io.on('connection', (socket) => {
 
   socket.on('genera:scadenzario', ({ id_cliente, anno }) => {
     try {
+      // Per rigenerare, cancella TUTTI i da_fare e reinserisce
+      runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=? AND stato='da_fare'`, [id_cliente, anno]);
       const nAdp = generaScadenzarioInterno(id_cliente, anno);
       const cliente = queryOne(`SELECT nome FROM clienti WHERE id=?`, [id_cliente]);
       io.emit('notify', { type: 'success', msg: `⚡ Scadenzario ${anno} generato: ${nAdp} adempimenti per ${cliente.nome}` });
@@ -463,15 +532,35 @@ io.on('connection', (socket) => {
     } catch (e) { socket.emit('res:add:adempimento_cliente', { success: false, error: e.message }); }
   });
 
-  socket.on('get:stats', ({ anno }) => {
+  socket.on('get:stats', ({ anno, search }) => {
     try {
-      const totClienti = queryOne(`SELECT COUNT(*) as n FROM clienti WHERE attivo=1`).n;
+      let whereCliente = `c.attivo=1`;
+      const params = [];
+      const paramsAnno = [anno];
+      const paramsAnnoSearch = [anno];
+
+      if (search && search.trim() !== '') {
+        const s = `%${search.trim()}%`;
+        whereCliente += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ?)`;
+        // per le stats globali la ricerca non filtra i conteggi totali
+      }
+
+      const totClienti = queryOne(`SELECT COUNT(*) as n FROM clienti c WHERE c.attivo=1`).n;
       const perTipologia = queryAll(`SELECT t.codice, t.nome, COUNT(c.id) as n FROM tipologie_cliente t LEFT JOIN clienti c ON c.id_tipologia=t.id AND c.attivo=1 GROUP BY t.id ORDER BY t.id`);
-      const totAdempimenti = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente WHERE anno=?`, [anno]).n;
-      const completati = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente WHERE anno=? AND stato='completato'`, [anno]).n;
-      const daFare = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente WHERE anno=? AND stato='da_fare'`, [anno]).n;
-      const inCorso = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente WHERE anno=? AND stato='in_corso'`, [anno]).n;
-      socket.emit('res:stats', { success: true, data: { totClienti, perTipologia, totAdempimenti, completati, daFare, inCorso, anno } });
+      const totAdempimenti = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND c.attivo=1`, [anno]).n;
+      const completati = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='completato' AND c.attivo=1`, [anno]).n;
+      const daFare = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='da_fare' AND c.attivo=1`, [anno]).n;
+      const inCorso = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='in_corso' AND c.attivo=1`, [anno]).n;
+      const na = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='n_a' AND c.attivo=1`, [anno]).n;
+
+      // Clienti con scadenze non completate (da_fare) — top 5
+      const scadenzeAperte = queryAll(`
+        SELECT c.nome, COUNT(*) as n FROM adempimenti_cliente ac
+        JOIN clienti c ON ac.id_cliente=c.id
+        WHERE ac.anno=? AND ac.stato='da_fare' AND c.attivo=1
+        GROUP BY ac.id_cliente ORDER BY n DESC LIMIT 5`, [anno]);
+
+      socket.emit('res:stats', { success: true, data: { totClienti, perTipologia, totAdempimenti, completati, daFare, inCorso, na, anno, scadenzeAperte } });
     } catch (e) { socket.emit('res:stats', { success: false, error: e.message }); }
   });
 

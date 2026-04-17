@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Studio Fiscale — Gestionale</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -18,25 +15,13 @@
         <div class="logo-sub">Gestionale Fiscale</div>
       </div>
       <nav class="nav">
-        <div class="nav-item active" data-page="dashboard">
-          <span class="nav-icon">📊</span> Dashboard
-        </div>
-        <div class="nav-item" data-page="clienti">
-          <span class="nav-icon">👥</span> Clienti
-        </div>
-        <div class="nav-item" data-page="scadenzario">
-          <span class="nav-icon">📅</span> Scadenzario
-        </div>
-        <div class="nav-item" data-page="scadenzario_globale">
-          <span class="nav-icon">🌐</span> Vista Globale
-        </div>
+        <div class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="nav-item" data-page="clienti"><span class="nav-icon">👥</span> Clienti</div>
+        <div class="nav-item" data-page="scadenzario"><span class="nav-icon">📅</span> Scadenzario</div>
+        <div class="nav-item" data-page="scadenzario_globale"><span class="nav-icon">🌐</span> Vista Globale</div>
         <div class="nav-sep"></div>
-        <div class="nav-item" data-page="adempimenti">
-          <span class="nav-icon">📋</span> Adempimenti
-        </div>
-        <div class="nav-item" data-page="tipologie">
-          <span class="nav-icon">🏷️</span> Tipologie Clienti
-        </div>
+        <div class="nav-item" data-page="adempimenti"><span class="nav-icon">📋</span> Adempimenti</div>
+        <div class="nav-item" data-page="tipologie"><span class="nav-icon">🏷️</span> Tipologie Clienti</div>
       </nav>
       <div class="sidebar-footer" id="conn-status">● Connessione...</div>
     </aside>
@@ -54,26 +39,16 @@
     <!-- MODAL CLIENTE -->
     <div class="modal-overlay" id="modal-cliente">
       <div class="modal modal-lg">
-        <div class="modal-title">
-          👤 <span id="modal-cliente-title">Nuovo Cliente</span>
-        </div>
+        <div class="modal-title">👤 <span id="modal-cliente-title">Nuovo Cliente</span></div>
         <input type="hidden" id="cliente-id" />
         <div class="form-group">
           <label>Nome / Ragione Sociale *</label>
-          <input
-            class="input"
-            id="c-nome"
-            placeholder="Es. Mario Rossi o Alfa Srl"
-          />
+          <input class="input" id="c-nome" placeholder="Es. Mario Rossi o Alfa Srl" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Tipologia *</label>
-            <select
-              class="select"
-              id="c-tipologia"
-              onchange="onTipologiaChange()"
-            ></select>
+            <select class="select" id="c-tipologia" onchange="onTipologiaChange()"></select>
           </div>
           <div class="form-group">
             <label>Sottotipologia</label>
@@ -83,12 +58,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Codice Fiscale</label>
-            <input
-              class="input"
-              id="c-cf"
-              placeholder="RSSMRA80A01L219K"
-              style="text-transform: uppercase"
-            />
+            <input class="input" id="c-cf" placeholder="RSSMRA80A01L219K" style="text-transform:uppercase" />
           </div>
           <div class="form-group">
             <label>Partita IVA</label>
@@ -98,12 +68,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Email</label>
-            <input
-              class="input"
-              id="c-email"
-              type="email"
-              placeholder="email@esempio.it"
-            />
+            <input class="input" id="c-email" type="email" placeholder="email@esempio.it" />
           </div>
           <div class="form-group">
             <label>Telefono</label>
@@ -112,50 +77,32 @@
         </div>
         <div class="form-group">
           <label>Indirizzo</label>
-          <input
-            class="input"
-            id="c-indirizzo"
-            placeholder="Via Roma 1, 00100 Roma"
-          />
+          <input class="input" id="c-indirizzo" placeholder="Via Roma 1, 00100 Roma" />
         </div>
         <div class="form-group">
           <label>Note</label>
           <input class="input" id="c-note" placeholder="Note aggiuntive..." />
         </div>
-
         <div class="form-group">
           <label>📋 Categorie Adempimenti Applicabili</label>
-          <div class="infobox" style="margin-bottom: 12px">
-            💡 Seleziona le categorie di adempimenti che questo cliente deve
-            avere.<br />
-            Lo scadenzario verrà generato automaticamente.
+          <div class="infobox" style="margin-bottom:12px">
+            💡 Seleziona le categorie di adempimenti che questo cliente deve avere.<br />
+            Lo scadenzario verrà generato automaticamente con tutti i periodi dell'anno.
           </div>
           <div class="categorie-group" id="categorie-attive"></div>
         </div>
-
         <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-cliente')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="saveCliente()">
-            💾 Salva
-          </button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Annulla</button>
+          <button class="btn btn-primary" onclick="saveCliente()">💾 Salva</button>
         </div>
       </div>
     </div>
 
-    <!-- MODAL ADEMPIMENTO -->
+    <!-- MODAL ADEMPIMENTO STATO -->
     <div class="modal-overlay" id="modal-adempimento">
       <div class="modal modal-sm">
         <div class="modal-title">
-          ✏️ Adempimento:
-          <span
-            id="adp-nome-label"
-            style="color: var(--accent); font-size: 14px"
-          ></span>
+          ✏️ <span id="adp-nome-label" style="color:var(--accent);font-size:14px"></span>
         </div>
         <input type="hidden" id="adp-id" />
         <div class="form-group">
@@ -164,7 +111,7 @@
             <option value="da_fare">⭕ Da fare</option>
             <option value="in_corso">🔄 In corso</option>
             <option value="completato">✅ Completato</option>
-            <option value="n_a">➖ N/A</option>
+            <option value="n_a">➖ N/A (non applicabile)</option>
           </select>
         </div>
         <div class="form-row">
@@ -179,32 +126,17 @@
         </div>
         <div class="form-group">
           <label>Importo (€)</label>
-          <input
-            class="input"
-            id="adp-importo"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-          />
+          <input class="input" id="adp-importo" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
           <label>Note</label>
           <input class="input" id="adp-note" placeholder="Note..." />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteAdpCliente()">
-            🗑️ Rimuovi
-          </button>
-          <div style="flex: 1"></div>
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-adempimento')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="saveAdpStato()">
-            💾 Salva
-          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAdpCliente()">🗑️ Rimuovi</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" onclick="closeModal('modal-adempimento')">Annulla</button>
+          <button class="btn btn-primary" onclick="saveAdpStato()">💾 Salva</button>
         </div>
       </div>
     </div>
@@ -212,45 +144,33 @@
     <!-- MODAL ADEMPIMENTO DEF -->
     <div class="modal-overlay" id="modal-adp-def">
       <div class="modal">
-        <div class="modal-title">
-          📋 <span id="modal-adp-def-title">Nuovo Adempimento</span>
-        </div>
+        <div class="modal-title">📋 <span id="modal-adp-def-title">Nuovo Adempimento</span></div>
         <input type="hidden" id="adp-def-id" />
+        <div class="infobox" style="margin-bottom:16px">
+          ⚡ Quando crei un nuovo adempimento, viene <strong>automaticamente assegnato a tutti i clienti</strong> con la categoria corrispondente per l'anno corrente e il successivo, con tutti i periodi (es. 4 trimestri, 2 semestri, 12 mesi).
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label>Codice *</label>
-            <input
-              class="input"
-              id="adp-def-codice"
-              placeholder="Es. IMU_2"
-              style="text-transform: uppercase"
-            />
+            <input class="input" id="adp-def-codice" placeholder="Es. IMU_2" style="text-transform:uppercase" />
           </div>
           <div class="form-group">
             <label>Tipo Scadenza *</label>
             <select class="select" id="adp-def-scadenza">
-              <option value="annuale">Annuale (1 record)</option>
-              <option value="semestrale">Semestrale (2 record)</option>
-              <option value="trimestrale">Trimestrale (4 record)</option>
-              <option value="mensile">Mensile (12 record)</option>
+              <option value="annuale">Annuale (1 record/anno)</option>
+              <option value="semestrale">Semestrale (2 record/anno)</option>
+              <option value="trimestrale">Trimestrale (4 record/anno)</option>
+              <option value="mensile">Mensile (12 record/anno)</option>
             </select>
           </div>
         </div>
         <div class="form-group">
           <label>Nome *</label>
-          <input
-            class="input"
-            id="adp-def-nome"
-            placeholder="Es. Imposta Municipale Unica"
-          />
+          <input class="input" id="adp-def-nome" placeholder="Es. Imposta Municipale Unica" />
         </div>
         <div class="form-group">
           <label>Descrizione</label>
-          <input
-            class="input"
-            id="adp-def-desc"
-            placeholder="Descrizione breve"
-          />
+          <input class="input" id="adp-def-desc" placeholder="Descrizione breve" />
         </div>
         <div class="form-group">
           <label>Categoria</label>
@@ -265,15 +185,8 @@
           </select>
         </div>
         <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-adp-def')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="saveAdpDef()">
-            💾 Salva
-          </button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-adp-def')">Annulla</button>
+          <button class="btn btn-primary" onclick="saveAdpDef()">💾 Salva</button>
         </div>
       </div>
     </div>
@@ -294,12 +207,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-copia')">
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="eseguiCopia()">
-            📋 Copia
-          </button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-copia')">Annulla</button>
+          <button class="btn btn-primary" onclick="eseguiCopia()">📋 Copia</button>
         </div>
       </div>
     </div>
@@ -307,48 +216,19 @@
     <!-- MODAL AGGIUNGI ADEMPIMENTO -->
     <div class="modal-overlay" id="modal-add-adp">
       <div class="modal modal-sm">
-        <div class="modal-title">➕ Aggiungi Adempimento</div>
+        <div class="modal-title">➕ Aggiungi Adempimento al cliente</div>
         <input type="hidden" id="add-adp-cliente-id" />
         <div class="form-group">
           <label>Adempimento</label>
-          <select class="select" id="add-adp-select"></select>
+          <select class="select" id="add-adp-select" onchange="updatePeriodoOptions()"></select>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Periodo</label>
-            <select class="select" id="add-adp-periodo">
-              <option value="">— Seleziona —</option>
-              <option value="trimestre_1">1° Trimestre</option>
-              <option value="trimestre_2">2° Trimestre</option>
-              <option value="trimestre_3">3° Trimestre</option>
-              <option value="trimestre_4">4° Trimestre</option>
-              <option value="semestre_1">1° Semestre</option>
-              <option value="semestre_2">2° Semestre</option>
-              <option value="mese_1">Gennaio</option>
-              <option value="mese_2">Febbraio</option>
-              <option value="mese_3">Marzo</option>
-              <option value="mese_4">Aprile</option>
-              <option value="mese_5">Maggio</option>
-              <option value="mese_6">Giugno</option>
-              <option value="mese_7">Luglio</option>
-              <option value="mese_8">Agosto</option>
-              <option value="mese_9">Settembre</option>
-              <option value="mese_10">Ottobre</option>
-              <option value="mese_11">Novembre</option>
-              <option value="mese_12">Dicembre</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label>Periodo</label>
+          <select class="select" id="add-adp-periodo"></select>
         </div>
         <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-add-adp')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="eseguiAddAdp()">
-            ➕ Aggiungi
-          </button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-add-adp')">Annulla</button>
+          <button class="btn btn-primary" onclick="eseguiAddAdp()">➕ Aggiungi</button>
         </div>
       </div>
     </div>
