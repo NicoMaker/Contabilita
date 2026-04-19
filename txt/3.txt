@@ -1,8 +1,1 @@
-vedere tutti i dati sia in vista globale clliente che della parte compelta tutti i dati che compili insomma che vista globale e per semestre devo vedere entrambi i casi sia gennaio giugno che luglio dicembre 
-
-
-per i dati che occuoano più mesi non vedo i prezzi e le categorie inserite e se contabilità anche nel caso die più mesi devo vedere tutti i dati per uttti i casi sia in visto globale che per singolo cliente e dashboard a cgriglia per gli adempimenti  e voglio anche nella sezione vista globale i dati dettagaiti com ein dashbaord dammi tutti i file compelti con tutto
-
-quando crei i dati non vedi tutti i dati inseriti per le tabelle nei campi corretti sia in vista globale che in visa per singolo utente e se semestrale crea anche il caso luglio dicembre
-
-si ma per rtutti i casi anche in vista globale e si ci sono più mesi che vedi tutti i dati
+non vanno creazione adempimenti nella parte dei clienti che nell'anno se non presente quell'adempimento capito ma non per semestre ma crea nell'anno e vedo solo quelli che l'utente non ha creato li 
