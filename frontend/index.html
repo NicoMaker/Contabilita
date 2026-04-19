@@ -81,13 +81,13 @@
         </div>
         <div class="form-group">
           <label>Note</label>
-          <textarea class="input" id="c-note" placeholder="Note aggiuntive..." rows="2" style="resize:vertical"></textarea>
+          <input class="input" id="c-note" placeholder="Note aggiuntive..." />
         </div>
         <div class="form-group">
           <label>📋 Categorie Adempimenti Applicabili</label>
           <div class="infobox" style="margin-bottom:12px">
-            💡 Seleziona le categorie di adempimenti che questo cliente deve avere.
-            Lo scadenzario verrà generato automaticamente.
+            💡 Seleziona le categorie di adempimenti che questo cliente deve avere.<br />
+            Lo scadenzario verrà generato automaticamente con tutti i periodi dell'anno.
           </div>
           <div class="categorie-group" id="categorie-attive"></div>
         </div>
@@ -105,8 +105,6 @@
           ✏️ <span id="adp-nome-label" style="color:var(--accent);font-size:14px"></span>
         </div>
         <input type="hidden" id="adp-id" />
-        <input type="hidden" id="adp-is-contabilita" />
-        <input type="hidden" id="adp-has-rate" />
         <div class="form-group">
           <label>Stato</label>
           <select class="select" id="adp-stato">
@@ -126,47 +124,10 @@
             <input class="input" id="adp-data" type="date" />
           </div>
         </div>
-
-        <!-- Importi normali -->
-        <div id="adp-importo-normale">
-          <div class="form-group">
-            <label>Importo (€)</label>
-            <input class="input" id="adp-importo" type="number" step="0.01" placeholder="0.00" />
-          </div>
+        <div class="form-group">
+          <label>Importo (€)</label>
+          <input class="input" id="adp-importo" type="number" step="0.01" placeholder="0.00" />
         </div>
-
-        <!-- Importi con rate (IRAP, Redditi, 730) -->
-        <div id="adp-importo-rate" style="display:none">
-          <div class="rate-grid">
-            <div class="form-group">
-              <label>💰 Saldo (€)</label>
-              <input class="input" id="adp-importo-saldo" type="number" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="form-group">
-              <label>1° Acconto (€)</label>
-              <input class="input" id="adp-importo-acconto1" type="number" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="form-group">
-              <label>2° Acconto (€)</label>
-              <input class="input" id="adp-importo-acconto2" type="number" step="0.01" placeholder="0.00" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Importi Contabilità/F24 -->
-        <div id="adp-importo-contabilita" style="display:none">
-          <div class="form-row">
-            <div class="form-group">
-              <label>💰 IVA (€)</label>
-              <input class="input" id="adp-importo-iva" type="number" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="form-group">
-              <label>📊 Contabilità (€)</label>
-              <input class="input" id="adp-importo-cont" type="number" step="0.01" placeholder="0.00" />
-            </div>
-          </div>
-        </div>
-
         <div class="form-group">
           <label>Note</label>
           <input class="input" id="adp-note" placeholder="Note..." />
@@ -186,7 +147,7 @@
         <div class="modal-title">📋 <span id="modal-adp-def-title">Nuovo Adempimento</span></div>
         <input type="hidden" id="adp-def-id" />
         <div class="infobox" style="margin-bottom:16px">
-          ⚡ Creando un nuovo adempimento viene <strong>automaticamente assegnato a tutti i clienti</strong> con la categoria corrispondente.
+          ⚡ Quando crei un nuovo adempimento, viene <strong>automaticamente assegnato a tutti i clienti</strong> con la categoria corrispondente per l'anno corrente e il successivo, con tutti i periodi (es. 4 trimestri, 2 semestri, 12 mesi).
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -196,10 +157,10 @@
           <div class="form-group">
             <label>Tipo Scadenza *</label>
             <select class="select" id="adp-def-scadenza">
-              <option value="annuale">Annuale (1×/anno)</option>
-              <option value="semestrale">Semestrale (2×/anno)</option>
-              <option value="trimestrale">Trimestrale (4×/anno)</option>
-              <option value="mensile">Mensile (12×/anno)</option>
+              <option value="annuale">Annuale (1 record/anno)</option>
+              <option value="semestrale">Semestrale (2 record/anno)</option>
+              <option value="trimestrale">Trimestrale (4 record/anno)</option>
+              <option value="mensile">Mensile (12 record/anno)</option>
             </select>
           </div>
         </div>
@@ -223,38 +184,6 @@
             <option value="BILANCIO">📊 Bilancio</option>
           </select>
         </div>
-
-        <!-- Flags speciali -->
-        <div class="flags-row">
-          <label class="flag-chip" id="flag-contabilita-wrap">
-            <input type="checkbox" id="adp-def-contabilita" onchange="onAdpFlagsChange()" />
-            <span>📊 Contabilità (IVA + Cont.)</span>
-          </label>
-          <label class="flag-chip" id="flag-rate-wrap">
-            <input type="checkbox" id="adp-def-rate" onchange="onAdpFlagsChange()" />
-            <span>💰 Rate (Saldo + Acconti)</span>
-          </label>
-        </div>
-
-        <!-- Rate labels personalizzabili -->
-        <div id="rate-labels-section" style="display:none">
-          <div class="infobox" style="margin:12px 0 8px">Le etichette delle rate (es. "Saldo", "1° Acconto", "2° Acconto")</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Label 1</label>
-              <input class="input" id="adp-rate-l1" value="Saldo" />
-            </div>
-            <div class="form-group">
-              <label>Label 2</label>
-              <input class="input" id="adp-rate-l2" value="1° Acconto" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Label 3</label>
-            <input class="input" id="adp-rate-l3" value="2° Acconto" />
-          </div>
-        </div>
-
         <div class="modal-actions">
           <button class="btn btn-secondary" onclick="closeModal('modal-adp-def')">Annulla</button>
           <button class="btn btn-primary" onclick="saveAdpDef()">💾 Salva</button>
@@ -267,8 +196,6 @@
       <div class="modal modal-sm">
         <div class="modal-title">📋 Copia Scadenzario</div>
         <input type="hidden" id="copia-cliente-id" />
-        <input type="hidden" id="copia-modalita" />
-        <div id="copia-info" class="infobox" style="margin-bottom:16px"></div>
         <div class="form-row">
           <div class="form-group">
             <label>Anno di partenza</label>
@@ -286,25 +213,6 @@
       </div>
     </div>
 
-    <!-- MODAL GENERA TUTTI -->
-    <div class="modal-overlay" id="modal-genera-tutti">
-      <div class="modal modal-sm">
-        <div class="modal-title">⚡ Genera Scadenzario per Tutti</div>
-        <div class="infobox" style="margin-bottom:16px">
-          Genera (o rigenera) lo scadenzario per <strong>tutti i clienti attivi</strong> per l'anno selezionato.<br>
-          Gli adempimenti già in stato diverso da "Da fare" verranno conservati.
-        </div>
-        <div class="form-group">
-          <label>Anno</label>
-          <input class="input" id="genera-tutti-anno" type="number" />
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-genera-tutti')">Annulla</button>
-          <button class="btn btn-primary" onclick="eseguiGeneraTutti()">⚡ Genera per Tutti</button>
-        </div>
-      </div>
-    </div>
-
     <!-- MODAL AGGIUNGI ADEMPIMENTO -->
     <div class="modal-overlay" id="modal-add-adp">
       <div class="modal modal-sm">
@@ -313,10 +221,6 @@
         <div class="form-group">
           <label>Adempimento</label>
           <select class="select" id="add-adp-select" onchange="updatePeriodoOptions()"></select>
-        </div>
-        <div class="form-group">
-          <label>Anno</label>
-          <input class="input" id="add-adp-anno" type="number" />
         </div>
         <div class="form-group">
           <label>Periodo</label>

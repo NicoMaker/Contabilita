@@ -1,7 +1,6 @@
 const socket = io();
 
 const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-const MESI_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
 const STATI = {
   da_fare: '⭕ Da fare',
@@ -11,43 +10,13 @@ const STATI = {
 };
 
 const CATEGORIE_DISPONIBILI = [
-  { codice: 'IVA', nome: '💰 IVA', icona: '💰', color: '#fbbf24' },
-  { codice: 'DICHIARAZIONI', nome: '📄 Dichiarazioni', icona: '📄', color: '#5b8df6' },
-  { codice: 'PREVIDENZA', nome: '🏦 Previdenza', icona: '🏦', color: '#34d399' },
-  { codice: 'LAVORO', nome: '👔 Lavoro', icona: '👔', color: '#a78bfa' },
-  { codice: 'TRIBUTI', nome: '🏛️ Tributi', icona: '🏛️', color: '#f87171' },
-  { codice: 'BILANCIO', nome: '📊 Bilancio', icona: '📊', color: '#22d3ee' },
+  { codice: 'IVA', nome: '💰 IVA', icona: '💰' },
+  { codice: 'DICHIARAZIONI', nome: '📄 Dichiarazioni', icona: '📄' },
+  { codice: 'PREVIDENZA', nome: '🏦 Previdenza', icona: '🏦' },
+  { codice: 'LAVORO', nome: '👔 Lavoro', icona: '👔' },
+  { codice: 'TRIBUTI', nome: '🏛️ Tributi', icona: '🏛️' },
+  { codice: 'BILANCIO', nome: '📊 Bilancio', icona: '📊' },
 ];
-
-const CAT_TUTTI = { codice: 'TUTTI', nome: '📌 Tutti', icona: '📌', color: '#fb923c' };
-
-// Mappa sottotipologie con separatori visivi
-const SOTTOTIPOLOGIE_DISPLAY = {
-  1: [ // PF
-    { codice: 'PF_PRIV', nome: 'Privato', is_separator: false },
-    { codice: '__sep1', nome: '— Ditta Individuale —', is_separator: true },
-    { codice: 'PF_DITTA_ORD', nome: 'Ditta Ind. – Ordinario', is_separator: false },
-    { codice: 'PF_DITTA_SEMP', nome: 'Ditta Ind. – Semplificato', is_separator: false },
-    { codice: 'PF_DITTA_FORF', nome: 'Ditta Ind. – Forfettario', is_separator: false },
-    { codice: 'PF_SOCIO', nome: 'Socio', is_separator: false },
-    { codice: '__sep2', nome: '— Professionista —', is_separator: true },
-    { codice: 'PF_PROF_ORD', nome: 'Professionista – Ordinario', is_separator: false },
-    { codice: 'PF_PROF_SEMP', nome: 'Professionista – Semplificato', is_separator: false },
-    { codice: 'PF_PROF_FORF', nome: 'Professionista – Forfettario', is_separator: false },
-  ],
-  2: [ // SP
-    { codice: 'SP_ORD', nome: 'SP – Ordinaria', is_separator: false },
-    { codice: 'SP_SEMP', nome: 'SP – Semplificata', is_separator: false },
-  ],
-  3: [ // SC
-    { codice: 'SC_ORD', nome: 'SC – Ordinaria', is_separator: false },
-    { codice: 'SC_SEMP', nome: 'SC – Semplificata', is_separator: false },
-  ],
-  4: [ // ASS
-    { codice: 'ASS_ORD', nome: 'ASS – Ordinaria', is_separator: false },
-    { codice: 'ASS_SEMP', nome: 'ASS – Semplificata', is_separator: false },
-  ],
-};
 
 let state = {
   page: 'dashboard',
@@ -59,11 +28,9 @@ let state = {
   filtri: { stato: 'tutti', categoria: 'tutti', search: '', adempimento: '' },
   scadenzario: [],
   scadGlobale: [],
-  dashStats: null,
-  dashCatAttiva: null,
-  dashSearch: '',
 };
 
+// Debounce utility
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -89,78 +56,115 @@ socket.on('notify', ({ type, msg }) => showNotif(msg, type));
 
 // ─── RISPOSTE ─────────────────────────────────────────────────────────────
 socket.on('res:tipologie', ({ success, data }) => {
-  if (success) { state.tipologie = data; populateTipologiaSelect(); }
-});
-
-socket.on('res:clienti', ({ success, data }) => {
-  if (!success) return;
-  state.clienti = data;
-  if (state._pending === 'clienti') { state._pending = null; renderClientiPage(); }
-  else if (state._pending === 'scadenzario') { state._pending = null; renderScadenzarioPage(); }
-  else if (state.page === 'clienti') renderClientiPage();
-});
-
-socket.on('res:adempimenti', ({ success, data }) => {
-  if (success) state.adempimenti = data;
-  if (state._pending === 'adempimenti') { state._pending = null; renderAdempimentiPage(); }
-  else if (state.page === 'adempimenti') renderAdempimentiPage();
-  const sel = document.getElementById('add-adp-select');
-  if (sel && success) {
-    sel.innerHTML = data.map(a => `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`).join('');
-    updatePeriodoOptions();
+  if (success) {
+    state.tipologie = data;
+    populateTipologiaSelect();
   }
 });
 
+// FIX: renderizza sempre se siamo sulla pagina clienti (ricerca live)
+socket.on('res:clienti', ({ success, data }) => {
+  if (!success) return;
+  state.clienti = data;
+  if (state._pending === 'clienti') {
+    state._pending = null;
+    renderClientiPage();
+  } else if (state._pending === 'scadenzario') {
+    state._pending = null;
+    renderScadenzarioPage();
+  } else if (state.page === 'clienti') {
+    renderClientiPage();
+  }
+});
+
+// FIX: renderizza sempre se siamo sulla pagina adempimenti (ricerca live)
+socket.on('res:adempimenti', ({ success, data }) => {
+  if (success) state.adempimenti = data;
+  if (state._pending === 'adempimenti') {
+    state._pending = null;
+    renderAdempimentiPage();
+  } else if (state.page === 'adempimenti') {
+    renderAdempimentiPage();
+  }
+  // Aggiorna anche il select nel modal aggiungi adempimento se aperto
+  const sel = document.getElementById('add-adp-select');
+  if (sel && success) {
+    sel.innerHTML = data.map(a =>
+      `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`
+    ).join('');
+  }
+});
+
+// Dashboard: res:stats renderizza sempre (non dipende da _pending)
 socket.on('res:stats', ({ success, data }) => {
-  if (success) { state.dashStats = data; renderDashboard(data); }
+  if (success) renderDashboard(data);
 });
 
 socket.on('res:scadenzario', ({ success, data }) => {
-  if (success) { state.scadenzario = data; renderScadenzarioTabella(data); }
+  if (success) {
+    state.scadenzario = data;
+    renderScadenzarioTabella(data);
+  }
 });
 
 socket.on('res:scadenzario_globale', ({ success, data }) => {
-  if (success) { state.scadGlobale = data; renderGlobaleTabella(data); }
+  if (success) {
+    state.scadGlobale = data;
+    renderGlobaleTabella(data);
+  }
 });
 
 socket.on('res:create:cliente', ({ success }) => {
-  if (success) { closeModal('modal-cliente'); state._pending = 'clienti'; socket.emit('get:clienti'); }
+  if (success) {
+    closeModal('modal-cliente');
+    state._pending = 'clienti';
+    socket.emit('get:clienti');
+  }
 });
 
 socket.on('res:update:cliente', ({ success }) => {
-  if (success) { closeModal('modal-cliente'); refreshPage(); }
+  if (success) {
+    closeModal('modal-cliente');
+    refreshPage();
+  }
 });
 
-socket.on('res:delete:cliente', ({ success }) => { if (success) refreshPage(); });
+socket.on('res:delete:cliente', ({ success }) => {
+  if (success) refreshPage();
+});
 
 socket.on('res:create:adempimento', ({ success, error }) => {
-  if (success) { closeModal('modal-adp-def'); state._pending = 'adempimenti'; socket.emit('get:adempimenti'); }
-  else showNotif(error, 'error');
+  if (success) {
+    closeModal('modal-adp-def');
+    state._pending = 'adempimenti';
+    socket.emit('get:adempimenti');
+  } else showNotif(error, 'error');
 });
 
 socket.on('res:update:adempimento', ({ success, error }) => {
-  if (success) { closeModal('modal-adp-def'); state._pending = 'adempimenti'; socket.emit('get:adempimenti'); }
-  else showNotif(error, 'error');
+  if (success) {
+    closeModal('modal-adp-def');
+    state._pending = 'adempimenti';
+    socket.emit('get:adempimenti');
+  } else showNotif(error, 'error');
 });
 
 socket.on('res:delete:adempimento', ({ success }) => {
-  if (success) { state._pending = 'adempimenti'; socket.emit('get:adempimenti'); }
+  if (success) {
+    state._pending = 'adempimenti';
+    socket.emit('get:adempimenti');
+  }
 });
 
 socket.on('res:genera:scadenzario', ({ success }) => {
   if (success && state.selectedCliente) loadScadenzario();
 });
 
-socket.on('res:genera:tutti', ({ success }) => {
-  if (success) closeModal('modal-genera-tutti');
-});
-
 socket.on('res:copia:scadenzario', ({ success }) => {
-  if (success) { closeModal('modal-copia'); loadScadenzario(); }
-});
-
-socket.on('res:copia:tutti', ({ success }) => {
-  if (success) closeModal('modal-copia');
+  if (success) {
+    closeModal('modal-copia');
+    loadScadenzario();
+  }
 });
 
 socket.on('res:update:adempimento_stato', ({ success }) => {
@@ -168,7 +172,6 @@ socket.on('res:update:adempimento_stato', ({ success }) => {
     closeModal('modal-adempimento');
     if (state.page === 'scadenzario') loadScadenzario();
     if (state.page === 'scadenzario_globale') applyGlobaleSearch();
-    if (state.page === 'dashboard') socket.emit('get:stats', { anno: state.anno });
   }
 });
 
@@ -181,7 +184,10 @@ socket.on('res:delete:adempimento_cliente', ({ success }) => {
 });
 
 socket.on('res:add:adempimento_cliente', ({ success }) => {
-  if (success) { closeModal('modal-add-adp'); loadScadenzario(); }
+  if (success) {
+    closeModal('modal-add-adp');
+    loadScadenzario();
+  }
 });
 
 // ─── NAVIGAZIONE ─────────────────────────────────────────────────────────
@@ -195,24 +201,26 @@ document.querySelectorAll('.nav-item').forEach(el => {
 
 function renderPage(page) {
   state.page = page;
-  const titles = { dashboard: 'Dashboard', clienti: 'Clienti', scadenzario: 'Scadenzario Cliente', scadenzario_globale: 'Vista Globale', adempimenti: 'Adempimenti Fiscali', tipologie: 'Tipologie Clienti' };
+  const titles = {
+    dashboard: 'Dashboard',
+    clienti: 'Clienti',
+    scadenzario: 'Scadenzario Cliente',
+    scadenzario_globale: 'Vista Globale',
+    adempimenti: 'Adempimenti Fiscali',
+    tipologie: 'Tipologie Clienti',
+  };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   if (page === 'dashboard') {
     document.getElementById('topbar-actions').innerHTML = `
-      <div class="search-wrap" style="width:220px">
-        <span class="search-icon">🔍</span>
-        <input class="input" id="dash-search-top" placeholder="Cerca cliente..." oninput="onDashSearch(this.value)">
-      </div>
       <div class="year-sel">
         <button onclick="changeAnno(-1)">◀</button>
         <span class="year-num">${state.anno}</span>
         <button onclick="changeAnno(1)">▶</button>
       </div>
-      <button class="btn btn-orange btn-sm no-print" onclick="openGeneraTutti()">⚡ Genera Tutti</button>
-      <button class="btn btn-cyan btn-sm no-print" onclick="openCopiaTutti()">📋 Copia Anno</button>
       <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Stampa</button>`;
-    socket.emit('get:stats', { anno: state.anno });
+    // FIX: emetti dopo che il DOM del topbar è pronto
+    socket.emit('get:stats', { anno: state.anno, search: '' });
 
   } else if (page === 'clienti') {
     state._pending = 'clienti';
@@ -229,7 +237,8 @@ function renderPage(page) {
         <option value="ASS">ASS – Associazione</option>
       </select>
       <button class="btn btn-print btn-sm no-print" onclick="window.print()">🖨️ Stampa</button>
-      <button class="btn btn-primary no-print" onclick="openNuovoCliente()">+ Nuovo Cliente</button>`;
+      <button class="btn btn-primary no-print" onclick="openNuovoCliente()">+ Nuovo Cliente</button>
+    `;
     socket.emit('get:clienti');
 
   } else if (page === 'scadenzario') {
@@ -248,7 +257,8 @@ function renderPage(page) {
         <input class="input" id="global-search-adempimenti" placeholder="Cerca codice, nome, categoria..." oninput="applyAdempimentiFiltri()">
       </div>
       <button class="btn btn-print btn-sm no-print" onclick="window.print()">🖨️ Stampa</button>
-      <button class="btn btn-primary no-print" onclick="openNuovoAdpDef()">+ Nuovo</button>`;
+      <button class="btn btn-primary no-print" onclick="openNuovoAdpDef()">+ Nuovo</button>
+    `;
     socket.emit('get:adempimenti');
 
   } else if (page === 'tipologie') {
@@ -257,147 +267,68 @@ function renderPage(page) {
   }
 }
 
-function refreshPage() { renderPage(state.page); }
+function refreshPage() {
+  renderPage(state.page);
+}
 
 function changeAnno(d) {
   state.anno += d;
   document.querySelectorAll('.year-num').forEach(el => el.textContent = state.anno);
-  if (state.page === 'dashboard') socket.emit('get:stats', { anno: state.anno });
+  socket.emit('get:stats', { anno: state.anno, search: document.getElementById('dash-search')?.value || '' });
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────
-function onDashSearch(val) {
-  state.dashSearch = val;
-  if (state.dashStats) renderDashboard(state.dashStats);
+function applyDashSearch() {
+  const search = document.getElementById('dash-search')?.value || '';
+  socket.emit('get:stats', { anno: state.anno, search });
 }
 
 function renderDashboard(stats) {
   const perc = stats.totAdempimenti > 0 ? Math.round((stats.completati / stats.totAdempimenti) * 100) : 0;
+  const percNA = stats.totAdempimenti > 0 ? Math.round((stats.na / stats.totAdempimenti) * 100) : 0;
 
-  const catMap = {};
-  (stats.perCategoria || []).forEach(c => { catMap[c.categoria] = c; });
-
-  const adpByCat = {};
-  (stats.adempimentiStats || []).forEach(a => {
-    if (!adpByCat[a.categoria]) adpByCat[a.categoria] = [];
-    adpByCat[a.categoria].push(a);
-  });
-
-  const clientiByCat = {};
-  (stats.clientiPerCategoria || []).forEach(c => {
-    if (!clientiByCat[c.categoria]) clientiByCat[c.categoria] = [];
-    if (!clientiByCat[c.categoria].find(x => x.id === c.id)) clientiByCat[c.categoria].push(c);
-  });
-
-  const search = (state.dashSearch || '').toLowerCase();
-
-  const tuttiCats = [...CATEGORIE_DISPONIBILI];
-  if (catMap['TUTTI']) tuttiCats.push(CAT_TUTTI);
-
-  const cardsHtml = tuttiCats.map(cat => {
-    const cs = catMap[cat.codice] || { totale: 0, completati: 0, da_fare: 0 };
-    const isActive = state.dashCatAttiva === cat.codice;
-    return `<div class="dash-cat-card ${isActive ? 'active' : ''}" style="--card-color:${cat.color}" onclick="toggleDashCat('${cat.codice}')">
-      <div class="dash-cat-icon">${cat.icona}</div>
-      <div class="dash-cat-nome">${cat.nome}</div>
-      <div class="dash-cat-stats">
-        <span class="dash-cat-pill">${cs.totale} tot.</span>
-        <span class="dash-cat-pill done">✅ ${cs.completati}</span>
-        <span class="dash-cat-pill todo">⭕ ${cs.da_fare}</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  let detailHtml = '';
-  if (state.dashCatAttiva) {
-    const cat = [...CATEGORIE_DISPONIBILI, CAT_TUTTI].find(c => c.codice === state.dashCatAttiva);
-    const adps = adpByCat[state.dashCatAttiva] || [];
-    const clientiCat = (clientiByCat[state.dashCatAttiva] || []).filter(c => {
-      if (!search) return true;
-      return (c.nome||'').toLowerCase().includes(search) || (c.codice_fiscale||'').toLowerCase().includes(search) || (c.partita_iva||'').toLowerCase().includes(search) || (c.email||'').toLowerCase().includes(search);
-    });
-
-    const adpRows = adps.map(a => {
-      const p = a.totale > 0 ? Math.round((a.completati / a.totale) * 100) : 0;
-      return `<div class="adp-stat-row">
-        <span class="adp-stat-nome">${a.nome} <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${a.codice}</span></span>
-        <span style="font-size:11px;color:var(--text2)">${a.completati}/${a.totale}</span>
-        <div class="adp-stat-mini-bar"><div class="adp-stat-mini-fill" style="width:${p}%"></div></div>
-        <span style="font-size:10px;font-family:var(--mono);color:var(--text3)">${p}%</span>
-      </div>`;
-    }).join('') || `<div style="padding:16px;color:var(--text3);font-size:12px">Nessun adempimento in questa categoria</div>`;
-
-    const clientiRows = clientiCat.length
-      ? clientiCat.map(c => `<tr>
-          <td><strong>${c.nome}</strong></td>
-          <td><span class="badge b-${(c.tipologia_codice||'').toLowerCase()}">${c.tipologia_codice||'-'}</span></td>
-          <td class="td-dim" style="font-size:11px">${c.sottotipologia_nome||'-'}</td>
-          <td class="td-mono td-dim">${c.codice_fiscale||c.partita_iva||'-'}</td>
-          <td class="td-dim">${c.email||'-'}</td>
-          <td class="td-dim">${c.telefono||'-'}</td>
-          <td class="td-dim" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.indirizzo||'-'}</td>
-          <td class="td-dim" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${c.note||''}</td>
+  const scadenzeHtml = stats.scadenzeAperte && stats.scadenzeAperte.length
+    ? stats.scadenzeAperte.map(s => `
+        <tr>
+          <td><strong>${s.nome}</strong></td>
+          <td style="text-align:right"><span class="badge b-da_fare">${s.n} aperti</span></td>
         </tr>`).join('')
-      : `<tr><td colspan="8"><div class="empty" style="padding:20px">Nessun cliente trovato</div></td></tr>`;
-
-    detailHtml = `<div class="cat-detail-panel">
-      <div class="cat-detail-header" style="border-left: 4px solid ${cat?.color||'var(--accent)'}">
-        <span style="font-size:20px">${cat?.icona||''}</span>
-        <h3 style="font-size:15px;font-weight:800">${cat?.nome||state.dashCatAttiva}</h3>
-        <button class="btn btn-xs btn-secondary" onclick="state.dashCatAttiva=null;renderDashboard(state.dashStats)">✕ Chiudi</button>
-      </div>
-
-      <div style="border-bottom:1px solid var(--border);padding:12px 0 0">
-        <div style="padding:0 18px 10px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Adempimenti — completamento</div>
-        ${adpRows}
-      </div>
-
-      <div>
-        <div style="padding:14px 18px 10px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;flex:1">Clienti con questa categoria (${clientiCat.length})</span>
-          <div class="search-wrap" style="width:220px">
-            <span class="search-icon">🔍</span>
-            <input class="input" id="dash-cat-search" placeholder="Cerca cliente..." value="${esc(state.dashSearch)}" oninput="onDashSearch(this.value)">
-          </div>
-        </div>
-        <table class="cat-clienti-table">
-          <thead><tr><th>Nome</th><th>Tipo</th><th>Sottotipo</th><th>CF / P.IVA</th><th>Email</th><th>Tel</th><th>Indirizzo</th><th>Note</th></tr></thead>
-          <tbody>${clientiRows}</tbody>
-        </table>
-      </div>
-    </div>`;
-  }
+    : `<tr><td colspan="2"><div class="empty" style="padding:20px">✅ Nessuna scadenza aperta</div></td></tr>`;
 
   document.getElementById('content').innerHTML = `
-    <div class="print-header"><strong>Studio Commerciale — Dashboard ${stats.anno}</strong><br>Data stampa: ${new Date().toLocaleDateString('it-IT')}</div>
-
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+    <div class="print-header" style="display:none"></div>
+    <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Clienti Attivi</div><div class="stat-value v-blue">${stats.totClienti}</div></div>
       <div class="stat-card"><div class="stat-label">Adempimenti ${stats.anno}</div><div class="stat-value">${stats.totAdempimenti}</div></div>
       <div class="stat-card">
         <div class="stat-label">Completati</div>
         <div class="stat-value v-green">${stats.completati}</div>
         <div class="prog-bar"><div class="prog-fill green" style="width:${perc}%"></div></div>
-        <div class="stat-sub">${perc}%</div>
+        <div class="stat-sub">${perc}% del totale</div>
       </div>
       <div class="stat-card"><div class="stat-label">Da Fare</div><div class="stat-value v-yellow">${stats.daFare}</div></div>
-      <div class="stat-card"><div class="stat-label">In Corso</div><div class="stat-value v-purple">${stats.inCorso||0}</div></div>
-      <div class="stat-card"><div class="stat-label">N/A</div><div class="stat-value" style="color:var(--text3)">${stats.na||0}</div></div>
+      <div class="stat-card"><div class="stat-label">In Corso</div><div class="stat-value v-purple">${stats.inCorso || 0}</div></div>
+      <div class="stat-card"><div class="stat-label">N/A</div><div class="stat-value" style="color:var(--text3)">${stats.na || 0}</div></div>
     </div>
-
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:12px;letter-spacing:0.08em">
-      Categorie adempimenti — clicca per espandere
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+      <div class="table-wrap">
+        <div class="table-header"><h3>📊 Clienti per Tipologia — ${stats.anno}</h3></div>
+        <table><thead><tr><th>Tipologia</th><th>Codice</th><th>N° Clienti</th></tr></thead>
+        <tbody>${stats.perTipologia.map(t => `
+          <tr>
+            <td><strong>${t.nome}</strong></td>
+            <td><span class="badge b-${t.codice.toLowerCase()}">${t.codice}</span></td>
+            <td><strong>${t.n}</strong></td>
+          </tr>`).join('')}
+        </tbody></table>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><h3>⚠️ Clienti con più scadenze aperte</h3></div>
+        <table><thead><tr><th>Cliente</th><th>Scadenze</th></tr></thead>
+        <tbody>${scadenzeHtml}</tbody></table>
+      </div>
     </div>
-    <div class="dash-cards-grid">${cardsHtml}</div>
-
-    ${detailHtml}
   `;
-}
-
-function toggleDashCat(codice) {
-  state.dashCatAttiva = state.dashCatAttiva === codice ? null : codice;
-  state.dashSearch = '';
-  if (state.dashStats) renderDashboard(state.dashStats);
 }
 
 // ─── CLIENTI ──────────────────────────────────────────────────────────────
@@ -407,27 +338,32 @@ const applyClientiFiltriDebounced = debounce(function() {
   socket.emit('get:clienti', { search: q, tipologia: tipo });
 }, 300);
 
-function applyClientiFiltri() { applyClientiFiltriDebounced(); }
+function applyClientiFiltri() {
+  applyClientiFiltriDebounced();
+}
 
-function renderClientiPage() { renderClientiTabella(state.clienti); }
+function renderClientiPage() {
+  renderClientiTabella(state.clienti);
+}
 
 function renderClientiTabella(clienti) {
   const tbody = clienti.length
-    ? clienti.map(c => `<tr>
-        <td><strong>${c.nome}</strong></td>
-        <td><span class="badge b-${(c.tipologia_codice||'').toLowerCase()}">${c.tipologia_codice||'-'}</span></td>
-        <td class="td-dim">${c.sottotipologia_nome||'-'}</td>
-        <td class="td-mono td-dim">${c.codice_fiscale||c.partita_iva||'-'}</td>
-        <td class="td-dim">${c.email||'-'}</td>
-        <td class="td-dim">${c.telefono||'-'}</td>
-        <td class="col-actions no-print">
-          <div style="display:flex;gap:5px">
-            <button class="btn btn-sm btn-secondary" onclick="editCliente(${c.id})">✏️</button>
-            <button class="btn btn-sm btn-success" onclick="goScadenzario(${c.id})">📅</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteCliente(${c.id},'${esc(c.nome)}')">🗑️</button>
-          </div>
-        </td>
-      </tr>`).join('')
+    ? clienti.map(c => `
+    <tr>
+      <td><strong>${c.nome}</strong></td>
+      <td><span class="badge b-${(c.tipologia_codice || '').toLowerCase()}">${c.tipologia_codice || '-'}</span></td>
+      <td class="td-dim">${c.sottotipologia_nome || '-'}</td>
+      <td class="td-mono td-dim">${c.codice_fiscale || c.partita_iva || '-'}</td>
+      <td class="td-dim">${c.email || '-'}</td>
+      <td class="td-dim">${c.telefono || '-'}</td>
+      <td class="col-actions no-print">
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm btn-secondary" onclick="editCliente(${c.id})">✏️</button>
+          <button class="btn btn-sm btn-success" onclick="goScadenzario(${c.id})">📅</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCliente(${c.id},'${esc(c.nome)}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('')
     : `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
 
   document.getElementById('content').innerHTML = `
@@ -441,28 +377,13 @@ function renderClientiTabella(clienti) {
 
 // ─── SCADENZARIO CLIENTE ──────────────────────────────────────────────────
 function renderScadenzarioPage() {
-  // Raggruppa clienti per tipologia per il select con optgroup
-  const tipologieMap = {};
-  state.clienti.forEach(c => {
-    const key = `${c.tipologia_codice}|${c.tipologia_nome}`;
-    if (!tipologieMap[key]) tipologieMap[key] = [];
-    tipologieMap[key].push(c);
-  });
-
-  let optsHtml = '<option value="">-- Seleziona Cliente --</option>';
-  Object.entries(tipologieMap).forEach(([key, clienti]) => {
-    const [codice, nome] = key.split('|');
-    optsHtml += `<optgroup label="${codice} – ${nome}">`;
-    clienti.forEach(c => {
-      const subLabel = c.sottotipologia_nome ? ` (${c.sottotipologia_nome})` : '';
-      optsHtml += `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? 'selected' : ''}>${c.nome}${subLabel}</option>`;
-    });
-    optsHtml += `</optgroup>`;
-  });
+  const opts = state.clienti.map(c =>
+    `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? 'selected' : ''}>[${c.tipologia_codice}] ${c.nome}</option>`
+  ).join('');
 
   document.getElementById('topbar-actions').innerHTML = `
-    <select class="select" id="sel-cliente" style="width:300px" onchange="onClienteChange()">
-      ${optsHtml}
+    <select class="select" id="sel-cliente" style="width:260px" onchange="onClienteChange()">
+      <option value="">-- Seleziona Cliente --</option>${opts}
     </select>
     <div class="year-sel">
       <button onclick="changeAnnoScad(-1)">◀</button>
@@ -472,7 +393,8 @@ function renderScadenzarioPage() {
     <div class="search-wrap" style="width:220px">
       <span class="search-icon">🔍</span>
       <input class="input" id="scad-search" placeholder="Cerca adempimento..." oninput="applyScadSearch()">
-    </div>`;
+    </div>
+  `;
 
   if (state.selectedCliente) loadScadenzario();
   else document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Seleziona un cliente per visualizzare il suo scadenzario</p></div>`;
@@ -495,12 +417,24 @@ function loadScadenzario() {
   const statoVal = document.getElementById('f-stato')?.value || 'tutti';
   state.filtri.adempimento = searchVal;
   state.filtri.stato = statoVal;
-  socket.emit('get:scadenzario', { id_cliente: state.selectedCliente.id, anno: state.anno, filtro_stato: statoVal, filtro_adempimento: searchVal });
+  socket.emit('get:scadenzario', {
+    id_cliente: state.selectedCliente.id,
+    anno: state.anno,
+    filtro_stato: statoVal,
+    filtro_adempimento: searchVal,
+  });
 }
 
 const applyScadSearchDebounced = debounce(loadScadenzario, 300);
-function applyScadSearch() { applyScadSearchDebounced(); }
-function applyScadFiltri() { loadScadenzario(); }
+
+function applyScadSearch() {
+  applyScadSearchDebounced();
+}
+
+function applyScadFiltri() {
+  loadScadenzario();
+}
+
 function resetScadFiltri() {
   state.filtri.stato = 'tutti';
   if (document.getElementById('f-stato')) document.getElementById('f-stato').value = 'tutti';
@@ -508,51 +442,26 @@ function resetScadFiltri() {
   loadScadenzario();
 }
 
+// ─── LABEL PERIODO con nomi mesi reali ───────────────────────────────────
 function getPeriodoLabel(r) {
   if (r.scadenza_tipo === 'trimestrale') {
-    const m = { 1:'Gen–Mar', 2:'Apr–Giu', 3:'Lug–Set', 4:'Ott–Dic' };
-    return `${r.trimestre}° Trim. (${m[r.trimestre]||''})`;
+    const mesiTrim = { 1: 'Gen–Mar', 2: 'Apr–Giu', 3: 'Lug–Set', 4: 'Ott–Dic' };
+    return `${r.trimestre}° Trim. (${mesiTrim[r.trimestre] || ''})`;
   }
-  if (r.scadenza_tipo === 'semestrale') return r.semestre === 1 ? '1° Sem. (Gen–Giu)' : '2° Sem. (Lug–Dic)';
-  if (r.scadenza_tipo === 'mensile') return MESI[r.mese - 1] || `Mese ${r.mese}`;
+  if (r.scadenza_tipo === 'semestrale') {
+    return r.semestre === 1 ? '1° Sem. (Gen–Giu)' : '2° Sem. (Lug–Dic)';
+  }
+  if (r.scadenza_tipo === 'mensile') return MESI[r.mese - 1];
   return 'Annuale';
 }
 
-function getPeriodoBadgeClass(r) {
-  if (r.scadenza_tipo === 'mensile') {
-    // colori diversi per mese
-    const colors = ['jan','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-    return `periodo-mese periodo-${colors[(r.mese-1)%12]}`;
-  }
-  if (r.scadenza_tipo === 'trimestrale') return `periodo-trim periodo-t${r.trimestre}`;
-  if (r.scadenza_tipo === 'semestrale') return `periodo-sem periodo-s${r.semestre}`;
-  return 'periodo-annuale';
+function getPeriodoLabelShort(r) {
+  if (r.scadenza_tipo === 'trimestrale') return `${r.trimestre}° Trim.`;
+  if (r.scadenza_tipo === 'semestrale') return r.semestre === 1 ? '1° Sem.' : '2° Sem.';
+  if (r.scadenza_tipo === 'mensile') return MESI[r.mese - 1];
+  return 'Annuale';
 }
 
-function renderImportoCell(r) {
-  if (r.is_contabilita) {
-    const iva = r.importo_iva ? `€ ${parseFloat(r.importo_iva).toFixed(2)}` : '-';
-    const cont = r.importo_contabilita ? `€ ${parseFloat(r.importo_contabilita).toFixed(2)}` : '-';
-    return `<div class="importi-cell">
-      <div class="importo-row"><span class="importo-label">IVA:</span><span class="importo-val">${iva}</span></div>
-      <div class="importo-row"><span class="importo-label">Cont.:</span><span class="importo-val">${cont}</span></div>
-    </div>`;
-  }
-  if (r.has_rate) {
-    const s = r.importo_saldo ? `€ ${parseFloat(r.importo_saldo).toFixed(2)}` : '-';
-    const a1 = r.importo_acconto1 ? `€ ${parseFloat(r.importo_acconto1).toFixed(2)}` : '-';
-    const a2 = r.importo_acconto2 ? `€ ${parseFloat(r.importo_acconto2).toFixed(2)}` : '-';
-    const labels = r.rate_labels ? JSON.parse(r.rate_labels) : ['Saldo','1° Acc.','2° Acc.'];
-    return `<div class="importi-cell">
-      <div class="importo-row"><span class="importo-label">${labels[0]||'Saldo'}:</span><span class="importo-val">${s}</span></div>
-      <div class="importo-row"><span class="importo-label">${labels[1]||'1° Acc.'}:</span><span class="importo-val">${a1}</span></div>
-      <div class="importo-row"><span class="importo-label">${labels[2]||'2° Acc.'}:</span><span class="importo-val">${a2}</span></div>
-    </div>`;
-  }
-  return r.importo ? `€ ${parseFloat(r.importo).toFixed(2)}` : '-';
-}
-
-// ─── SCADENZARIO TABELLA AGGIORNATA ──────────────────────────────────────
 function renderScadenzarioTabella(righe) {
   const c = state.selectedCliente;
   const tot = righe.length;
@@ -562,171 +471,68 @@ function renderScadenzarioTabella(righe) {
   const na = righe.filter(r => r.stato === 'n_a').length;
   const perc = tot > 0 ? Math.round((comp / tot) * 100) : 0;
 
-  // Raggruppa per categoria, poi per adempimento
-  const byCategoria = {};
+  // Raggruppa per adempimento (codice)
+  const grouped = {};
   righe.forEach(r => {
-    const cat = r.categoria || 'TUTTI';
-    if (!byCategoria[cat]) byCategoria[cat] = {};
-    if (!byCategoria[cat][r.id_adempimento]) byCategoria[cat][r.id_adempimento] = [];
-    byCategoria[cat][r.id_adempimento].push(r);
+    const key = r.id_adempimento;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
   });
 
-  // Ordina periodi dentro ogni adempimento
-  Object.values(byCategoria).forEach(adpMap => {
-    Object.values(adpMap).forEach(rows => rows.sort((a, b) => {
+  // Ordina ogni gruppo per periodo
+  Object.values(grouped).forEach(rows => {
+    rows.sort((a, b) => {
       if (a.trimestre && b.trimestre) return a.trimestre - b.trimestre;
       if (a.semestre && b.semestre) return a.semestre - b.semestre;
       if (a.mese && b.mese) return a.mese - b.mese;
       return 0;
-    }));
-  });
-
-  const catOrder = ['IVA','DICHIARAZIONI','PREVIDENZA','LAVORO','TRIBUTI','BILANCIO','TUTTI'];
-  const catLabels = {
-    IVA: { icon: '💰', color: '#fbbf24', label: 'IVA' },
-    DICHIARAZIONI: { icon: '📄', color: '#5b8df6', label: 'Dichiarazioni' },
-    PREVIDENZA: { icon: '🏦', color: '#34d399', label: 'Previdenza' },
-    LAVORO: { icon: '👔', color: '#a78bfa', label: 'Lavoro' },
-    TRIBUTI: { icon: '🏛️', color: '#f87171', label: 'Tributi' },
-    BILANCIO: { icon: '📊', color: '#22d3ee', label: 'Bilancio' },
-    TUTTI: { icon: '📌', color: '#fb923c', label: 'Generali' },
-  };
-
-  const searchVal = (state.filtri.adempimento || '').toLowerCase();
-
-  let tabBody = '';
-  let anyRows = false;
-
-  catOrder.forEach(cat => {
-    if (!byCategoria[cat]) return;
-    const adpMap = byCategoria[cat];
-    const catInfo = catLabels[cat] || { icon: '📋', color: 'var(--accent)', label: cat };
-
-    // Sezione categoria header
-    tabBody += `<tr class="cat-section-row">
-      <td colspan="7" style="background:rgba(255,255,255,0.025);padding:8px 14px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:14px">${catInfo.icon}</span>
-          <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${catInfo.color}">${catInfo.label}</span>
-          <span style="font-size:10px;color:var(--text3)">${Object.keys(adpMap).length} adempimenti</span>
-        </div>
-      </td>
-    </tr>`;
-
-    Object.entries(adpMap).forEach(([adpId, rows]) => {
-      anyRows = true;
-      const firstRow = rows[0];
-      const allComp = rows.every(r => r.stato === 'completato');
-      const allNA = rows.every(r => r.stato === 'n_a');
-      const someComp = rows.some(r => r.stato === 'completato');
-      const adpPerc = rows.length > 0 ? Math.round(rows.filter(r => r.stato === 'completato').length / rows.length * 100) : 0;
-
-      // Mini progress bar nella cella adempimento
-      const progressBarMini = rows.length > 1 ? `
-        <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
-          <div style="flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
-            <div style="width:${adpPerc}%;height:100%;background:var(--green);border-radius:2px;transition:width 0.3s"></div>
-          </div>
-          <span style="font-size:9px;font-family:var(--mono);color:var(--text3)">${adpPerc}%</span>
-        </div>` : '';
-
-      rows.forEach((r, idx) => {
-        const periodo = getPeriodoLabel(r);
-        const periodoClass = getPeriodoBadgeClass(r);
-
-        // Per mensile: mostra badge mese colorato
-        let periodoBadge = '';
-        if (r.scadenza_tipo === 'mensile') {
-          const meseName = MESI_SHORT[r.mese - 1] || `M${r.mese}`;
-          const meseColors = ['#ef4444','#f97316','#eab308','#22c55e','#10b981','#14b8a6','#06b6d4','#3b82f6','#6366f1','#8b5cf6','#ec4899','#f43f5e'];
-          const meseColor = meseColors[(r.mese-1) % 12];
-          periodoBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;font-family:var(--mono);background:${meseColor}22;color:${meseColor};border:1px solid ${meseColor}44">${meseName}</span>`;
-        } else if (r.scadenza_tipo === 'trimestrale') {
-          const trimColors = ['#5b8df6','#34d399','#fbbf24','#f87171'];
-          const tc = trimColors[(r.trimestre-1)%4];
-          periodoBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;font-family:var(--mono);background:${tc}22;color:${tc};border:1px solid ${tc}44">${r.trimestre}° Trim</span>`;
-        } else if (r.scadenza_tipo === 'semestrale') {
-          const sc = r.semestre === 1 ? '#22d3ee' : '#a78bfa';
-          periodoBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;font-family:var(--mono);background:${sc}22;color:${sc};border:1px solid ${sc}44">${r.semestre}° Sem.</span>`;
-        } else {
-          periodoBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;font-family:var(--mono);background:var(--accent-dim);color:var(--accent)">Annuale</span>`;
-        }
-
-        tabBody += `<tr class="clickable s-${r.stato}" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza||''}','${r.data_completamento||''}','${r.importo||''}','${esc(r.note||'')}','${esc(r.adempimento_nome)}',${r.is_contabilita||0},${r.has_rate||0},'${esc(r.importo_saldo||'')}','${esc(r.importo_acconto1||'')}','${esc(r.importo_acconto2||'')}','${esc(r.importo_iva||'')}','${esc(r.importo_contabilita||'')}','${esc(r.rate_labels||'')}')">
-          ${idx === 0 ? `<td rowspan="${rows.length}" style="border-right:2px solid ${catInfo.color}33;vertical-align:top;padding-top:14px;padding-left:20px">
-            <div style="font-family:var(--mono);font-size:10px;color:${catInfo.color};margin-bottom:3px">${r.codice}</div>
-            <div style="font-size:13px;font-weight:700;line-height:1.3">${r.adempimento_nome}</div>
-            <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
-              ${r.is_contabilita ? '<span class="badge" style="background:var(--cyan-dim);color:var(--cyan);font-size:9px">📊 CONT.</span>' : ''}
-              ${r.has_rate ? '<span class="badge" style="background:var(--green-dim);color:var(--green);font-size:9px">💰 RATE</span>' : ''}
-            </div>
-            ${progressBarMini}
-          </td>` : ''}
-          <td style="padding-left:14px">
-            <div style="display:flex;flex-direction:column;gap:3px">
-              ${periodoBadge}
-              <span style="font-size:11px;color:var(--text3)">${periodo}</span>
-            </div>
-          </td>
-          <td><span class="badge b-${r.stato}">${STATI[r.stato]||r.stato}</span></td>
-          <td>${renderImportoCell(r)}</td>
-          <td class="td-mono td-dim" style="font-size:11px">${r.data_scadenza||'-'}</td>
-          <td class="td-mono td-dim" style="font-size:11px">${r.data_completamento||'-'}</td>
-          <td class="td-dim" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.note||''}</td>
-        </tr>`;
-      });
     });
   });
 
-  if (!anyRows) {
-    tabBody = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><p>Nessun adempimento trovato.<br>Clicca <strong>⚡ Genera</strong> per creare lo scadenzario.</p></div></td></tr>`;
-  }
-
-  // Info cliente in header
-  const subTipoLabel = c.sottotipologia_nome ? ` · ${c.sottotipologia_nome}` : '';
-  const cfpiva = c.codice_fiscale || c.partita_iva ? `<span style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.codice_fiscale||c.partita_iva}</span>` : '';
+  const tbody = Object.entries(grouped).map(([adpId, rows]) => {
+    return rows.map((r, idx) => {
+      const periodo = getPeriodoLabel(r);
+      const statoClass = `s-${r.stato}`;
+      return `<tr class="clickable ${statoClass}" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ''}','${r.data_completamento || ''}','${r.importo || ''}','${esc(r.note || '')}','${esc(r.adempimento_nome)}')">
+        ${idx === 0 ? `<td rowspan="${rows.length}" style="border-right:1px solid var(--border);font-weight:700;vertical-align:top;padding-top:14px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.codice}</span><br>
+          <span style="font-size:12px">${r.adempimento_nome}</span><br>
+          <span class="badge b-categoria" style="font-size:9px;margin-top:4px">${r.categoria || '-'}</span>
+        </td>` : ''}
+        <td>${periodo}</td>
+        <td><span class="badge b-${r.stato}">${STATI[r.stato] || r.stato}</span></td>
+        <td class="td-mono td-dim">${r.importo ? '€ ' + parseFloat(r.importo).toFixed(2) : '-'}</td>
+        <td class="td-mono td-dim" style="font-size:11px">${r.data_scadenza || '-'}</td>
+        <td class="td-mono td-dim" style="font-size:11px">${r.data_completamento || '-'}</td>
+        <td class="td-dim" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.note || ''}</td>
+      </tr>`;
+    }).join('');
+  }).join('') || `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><p>Nessun adempimento trovato.<br>Clicca <strong>⚡ Genera</strong> per creare lo scadenzario.</p></div></td></tr>`;
 
   document.getElementById('content').innerHTML = `
     <div class="print-header"><strong>Studio Commerciale — Scadenzario Fiscale</strong><br>Cliente: <strong>${c.nome}</strong> | Anno: <strong>${state.anno}</strong> | Data stampa: ${new Date().toLocaleDateString('it-IT')}</div>
-
-    <!-- Header cliente -->
-    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-          <span class="badge b-${(c.tipologia_codice||'').toLowerCase()}" style="font-size:12px;padding:4px 10px">${c.tipologia_codice}</span>
-          <div style="font-size:20px;font-weight:800">${c.nome}</div>
-        </div>
-        <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:12px">
-          <span>${c.tipologia_nome||''}${subTipoLabel}</span>
-          ${cfpiva}
-          ${c.email ? `<span style="color:var(--text3)">${c.email}</span>` : ''}
-        </div>
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:18px;font-weight:800">${c.nome}</div>
+        <div style="font-size:12px;color:var(--text2)">${c.tipologia_nome}${c.sottotipologia_nome ? ' · ' + c.sottotipologia_nome : ''}</div>
       </div>
-      <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1"></div>
+      <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-sm btn-purple" onclick="openAddAdp(${c.id})">➕ Adempimento</button>
         <button class="btn btn-sm btn-secondary" onclick="openCopia(${c.id})">📋 Copia anno</button>
         <button class="btn btn-sm btn-primary" onclick="generaScad(${c.id})">⚡ Genera ${state.anno}</button>
         <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Stampa</button>
       </div>
     </div>
-
-    <!-- Stats -->
-    <div class="stats-grid" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+    <div class="stats-grid" style="margin-bottom:16px">
       <div class="stat-card"><div class="stat-label">Totale</div><div class="stat-value v-blue">${tot}</div></div>
-      <div class="stat-card">
-        <div class="stat-label">Completati</div>
-        <div class="stat-value v-green">${comp}</div>
-        <div class="prog-bar"><div class="prog-fill green" style="width:${perc}%"></div></div>
-        <div class="stat-sub">${perc}%</div>
-      </div>
+      <div class="stat-card"><div class="stat-label">Completati</div><div class="stat-value v-green">${comp}</div><div class="prog-bar"><div class="prog-fill green" style="width:${perc}%"></div></div></div>
       <div class="stat-card"><div class="stat-label">Da Fare</div><div class="stat-value v-yellow">${daF}</div></div>
       <div class="stat-card"><div class="stat-label">In Corso</div><div class="stat-value v-purple">${inC}</div></div>
       <div class="stat-card"><div class="stat-label">N/A</div><div class="stat-value" style="color:var(--text3)">${na}</div></div>
     </div>
-
-    <!-- Filtri -->
     <div class="filtri-bar no-print">
-      <label>Stato:</label>
+      <label>Filtra stato:</label>
       <select class="select" style="width:160px" id="f-stato" onchange="applyScadFiltri()">
         <option value="tutti">Tutti</option>
         <option value="da_fare">⭕ Da fare</option>
@@ -736,67 +542,18 @@ function renderScadenzarioTabella(righe) {
       </select>
       <button class="btn btn-sm btn-secondary" onclick="resetScadFiltri()">✕ Reset</button>
     </div>
-
-    <!-- Tabella -->
     <div class="table-wrap">
-      <div class="table-header no-print">
-        <h3>Scadenzario ${state.anno}</h3>
-        <span style="font-size:11px;color:var(--text3)">${tot} voci · ${comp} completate</span>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:220px">Adempimento</th>
-            <th style="width:150px">Periodo</th>
-            <th style="width:120px">Stato</th>
-            <th style="width:130px">Importo</th>
-            <th style="width:100px">Scadenza</th>
-            <th style="width:100px">Completato</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>${tabBody}</tbody>
-      </table>
-    </div>`;
-
+      <div class="table-header no-print"><h3>Scadenzario ${state.anno}</h3></div>
+      <table><thead><tr><th>Adempimento</th><th>Periodo</th><th>Stato</th><th>Importo</th><th>Scadenza</th><th>Completato</th><th>Note</th></tr></thead>
+      <tbody>${tbody}</tbody></table>
+    </div>
+  `;
   if (document.getElementById('f-stato')) document.getElementById('f-stato').value = state.filtri.stato;
 }
 
 function generaScad(id) {
-  if (confirm(`Generare/rigenera lo scadenzario ${state.anno} per questo cliente?\nGli adempimenti già completati/in corso verranno conservati.`))
+  if (confirm(`Generare/rigenera lo scadenzario ${state.anno} per questo cliente?\nGli adempimenti già presenti (completati/in corso) verranno conservati.`))
     socket.emit('genera:scadenzario', { id_cliente: id, anno: state.anno });
-}
-
-// ─── GENERA TUTTI & COPIA TUTTI ───────────────────────────────────────────
-function openGeneraTutti() {
-  document.getElementById('genera-tutti-anno').value = state.anno;
-  openModal('modal-genera-tutti');
-}
-
-function eseguiGeneraTutti() {
-  const anno = parseInt(document.getElementById('genera-tutti-anno').value);
-  if (!anno) return;
-  socket.emit('genera:tutti', { anno });
-}
-
-function openCopiaTutti() {
-  document.getElementById('copia-cliente-id').value = '';
-  document.getElementById('copia-modalita').value = 'tutti';
-  document.getElementById('copia-info').innerHTML = '📋 Copia scadenzario per <strong>tutti i clienti</strong>. Verrà creata una copia con stato "Da fare".';
-  document.getElementById('copia-da').value = state.anno - 1;
-  document.getElementById('copia-a').value = state.anno;
-  openModal('modal-copia');
-}
-
-function eseguiCopia() {
-  const modalita = document.getElementById('copia-modalita').value;
-  const anno_da = parseInt(document.getElementById('copia-da').value);
-  const anno_a = parseInt(document.getElementById('copia-a').value);
-  if (modalita === 'tutti') {
-    socket.emit('copia:tutti', { anno_da, anno_a });
-  } else {
-    socket.emit('copia:scadenzario', { id_cliente: parseInt(document.getElementById('copia-cliente-id').value), anno_da, anno_a });
-  }
 }
 
 // ─── VISTA GLOBALE ────────────────────────────────────────────────────────
@@ -811,13 +568,19 @@ function renderGlobalePage() {
       <span class="year-num">${state.anno}</span>
       <button onclick="changeAnnoGlobale(1)">▶</button>
     </div>
-    <button class="btn btn-print btn-sm no-print" onclick="window.print()">🖨️ Stampa</button>`;
+    <button class="btn btn-print btn-sm no-print" onclick="window.print()">🖨️ Stampa</button>
+  `;
   renderGlobaleFiltri();
   loadGlobale();
 }
 
 function loadGlobale() {
-  socket.emit('get:scadenzario_globale', { anno: state.anno, filtro_stato: state.filtri.stato, filtro_categoria: state.filtri.categoria, search: document.getElementById('global-search-globale')?.value || '' });
+  socket.emit('get:scadenzario_globale', {
+    anno: state.anno,
+    filtro_stato: state.filtri.stato,
+    filtro_categoria: state.filtri.categoria,
+    search: document.getElementById('global-search-globale')?.value || '',
+  });
 }
 
 function changeAnnoGlobale(d) {
@@ -828,7 +591,7 @@ function changeAnnoGlobale(d) {
 
 function renderGlobaleFiltri() {
   document.getElementById('content').innerHTML = `
-    <div class="print-header"><strong>Studio Commerciale — Vista Globale ${state.anno}</strong><br>Data stampa: ${new Date().toLocaleDateString('it-IT')}</div>
+    <div class="print-header"><strong>Studio Commerciale — Vista Globale Adempimenti ${state.anno}</strong><br>Data stampa: ${new Date().toLocaleDateString('it-IT')}</div>
     <div class="filtri-bar no-print">
       <label>Stato:</label>
       <select class="select" style="width:160px" id="fg-stato" onchange="applyGlobaleFiltri()">
@@ -843,11 +606,15 @@ function renderGlobaleFiltri() {
         <option value="TUTTI">📌 TUTTI</option>
       </select>
     </div>
-    <div id="globale-content"><div class="empty">⏳ Caricamento...</div></div>`;
+    <div id="globale-content"><div class="empty">⏳ Caricamento...</div></div>
+  `;
+  // FIX: ripristina i valori dei select dopo aver riscritto il DOM
   if (document.getElementById('fg-stato')) document.getElementById('fg-stato').value = state.filtri.stato;
   if (document.getElementById('fg-categoria')) document.getElementById('fg-categoria').value = state.filtri.categoria;
 }
 
+// FIX: applyGlobaleFiltri aggiorna state.filtri E chiama loadGlobale
+// senza ricostruire tutto il DOM (evita il reset dei select)
 function applyGlobaleFiltri() {
   state.filtri.stato = document.getElementById('fg-stato')?.value || 'tutti';
   state.filtri.categoria = document.getElementById('fg-categoria')?.value || 'tutti';
@@ -855,7 +622,10 @@ function applyGlobaleFiltri() {
 }
 
 const applyGlobaleSearchDebounced = debounce(loadGlobale, 300);
-function applyGlobaleSearch() { applyGlobaleSearchDebounced(); }
+
+function applyGlobaleSearch() {
+  applyGlobaleSearchDebounced();
+}
 
 function renderGlobaleTabella(righe) {
   const container = document.getElementById('globale-content');
@@ -874,42 +644,31 @@ function renderGlobaleTabella(righe) {
 
   const html = Object.entries(perCliente).map(([id, cl]) => {
     const comp = cl.righe.filter(r => r.stato === 'completato').length;
-    const daF = cl.righe.filter(r => r.stato === 'da_fare').length;
     const perc = cl.righe.length > 0 ? Math.round((comp / cl.righe.length) * 100) : 0;
-
-    const groupedAdp = {};
-    cl.righe.forEach(r => {
-      if (!groupedAdp[r.id_adempimento]) groupedAdp[r.id_adempimento] = { nome: r.adempimento_nome, codice: r.codice, categoria: r.categoria, totale: 0, completati: 0, da_fare: 0, righe: [] };
-      groupedAdp[r.id_adempimento].totale++;
-      if (r.stato === 'completato') groupedAdp[r.id_adempimento].completati++;
-      if (r.stato === 'da_fare') groupedAdp[r.id_adempimento].da_fare++;
-      groupedAdp[r.id_adempimento].righe.push(r);
-    });
-
-    const adpSummaryRows = Object.values(groupedAdp).map(adp => {
-      const p2 = adp.totale > 0 ? Math.round((adp.completati / adp.totale) * 100) : 0;
-      const firstR = adp.righe[0];
-      return `<tr class="clickable" onclick="openAdpModal(${firstR.id},'${firstR.stato}','${firstR.data_scadenza||''}','${firstR.data_completamento||''}','${firstR.importo||''}','${esc(firstR.note||'')}','${esc(firstR.adempimento_nome)}',${firstR.is_contabilita||0},${firstR.has_rate||0},'${esc(firstR.importo_saldo||'')}','${esc(firstR.importo_acconto1||'')}','${esc(firstR.importo_acconto2||'')}','${esc(firstR.importo_iva||'')}','${esc(firstR.importo_contabilita||'')}','${esc(firstR.rate_labels||'')}')">
-        <td class="td-mono" style="font-size:10px;color:var(--accent)">${adp.codice}</td>
-        <td><strong>${adp.nome}</strong></td>
-        <td><span class="badge b-categoria">${adp.categoria||'-'}</span></td>
-        <td style="font-size:12px">${adp.totale} periodi</td>
-        <td><span class="badge b-completato">${adp.completati} ✅</span> <span class="badge b-da_fare">${adp.da_fare} ⭕</span></td>
-        <td><div class="adp-stat-mini-bar" style="width:60px"><div class="adp-stat-mini-fill" style="width:${p2}%"></div></div> <span style="font-size:10px;font-family:var(--mono);color:var(--text3)">${p2}%</span></td>
+    const tbody = cl.righe.map(r => {
+      const periodo = getPeriodoLabel(r);
+      return `<tr class="clickable" onclick="openAdpModal(${r.id},'${r.stato}','${r.data_scadenza || ''}','${r.data_completamento || ''}','${r.importo || ''}','${esc(r.note || '')}','${esc(r.adempimento_nome)}')">
+        <td class="td-mono" style="font-size:10px;color:var(--accent)">${r.codice}</td>
+        <td>${r.adempimento_nome}</td>
+        <td><span class="badge b-categoria">${r.categoria || '-'}</span></td>
+        <td style="font-size:12px">${periodo}</td>
+        <td><span class="badge b-${r.stato}">${STATI[r.stato] || r.stato}</span></td>
+        <td class="td-mono td-dim">${r.importo ? '€ ' + parseFloat(r.importo).toFixed(2) : '-'}</td>
+        <td class="td-mono td-dim">${r.data_completamento || '-'}</td>
       </tr>`;
     }).join('');
 
     return `<div class="table-wrap" style="margin-bottom:16px">
       <div class="table-header" style="cursor:pointer" onclick="toggleSection(this)">
-        <span class="badge b-${(cl.tipo||'').toLowerCase()}" style="margin-right:6px">${cl.tipo}</span>
+        <span class="badge b-${(cl.tipo || '').toLowerCase()}" style="margin-right:6px">${cl.tipo}</span>
         <h3>${cl.nome}</h3>
-        <span style="font-size:11px;color:var(--text3);margin-right:8px">${cl.righe.length} adempimenti · ${comp} completati (${perc}%) · ${daF} da fare</span>
-        <div class="prog-bar" style="width:80px;display:inline-block"><div class="prog-fill green" style="width:${perc}%"></div></div>
+        <span style="font-size:11px;color:var(--text3);margin-right:8px">${cl.righe.length} adempimenti · ${comp} completati (${perc}%)</span>
+        <div class="prog-bar" style="width:100px;display:inline-block"><div class="prog-fill green" style="width:${perc}%"></div></div>
         <span class="toggle-arrow" style="margin-left:8px">▾</span>
       </div>
       <div class="section-body">
-        <table><thead><tr><th>Codice</th><th>Adempimento</th><th>Categoria</th><th>Periodi</th><th>Stato</th><th>Avanzamento</th></tr></thead>
-        <tbody>${adpSummaryRows}</tbody></table>
+        <table><thead><tr><th>Codice</th><th>Adempimento</th><th>Categoria</th><th>Periodo</th><th>Stato</th><th>Importo</th><th>Completato</th></tr></thead>
+        <tbody>${tbody}</tbody></table>
       </div>
     </div>`;
   }).join('');
@@ -920,8 +679,13 @@ function renderGlobaleTabella(righe) {
 function toggleSection(header) {
   const body = header.nextElementSibling;
   const arrow = header.querySelector('.toggle-arrow');
-  if (body.style.display === 'none') { body.style.display = ''; if (arrow) arrow.textContent = '▾'; }
-  else { body.style.display = 'none'; if (arrow) arrow.textContent = '▸'; }
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (arrow) arrow.textContent = '▾';
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▸';
+  }
 }
 
 // ─── ADEMPIMENTI ──────────────────────────────────────────────────────────
@@ -930,58 +694,60 @@ const applyAdempimentiFiltriDebounced = debounce(function() {
   socket.emit('get:adempimenti', { search: q });
 }, 300);
 
-function applyAdempimentiFiltri() { applyAdempimentiFiltriDebounced(); }
-function renderAdempimentiPage() { renderAdempimentiTabella(state.adempimenti); }
+function applyAdempimentiFiltri() {
+  applyAdempimentiFiltriDebounced();
+}
+
+function renderAdempimentiPage() {
+  renderAdempimentiTabella(state.adempimenti);
+}
 
 function renderAdempimentiTabella(adempimenti) {
-  const rows = adempimenti.map(a => {
-    const flags = [];
-    if (a.is_contabilita) flags.push('<span class="badge" style="background:var(--cyan-dim);color:var(--cyan);font-size:9px">📊 CONT.</span>');
-    if (a.has_rate) flags.push('<span class="badge" style="background:var(--green-dim);color:var(--green);font-size:9px">💰 RATE</span>');
-    return `<tr>
+  const rows = adempimenti.map(a => `
+    <tr>
       <td><span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${a.codice}</span></td>
       <td><strong>${a.nome}</strong></td>
-      <td class="td-dim">${a.descrizione||'-'}</td>
-      <td><span class="badge b-categoria">${a.categoria||'-'}</span></td>
-      <td><span style="font-family:var(--mono);font-size:11px">${a.scadenza_tipo||'-'}</span></td>
-      <td>${flags.join(' ')||'-'}</td>
+      <td class="td-dim">${a.descrizione || '-'}</td>
+      <td><span class="badge b-categoria">${a.categoria || '-'}</span></td>
+      <td><span style="font-family:var(--mono);font-size:11px">${a.scadenza_tipo || '-'}</span></td>
+      <td><span class="badge" style="background:rgba(91,141,246,0.1);color:var(--accent);font-size:10px">${getScadenzaLabel(a.scadenza_tipo)}</span></td>
       <td class="col-actions no-print">
         <div style="display:flex;gap:5px">
           <button class="btn btn-xs btn-secondary" onclick="editAdpDef(${a.id})">✏️</button>
           <button class="btn btn-xs btn-danger" onclick="deleteAdpDef(${a.id},'${esc(a.nome)}')">🗑️</button>
         </div>
       </td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="7"><div class="empty">📋 Nessun adempimento trovato</div></td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="7"><div class="empty">📋 Nessun adempimento trovato</div></td></tr>`;
 
   document.getElementById('content').innerHTML = `
     <div class="print-header"><strong>Studio Commerciale — Adempimenti Fiscali</strong><br>Data stampa: ${new Date().toLocaleDateString('it-IT')} — Totale: ${adempimenti.length}</div>
     <div class="infobox" style="margin-bottom:16px">
-      💡 Quando crei un nuovo adempimento viene automaticamente assegnato a tutti i clienti con la categoria corrispondente per l'anno corrente e il prossimo.
+      💡 <strong>Nota:</strong> Quando crei un nuovo adempimento, viene automaticamente assegnato a tutti i clienti con la categoria corrispondente per l'anno corrente e il prossimo.
     </div>
     <div class="table-wrap">
       <div class="table-header no-print"><h3>Adempimenti (${adempimenti.length})</h3></div>
-      <table><thead><tr><th>Codice</th><th>Nome</th><th>Descrizione</th><th>Categoria</th><th>Cadenza</th><th>Flags</th><th class="no-print">Azioni</th></tr></thead>
+      <table><thead><tr><th>Codice</th><th>Nome</th><th>Descrizione</th><th>Categoria</th><th>Cadenza</th><th>Periodi/anno</th><th class="no-print">Azioni</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
 }
 
-// ─── TIPOLOGIE ────────────────────────────────────────────────────────────
+function getScadenzaLabel(tipo) {
+  const labels = { annuale: '1×/anno', semestrale: '2×/anno', trimestrale: '4×/anno', mensile: '12×/anno' };
+  return labels[tipo] || tipo;
+}
+
+// ─── TIPOLOGIE CLIENTI ────────────────────────────────────────────────────
 function renderTipologiePage() {
   const cards = state.tipologie.map(t => {
-    const subs = (t.sottotipologie || []).filter(s => !s.is_separator);
-    const seps = t.sottotipologie || [];
+    const subs = t.sottotipologie || [];
     const color = { PF: 'var(--accent)', SP: 'var(--purple)', SC: 'var(--green)', ASS: 'var(--yellow)' }[t.codice] || 'var(--accent)';
-    const subsHtml = seps.map(s => {
-      if (s.is_separator) return `<div style="font-size:10px;color:var(--text3);margin:8px 0 4px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${s.nome}</div>`;
-      return `<div style="font-size:12px;padding:4px 8px;background:var(--surface2);border-radius:5px;border-left:2px solid ${color};margin-bottom:4px">${s.nome}</div>`;
-    }).join('');
     return `<div class="tipo-card">
       <div class="tipo-codice" style="color:${color}">${t.codice}</div>
       <div class="tipo-nome">${t.nome}</div>
-      <div class="tipo-desc">${t.descrizione||''}</div>
+      <div class="tipo-desc">${t.descrizione || ''}</div>
       <div class="divider"></div>
-      <div>${subsHtml}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:700">Sottotipologie</div>
+      <div>${subs.map(s => `<div style="font-size:12px;padding:4px 8px;background:var(--surface2);border-radius:5px;border-left:2px solid ${color};margin-bottom:4px">${s.nome}</div>`).join('')}</div>
     </div>`;
   }).join('');
   document.getElementById('content').innerHTML = `<div class="tipo-cards">${cards}</div>`;
@@ -1000,31 +766,8 @@ function onTipologiaChange() {
   const tip = state.tipologie.find(t => t.id === tipId);
   const sel = document.getElementById('c-sottotipologia');
   if (!sel || !tip) return;
-
-  // Usa la mappa locale con separatori visivi
-  const sottotipologieDisplay = SOTTOTIPOLOGIE_DISPLAY[tip.id] || [];
-  const dbSottotipologie = tip.sottotipologie || [];
-
-  if (sottotipologieDisplay.length > 0) {
-    sel.innerHTML = '<option value="">-- Nessuna --</option>';
-    sottotipologieDisplay.forEach(s => {
-      if (s.is_separator) {
-        sel.innerHTML += `<option disabled style="color:var(--text3);font-style:italic;background:var(--surface3)">── ${s.nome} ──</option>`;
-      } else {
-        // Trova l'id reale dal DB
-        const dbEntry = dbSottotipologie.find(d => d.codice === s.codice);
-        if (dbEntry) {
-          sel.innerHTML += `<option value="${dbEntry.id}">${s.nome}</option>`;
-        }
-      }
-    });
-  } else {
-    sel.innerHTML = '<option value="">-- Nessuna --</option>' +
-      dbSottotipologie.map(s => {
-        if (s.is_separator) return `<option disabled class="separator">── ${s.nome} ──</option>`;
-        return `<option value="${s.id}">${s.nome}</option>`;
-      }).join('');
-  }
+  sel.innerHTML = '<option value="">-- Nessuna --</option>' +
+    (tip.sottotipologie || []).map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
 }
 
 function renderCategorieSelect(categorieAttuali = []) {
@@ -1038,13 +781,17 @@ function renderCategorieSelect(categorieAttuali = []) {
 }
 
 function getSelectedCategorie() {
-  return Array.from(document.querySelectorAll('#categorie-attive input')).filter(cb => cb.checked).map(cb => cb.value);
+  const checkboxes = document.querySelectorAll('#categorie-attive input');
+  return Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 }
 
 function openNuovoCliente() {
   document.getElementById('modal-cliente-title').textContent = 'Nuovo Cliente';
   document.getElementById('cliente-id').value = '';
-  ['c-nome','c-cf','c-piva','c-email','c-tel','c-indirizzo','c-note'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['c-nome','c-cf','c-piva','c-email','c-tel','c-indirizzo','c-note'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   renderCategorieSelect(['IVA','DICHIARAZIONI','PREVIDENZA','LAVORO','TRIBUTI','BILANCIO']);
   populateTipologiaSelect();
   openModal('modal-cliente');
@@ -1055,19 +802,21 @@ function editCliente(id) {
     if (!success || !data) return;
     document.getElementById('modal-cliente-title').textContent = 'Modifica Cliente';
     document.getElementById('cliente-id').value = data.id;
-    document.getElementById('c-nome').value = data.nome||'';
-    document.getElementById('c-cf').value = data.codice_fiscale||'';
-    document.getElementById('c-piva').value = data.partita_iva||'';
-    document.getElementById('c-email').value = data.email||'';
-    document.getElementById('c-tel').value = data.telefono||'';
-    document.getElementById('c-indirizzo').value = data.indirizzo||'';
-    document.getElementById('c-note').value = data.note||'';
-    const categorieAttuali = JSON.parse(data.categorie_attive||'["IVA","DICHIARAZIONI","PREVIDENZA","LAVORO","TRIBUTI","BILANCIO"]');
+    document.getElementById('c-nome').value = data.nome || '';
+    document.getElementById('c-cf').value = data.codice_fiscale || '';
+    document.getElementById('c-piva').value = data.partita_iva || '';
+    document.getElementById('c-email').value = data.email || '';
+    document.getElementById('c-tel').value = data.telefono || '';
+    document.getElementById('c-indirizzo').value = data.indirizzo || '';
+    document.getElementById('c-note').value = data.note || '';
+    const categorieAttuali = JSON.parse(data.categorie_attive || '["IVA","DICHIARAZIONI","PREVIDENZA","LAVORO","TRIBUTI","BILANCIO"]');
     renderCategorieSelect(categorieAttuali);
     populateTipologiaSelect();
     document.getElementById('c-tipologia').value = data.id_tipologia;
     onTipologiaChange();
-    setTimeout(() => { document.getElementById('c-sottotipologia').value = data.id_sottotipologia||''; }, 60);
+    setTimeout(() => {
+      document.getElementById('c-sottotipologia').value = data.id_sottotipologia || '';
+    }, 60);
     openModal('modal-cliente');
   });
   socket.emit('get:cliente', { id });
@@ -1106,94 +855,35 @@ function goScadenzario(id) {
 }
 
 // ─── MODAL ADEMPIMENTO STATO ──────────────────────────────────────────────
-function openAdpModal(id, stato, scadenza, data, importo, note, nome, isContabilita, hasRate, impSaldo, impAcc1, impAcc2, impIva, impCont, rateLabels) {
+function openAdpModal(id, stato, scadenza, data, importo, note, nome) {
   document.getElementById('adp-id').value = id;
   document.getElementById('adp-stato').value = stato;
-  document.getElementById('adp-scadenza').value = scadenza||'';
-  document.getElementById('adp-data').value = data||'';
-  document.getElementById('adp-note').value = note||'';
-  document.getElementById('adp-nome-label').textContent = nome||'';
-  document.getElementById('adp-is-contabilita').value = isContabilita||0;
-  document.getElementById('adp-has-rate').value = hasRate||0;
-
-  document.getElementById('adp-importo-normale').style.display = (!isContabilita && !hasRate) ? '' : 'none';
-  document.getElementById('adp-importo-rate').style.display = hasRate ? '' : 'none';
-  document.getElementById('adp-importo-contabilita').style.display = isContabilita ? '' : 'none';
-
-  if (!isContabilita && !hasRate) {
-    document.getElementById('adp-importo').value = importo||'';
-  }
-  if (hasRate) {
-    document.getElementById('adp-importo-saldo').value = impSaldo||'';
-    document.getElementById('adp-importo-acconto1').value = impAcc1||'';
-    document.getElementById('adp-importo-acconto2').value = impAcc2||'';
-    if (rateLabels) {
-      try {
-        const labels = JSON.parse(rateLabels);
-        const rateGrid = document.querySelector('#adp-importo-rate .rate-grid');
-        if (rateGrid) {
-          const formGroups = rateGrid.querySelectorAll('.form-group label');
-          if (formGroups[0]) formGroups[0].textContent = `${labels[0]||'Saldo'} (€)`;
-          if (formGroups[1]) formGroups[1].textContent = `${labels[1]||'1° Acconto'} (€)`;
-          if (formGroups[2]) formGroups[2].textContent = `${labels[2]||'2° Acconto'} (€)`;
-        }
-      } catch(e) {}
-    }
-  }
-  if (isContabilita) {
-    document.getElementById('adp-importo-iva').value = impIva||'';
-    document.getElementById('adp-importo-cont').value = impCont||'';
-  }
-
+  document.getElementById('adp-scadenza').value = scadenza || '';
+  document.getElementById('adp-data').value = data || '';
+  document.getElementById('adp-importo').value = importo || '';
+  document.getElementById('adp-note').value = note || '';
+  document.getElementById('adp-nome-label').textContent = nome || '';
   openModal('modal-adempimento');
 }
 
 function saveAdpStato() {
-  const isContabilita = parseInt(document.getElementById('adp-is-contabilita').value);
-  const hasRate = parseInt(document.getElementById('adp-has-rate').value);
-  const payload = {
+  socket.emit('update:adempimento_stato', {
     id: parseInt(document.getElementById('adp-id').value),
     stato: document.getElementById('adp-stato').value,
     data_scadenza: document.getElementById('adp-scadenza').value || null,
     data_completamento: document.getElementById('adp-data').value || null,
+    importo: document.getElementById('adp-importo').value || null,
     note: document.getElementById('adp-note').value || null,
-    importo: null,
-    importo_saldo: null,
-    importo_acconto1: null,
-    importo_acconto2: null,
-    importo_iva: null,
-    importo_contabilita: null,
-  };
-  if (!isContabilita && !hasRate) {
-    payload.importo = document.getElementById('adp-importo').value || null;
-  }
-  if (hasRate) {
-    payload.importo_saldo = document.getElementById('adp-importo-saldo').value || null;
-    payload.importo_acconto1 = document.getElementById('adp-importo-acconto1').value || null;
-    payload.importo_acconto2 = document.getElementById('adp-importo-acconto2').value || null;
-  }
-  if (isContabilita) {
-    payload.importo_iva = document.getElementById('adp-importo-iva').value || null;
-    payload.importo_contabilita = document.getElementById('adp-importo-cont').value || null;
-  }
-  socket.emit('update:adempimento_stato', payload);
+  });
 }
 
 function deleteAdpCliente() {
   const id = parseInt(document.getElementById('adp-id').value);
-  if (confirm('Rimuovere questo adempimento dallo scadenzario?')) socket.emit('delete:adempimento_cliente', { id });
+  if (confirm('Rimuovere questo adempimento dallo scadenzario?'))
+    socket.emit('delete:adempimento_cliente', { id });
 }
 
 // ─── MODAL ADEMPIMENTO DEF ────────────────────────────────────────────────
-function onAdpFlagsChange() {
-  const hasCont = document.getElementById('adp-def-contabilita').checked;
-  const hasRate = document.getElementById('adp-def-rate').checked;
-  document.getElementById('rate-labels-section').style.display = hasRate ? '' : 'none';
-  if (hasCont) document.getElementById('adp-def-rate').checked = false;
-  if (hasRate) document.getElementById('adp-def-contabilita').checked = false;
-  document.getElementById('rate-labels-section').style.display = document.getElementById('adp-def-rate').checked ? '' : 'none';
-}
-
 function openNuovoAdpDef() {
   document.getElementById('modal-adp-def-title').textContent = 'Nuovo Adempimento';
   document.getElementById('adp-def-id').value = '';
@@ -1202,12 +892,6 @@ function openNuovoAdpDef() {
   document.getElementById('adp-def-desc').value = '';
   document.getElementById('adp-def-scadenza').value = 'annuale';
   document.getElementById('adp-def-categoria').value = 'TUTTI';
-  document.getElementById('adp-def-contabilita').checked = false;
-  document.getElementById('adp-def-rate').checked = false;
-  document.getElementById('adp-rate-l1').value = 'Saldo';
-  document.getElementById('adp-rate-l2').value = '1° Acconto';
-  document.getElementById('adp-rate-l3').value = '2° Acconto';
-  document.getElementById('rate-labels-section').style.display = 'none';
   openModal('modal-adp-def');
 }
 
@@ -1218,42 +902,20 @@ function editAdpDef(id) {
   document.getElementById('adp-def-id').value = a.id;
   document.getElementById('adp-def-codice').value = a.codice;
   document.getElementById('adp-def-nome').value = a.nome;
-  document.getElementById('adp-def-desc').value = a.descrizione||'';
-  document.getElementById('adp-def-scadenza').value = a.scadenza_tipo||'annuale';
-  document.getElementById('adp-def-categoria').value = a.categoria||'TUTTI';
-  document.getElementById('adp-def-contabilita').checked = !!a.is_contabilita;
-  document.getElementById('adp-def-rate').checked = !!a.has_rate;
-  if (a.rate_labels) {
-    try {
-      const labels = JSON.parse(a.rate_labels);
-      document.getElementById('adp-rate-l1').value = labels[0]||'Saldo';
-      document.getElementById('adp-rate-l2').value = labels[1]||'1° Acconto';
-      document.getElementById('adp-rate-l3').value = labels[2]||'2° Acconto';
-    } catch(e) {}
-  }
-  document.getElementById('rate-labels-section').style.display = a.has_rate ? '' : 'none';
+  document.getElementById('adp-def-desc').value = a.descrizione || '';
+  document.getElementById('adp-def-scadenza').value = a.scadenza_tipo || 'annuale';
+  document.getElementById('adp-def-categoria').value = a.categoria || 'TUTTI';
   openModal('modal-adp-def');
 }
 
 function saveAdpDef() {
   const id = document.getElementById('adp-def-id').value;
-  const isContabilita = document.getElementById('adp-def-contabilita').checked;
-  const hasRate = document.getElementById('adp-def-rate').checked;
-  const rateLabels = hasRate ? [
-    document.getElementById('adp-rate-l1').value||'Saldo',
-    document.getElementById('adp-rate-l2').value||'1° Acconto',
-    document.getElementById('adp-rate-l3').value||'2° Acconto',
-  ] : null;
-
   const data = {
     codice: document.getElementById('adp-def-codice').value.trim().toUpperCase(),
     nome: document.getElementById('adp-def-nome').value.trim(),
     descrizione: document.getElementById('adp-def-desc').value.trim() || null,
     scadenza_tipo: document.getElementById('adp-def-scadenza').value,
     categoria: document.getElementById('adp-def-categoria').value,
-    is_contabilita: isContabilita,
-    has_rate: hasRate,
-    rate_labels: rateLabels,
   };
   if (!data.codice || !data.nome) { showNotif('Codice e Nome obbligatori', 'error'); return; }
   if (id) { data.id = parseInt(id); socket.emit('update:adempimento', data); }
@@ -1261,25 +923,34 @@ function saveAdpDef() {
 }
 
 function deleteAdpDef(id, nome) {
-  if (confirm(`Eliminare "${nome}"?\nL'adempimento non comparirà più nei nuovi scadenzari.`)) socket.emit('delete:adempimento', { id });
+  if (confirm(`Eliminare "${nome}"?\nL'adempimento non comparirà più nei nuovi scadenzari, ma le voci già create restano.`))
+    socket.emit('delete:adempimento', { id });
 }
 
-// ─── COPIA SCADENZARIO (singolo cliente) ──────────────────────────────────
+// ─── COPIA SCADENZARIO ────────────────────────────────────────────────────
 function openCopia(id) {
   document.getElementById('copia-cliente-id').value = id;
-  document.getElementById('copia-modalita').value = 'cliente';
-  document.getElementById('copia-info').innerHTML = '📋 Copia scadenzario per questo cliente. Verrà creata una copia con stato "Da fare".';
   document.getElementById('copia-da').value = state.anno - 1;
   document.getElementById('copia-a').value = state.anno;
   openModal('modal-copia');
 }
 
+function eseguiCopia() {
+  socket.emit('copia:scadenzario', {
+    id_cliente: parseInt(document.getElementById('copia-cliente-id').value),
+    anno_da: parseInt(document.getElementById('copia-da').value),
+    anno_a: parseInt(document.getElementById('copia-a').value),
+  });
+}
+
 // ─── AGGIUNGI ADEMPIMENTO ─────────────────────────────────────────────────
 function openAddAdp(id) {
   document.getElementById('add-adp-cliente-id').value = id;
-  document.getElementById('add-adp-anno').value = state.anno;
   const sel = document.getElementById('add-adp-select');
-  sel.innerHTML = state.adempimenti.map(a => `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`).join('');
+  sel.innerHTML = state.adempimenti.map(a =>
+    `<option value="${a.id}">[${a.categoria}] ${a.codice} - ${a.nome}</option>`
+  ).join('');
+  document.getElementById('add-adp-periodo').value = '';
   updatePeriodoOptions();
   openModal('modal-add-adp');
 }
@@ -1288,53 +959,75 @@ function updatePeriodoOptions() {
   const selAdp = document.getElementById('add-adp-select');
   const selPeriodo = document.getElementById('add-adp-periodo');
   if (!selAdp || !selPeriodo) return;
+
   const adpId = parseInt(selAdp.value);
   const adp = state.adempimenti.find(a => a.id === adpId);
   if (!adp) return;
+
   let options = '<option value="">— Seleziona periodo —</option>';
+
   if (adp.scadenza_tipo === 'trimestrale') {
-    options += `<option value="trimestre_1">1° Trimestre (Gen–Mar)</option><option value="trimestre_2">2° Trimestre (Apr–Giu)</option><option value="trimestre_3">3° Trimestre (Lug–Set)</option><option value="trimestre_4">4° Trimestre (Ott–Dic)</option>`;
+    options += `
+      <option value="trimestre_1">1° Trimestre (Gen–Mar)</option>
+      <option value="trimestre_2">2° Trimestre (Apr–Giu)</option>
+      <option value="trimestre_3">3° Trimestre (Lug–Set)</option>
+      <option value="trimestre_4">4° Trimestre (Ott–Dic)</option>`;
   } else if (adp.scadenza_tipo === 'semestrale') {
-    options += `<option value="semestre_1">1° Semestre (Gen–Giu)</option><option value="semestre_2">2° Semestre (Lug–Dic)</option>`;
+    options += `
+      <option value="semestre_1">1° Semestre (Gen–Giu)</option>
+      <option value="semestre_2">2° Semestre (Lug–Dic)</option>`;
   } else if (adp.scadenza_tipo === 'mensile') {
-    MESI.forEach((m, i) => { options += `<option value="mese_${i+1}">${m}</option>`; });
+    MESI.forEach((m, i) => {
+      options += `<option value="mese_${i + 1}">${m}</option>`;
+    });
   } else {
     options += `<option value="annuale">Annuale</option>`;
   }
+
   selPeriodo.innerHTML = options;
 }
 
 function eseguiAddAdp() {
   const periodoVal = document.getElementById('add-adp-periodo').value;
   let trimestre = null, semestre = null, mese = null;
+
   if (periodoVal.startsWith('trimestre_')) trimestre = parseInt(periodoVal.split('_')[1]);
   else if (periodoVal.startsWith('semestre_')) semestre = parseInt(periodoVal.split('_')[1]);
   else if (periodoVal.startsWith('mese_')) mese = parseInt(periodoVal.split('_')[1]);
+
   socket.emit('add:adempimento_cliente', {
     id_cliente: parseInt(document.getElementById('add-adp-cliente-id').value),
     id_adempimento: parseInt(document.getElementById('add-adp-select').value),
-    anno: parseInt(document.getElementById('add-adp-anno').value) || state.anno,
-    trimestre, semestre, mese,
+    anno: state.anno,
+    trimestre,
+    semestre,
+    mese,
   });
 }
 
 // ─── MODAL HELPERS ────────────────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
 
 document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('open');
+  });
 });
 
 function esc(s) {
-  return (s || '').toString().replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+  return (s || '').replace(/'/g, "\\'").replace(/\n/g, ' ');
 }
 
 function showNotif(msg, type = 'info') {
   const icons = { success: '✅', info: 'ℹ️', error: '❌' };
   const el = document.createElement('div');
   el.className = `notif ${type}`;
-  el.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  el.innerHTML = `<span>${icons[type] || '•'}</span><span>${msg}</span>`;
   document.getElementById('notif-container').appendChild(el);
   setTimeout(() => el.remove(), 3800);
 }

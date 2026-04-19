@@ -9,19 +9,32 @@ const os = require('os');
 const app = express();
 const server = http.createServer(app);
 
+// ========================================
+// 🔌 SOCKET.IO CON CORS PER VPS
+// ========================================
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"], credentials: true },
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
   transports: ["websocket", "polling"],
   allowEIO3: true,
   pingTimeout: 60000,
   pingInterval: 25000,
 });
 
+// Esporta io per usarlo nelle route
 app.set("io", io);
+
+// ========================================
+// 📦 MIDDLEWARE
+// ========================================
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Log delle richieste API (utile per debug)
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path} da ${req.ip}`);
@@ -38,7 +51,6 @@ async function initDB() {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
     console.log('✅ Database caricato da file');
-    migrateDB();
   } else {
     db = new SQL.Database();
     console.log('🆕 Nuovo database creato');
@@ -46,24 +58,6 @@ async function initDB() {
     seedData();
     saveDB();
   }
-}
-
-function migrateDB() {
-  // Aggiungi colonne mancanti se non esistono (migrazioni sicure)
-  const migrations = [
-    `ALTER TABLE adempimenti ADD COLUMN is_contabilita INTEGER DEFAULT 0`,
-    `ALTER TABLE adempimenti ADD COLUMN has_rate INTEGER DEFAULT 0`,
-    `ALTER TABLE adempimenti ADD COLUMN rate_labels TEXT`,
-    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_saldo REAL`,
-    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_acconto1 REAL`,
-    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_acconto2 REAL`,
-    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_iva REAL`,
-    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_contabilita REAL`,
-  ];
-  migrations.forEach(sql => {
-    try { db.run(sql); } catch (e) { /* colonna già esistente */ }
-  });
-  saveDB();
 }
 
 function saveDB() {
@@ -104,7 +98,6 @@ function createSchema() {
     id_tipologia INTEGER NOT NULL,
     codice TEXT NOT NULL,
     nome TEXT NOT NULL,
-    is_separator INTEGER DEFAULT 0,
     FOREIGN KEY (id_tipologia) REFERENCES tipologie_cliente(id)
   )`);
 
@@ -133,9 +126,6 @@ function createSchema() {
     descrizione TEXT,
     categoria TEXT,
     scadenza_tipo TEXT CHECK(scadenza_tipo IN ('annuale', 'semestrale', 'trimestrale', 'mensile')),
-    is_contabilita INTEGER DEFAULT 0,
-    has_rate INTEGER DEFAULT 0,
-    rate_labels TEXT,
     attivo INTEGER DEFAULT 1
   )`);
 
@@ -152,11 +142,6 @@ function createSchema() {
     data_completamento TEXT,
     note TEXT,
     importo REAL,
-    importo_saldo REAL,
-    importo_acconto1 REAL,
-    importo_acconto2 REAL,
-    importo_iva REAL,
-    importo_contabilita REAL,
     UNIQUE(id_cliente, id_adempimento, anno, mese, trimestre, semestre),
     FOREIGN KEY (id_cliente) REFERENCES clienti(id),
     FOREIGN KEY (id_adempimento) REFERENCES adempimenti(id)
@@ -174,63 +159,51 @@ function seedData() {
   ];
   tipologie.forEach(t => db.run(`INSERT INTO tipologie_cliente (codice, nome, descrizione) VALUES (?,?,?)`, [t.codice, t.nome, t.descrizione]));
 
-  // sottotipologie con is_separator per righe "bianche" non selezionabili
   const sottotipologie = [
-    // PF (id_tipologia=1)
-    { id_tipologia: 1, codice: 'PF_PRIV', nome: 'Privato', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_DITTA_SEP', nome: '— Ditta Individuale —', is_separator: 1 },
-    { id_tipologia: 1, codice: 'PF_DITTA_ORD', nome: 'Ditta Ind. – Ordinario', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_DITTA_SEMP', nome: 'Ditta Ind. – Semplificato', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_DITTA_FORF', nome: 'Ditta Ind. – Forfettario', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_SOCIO', nome: 'Socio', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_PROF_SEP', nome: '— Professionista —', is_separator: 1 },
-    { id_tipologia: 1, codice: 'PF_PROF_ORD', nome: 'Professionista – Ordinario', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_PROF_SEMP', nome: 'Professionista – Semplificato', is_separator: 0 },
-    { id_tipologia: 1, codice: 'PF_PROF_FORF', nome: 'Professionista – Forfettario', is_separator: 0 },
-    // SP (id_tipologia=2)
-    { id_tipologia: 2, codice: 'SP_ORD', nome: 'SP – Ordinaria', is_separator: 0 },
-    { id_tipologia: 2, codice: 'SP_SEMP', nome: 'SP – Semplificata', is_separator: 0 },
-    // SC (id_tipologia=3)
-    { id_tipologia: 3, codice: 'SC_ORD', nome: 'SC – Ordinaria', is_separator: 0 },
-    { id_tipologia: 3, codice: 'SC_SEMP', nome: 'SC – Semplificata', is_separator: 0 },
-    // ASS (id_tipologia=4)
-    { id_tipologia: 4, codice: 'ASS_ORD', nome: 'ASS – Ordinaria', is_separator: 0 },
-    { id_tipologia: 4, codice: 'ASS_SEMP', nome: 'ASS – Semplificata', is_separator: 0 },
+    { id_tipologia: 1, codice: 'PF_O', nome: 'PF - Ordinario' },
+    { id_tipologia: 1, codice: 'PF_F', nome: 'PF - Forfettario' },
+    { id_tipologia: 1, codice: 'PF_PRIVA', nome: 'PF - Privato' },
+    { id_tipologia: 1, codice: 'PF_SOCIO', nome: 'PF - Socio' },
+    { id_tipologia: 1, codice: 'PF_DITTA', nome: 'PF - Ditta Individuale' },
+    { id_tipologia: 1, codice: 'PF_PROF', nome: 'PF - Professionista' },
+    { id_tipologia: 2, codice: 'SP_O', nome: 'SP - Ordinaria' },
+    { id_tipologia: 2, codice: 'SP_S', nome: 'SP - Semplificata' },
+    { id_tipologia: 2, codice: 'SP_PROF', nome: 'SP - Studio Professionale' },
+    { id_tipologia: 3, codice: 'SC_O', nome: 'SC - Ordinaria' },
+    { id_tipologia: 3, codice: 'SC_S', nome: 'SC - Semplificata' },
+    { id_tipologia: 4, codice: 'ASS_O', nome: 'ASS - Ordinaria' },
+    { id_tipologia: 4, codice: 'ASS_S', nome: 'ASS - Semplificata' },
   ];
-  sottotipologie.forEach(s => db.run(`INSERT INTO sottotipologie (id_tipologia, codice, nome, is_separator) VALUES (?,?,?,?)`, [s.id_tipologia, s.codice, s.nome, s.is_separator || 0]));
+  sottotipologie.forEach(s => db.run(`INSERT INTO sottotipologie (id_tipologia, codice, nome) VALUES (?,?,?)`, [s.id_tipologia, s.codice, s.nome]));
 
   const adempimenti = [
-    { codice: 'TASSA_NID', nome: 'Tassa NID', descrizione: 'Tassa numerazione e idoneità documenti', categoria: 'TUTTI', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'INAIL', nome: 'INAIL', descrizione: 'Dichiarazione e pagamenti INAIL', categoria: 'LAVORO', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'INPS_TRIM', nome: 'INPS Trimestrale', descrizione: 'INPS trimestrale', categoria: 'PREVIDENZA', scadenza: 'trimestrale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'LIPE', nome: 'LIPE', descrizione: 'Liquidazione IVA periodica trimestrale', categoria: 'IVA', scadenza: 'trimestrale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'ACCONTO_IVA', nome: 'Acconto IVA', descrizione: 'Acconto IVA annuale', categoria: 'IVA', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'CU', nome: 'Certificazione Unica', descrizione: 'Certificazione Unica', categoria: 'DICHIARAZIONI', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: '770', nome: 'Modello 770', descrizione: 'Dichiarazione sostituti di imposta', categoria: 'DICHIARAZIONI', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'DICH_IVA', nome: 'Dichiarazione IVA', descrizione: 'Dichiarazione IVA annuale', categoria: 'DICHIARAZIONI', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'BILANCIO', nome: 'Bilancio', descrizione: 'Deposito bilancio annuale', categoria: 'BILANCIO', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'DIRITTO_ANNUALE', nome: 'Diritto Annuale CCIAA', descrizione: 'Diritto annuale Camera di Commercio', categoria: 'TRIBUTI', scadenza: 'annuale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'IRAP', nome: 'IRAP', descrizione: 'Imposta Regionale sulle Attività Produttive', categoria: 'TRIBUTI', scadenza: 'annuale', is_contabilita: 0, has_rate: 1, rate_labels: '["Saldo","1° Acconto","2° Acconto"]' },
-    { codice: 'DICH_REDDITI', nome: 'Dichiarazione Redditi', descrizione: 'Dichiarazione annuale redditi', categoria: 'DICHIARAZIONI', scadenza: 'annuale', is_contabilita: 0, has_rate: 1, rate_labels: '["Saldo","1° Acconto","2° Acconto"]' },
-    { codice: '730', nome: 'Modello 730', descrizione: 'Mod. 730 persone fisiche dipendenti', categoria: 'DICHIARAZIONI', scadenza: 'annuale', is_contabilita: 0, has_rate: 1, rate_labels: '["Saldo","1° Acconto","2° Acconto"]' },
-    { codice: 'IMU', nome: 'IMU', descrizione: 'Imposta Municipale Unica', categoria: 'TRIBUTI', scadenza: 'semestrale', is_contabilita: 0, has_rate: 0 },
-    { codice: 'CONTABILITA', nome: 'Contabilità / F24', descrizione: 'Versamento F24 mensile con IVA e contabilità', categoria: 'TRIBUTI', scadenza: 'mensile', is_contabilita: 1, has_rate: 0 },
+    { codice: 'TASSA_NID', nome: 'Tassa NID', descrizione: 'Tassa numerazione e idoneità documenti', categoria: 'TUTTI', scadenza: 'annuale' },
+    { codice: 'INAIL', nome: 'INAIL', descrizione: 'Dichiarazione e pagamenti INAIL', categoria: 'LAVORO', scadenza: 'annuale' },
+    { codice: 'INPS_TRIM', nome: 'INPS Trimestrale', descrizione: 'INPS trimestrale', categoria: 'PREVIDENZA', scadenza: 'trimestrale' },
+    { codice: 'LIPE', nome: 'LIPE', descrizione: 'Liquidazione IVA periodica trimestrale', categoria: 'IVA', scadenza: 'trimestrale' },
+    { codice: 'ACCONTO_IVA', nome: 'Acconto IVA', descrizione: 'Acconto IVA annuale', categoria: 'IVA', scadenza: 'annuale' },
+    { codice: 'CU', nome: 'Certificazione Unica', descrizione: 'Certificazione Unica', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
+    { codice: '770', nome: 'Modello 770', descrizione: 'Dichiarazione sostituti di imposta', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
+    { codice: 'DICH_IVA', nome: 'Dichiarazione IVA', descrizione: 'Dichiarazione IVA annuale', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
+    { codice: 'BILANCIO', nome: 'Bilancio', descrizione: 'Deposito bilancio annuale', categoria: 'BILANCIO', scadenza: 'annuale' },
+    { codice: 'DIRITTO_ANNUALE', nome: 'Diritto Annuale CCIAA', descrizione: 'Diritto annuale Camera di Commercio', categoria: 'TRIBUTI', scadenza: 'annuale' },
+    { codice: 'IRAP', nome: 'IRAP', descrizione: 'Imposta Regionale sulle Attività Produttive', categoria: 'TRIBUTI', scadenza: 'annuale' },
+    { codice: 'DICH_REDDITI', nome: 'Dichiarazione Redditi', descrizione: 'Dichiarazione annuale redditi', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
+    { codice: '730', nome: 'Modello 730', descrizione: 'Mod. 730 persone fisiche dipendenti', categoria: 'DICHIARAZIONI', scadenza: 'annuale' },
+    { codice: 'IMU', nome: 'IMU', descrizione: 'Imposta Municipale Unica', categoria: 'TRIBUTI', scadenza: 'semestrale' },
+    { codice: 'F24_MENS', nome: 'F24 Mensile', descrizione: 'Versamento F24 mensile', categoria: 'TRIBUTI', scadenza: 'mensile' },
   ];
-  adempimenti.forEach(a => db.run(
-    `INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo, is_contabilita, has_rate, rate_labels) VALUES (?,?,?,?,?,?,?,?)`,
-    [a.codice, a.nome, a.descrizione, a.categoria, a.scadenza, a.is_contabilita || 0, a.has_rate || 0, a.rate_labels || null]
-  ));
+  adempimenti.forEach(a => db.run(`INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo) VALUES (?,?,?,?,?)`,
+    [a.codice, a.nome, a.descrizione, a.categoria, a.scadenza]));
 
   const clientiEsempio = [
-    { nome: 'Mario Rossi', id_tipologia: 1, id_sottotipologia: 1, cf: 'RSSMRA80A01L219K', piva: null, email: 'mario.rossi@email.it', tel: '333 1234567', indirizzo: 'Via Roma 1, Udine', note: 'Cliente storico', categorie: '["IVA","DICHIARAZIONI","TRIBUTI"]' },
-    { nome: 'Anna Bianchi', id_tipologia: 1, id_sottotipologia: 2, cf: 'BNCNNA85M41F205X', piva: null, email: 'anna.bianchi@email.it', tel: '347 9876543', indirizzo: 'Via Venezia 5, Trieste', note: '', categorie: '["DICHIARAZIONI"]' },
-    { nome: 'Studio Verdi SNC', id_tipologia: 2, id_sottotipologia: 11, cf: null, piva: '01234567890', email: 'info@studioverdi.it', tel: '0432 123456', indirizzo: 'Corso Vittorio 10, Udine', note: 'Contatti: dott. Verdi', categorie: '["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]' },
-    { nome: 'Alfa Srl', id_tipologia: 3, id_sottotipologia: 13, cf: null, piva: '09876543210', email: 'info@alfasrl.it', tel: '040 654321', indirizzo: 'Zona Industriale, Trieste', note: '', categorie: '["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]' },
+    { nome: 'Mario Rossi', id_tipologia: 1, id_sottotipologia: 1, cf: 'RSSMRA80A01L219K', piva: null, email: 'mario.rossi@email.it', tel: '333 1234567', indirizzo: 'Via Roma 1, Udine', categorie: '["IVA","DICHIARAZIONI","TRIBUTI"]' },
+    { nome: 'Anna Bianchi', id_tipologia: 1, id_sottotipologia: 2, cf: 'BNCNNA85M41F205X', piva: null, email: 'anna.bianchi@email.it', tel: '347 9876543', indirizzo: 'Via Venezia 5, Trieste', categorie: '["DICHIARAZIONI"]' },
+    { nome: 'Studio Verdi SNC', id_tipologia: 2, id_sottotipologia: 8, cf: null, piva: '01234567890', email: 'info@studioverdi.it', tel: '0432 123456', indirizzo: 'Corso Vittorio 10, Udine', categorie: '["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]' },
+    { nome: 'Alfa Srl', id_tipologia: 3, id_sottotipologia: 10, cf: null, piva: '09876543210', email: 'info@alfasrl.it', tel: '040 654321', indirizzo: 'Zona Industriale, Trieste', categorie: '["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]' },
   ];
-  clientiEsempio.forEach(c => db.run(
-    `INSERT INTO clienti (nome, id_tipologia, id_sottotipologia, codice_fiscale, partita_iva, email, telefono, indirizzo, note, categorie_attive) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-    [c.nome, c.id_tipologia, c.id_sottotipologia, c.cf, c.piva, c.email, c.tel, c.indirizzo, c.note, c.categorie]
-  ));
+  clientiEsempio.forEach(c => db.run(`INSERT INTO clienti (nome, id_tipologia, id_sottotipologia, codice_fiscale, partita_iva, email, telefono, indirizzo, categorie_attive) VALUES (?,?,?,?,?,?,?,?,?)`,
+    [c.nome, c.id_tipologia, c.id_sottotipologia, c.cf, c.piva, c.email, c.tel, c.indirizzo, c.categorie]));
 
   console.log('🌱 Dati di esempio inseriti');
 }
@@ -261,7 +234,8 @@ function generaScadenzarioInterno(id_cliente, anno) {
       for (let t = 1; t <= 4; t++) {
         const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND trimestre=?`, [id_cliente, a.id, anno, t]);
         if (!exists) {
-          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`, [id_cliente, a.id, anno, t, 'da_fare']);
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, t, 'da_fare']);
           totaleGenerati++;
         }
       }
@@ -269,7 +243,8 @@ function generaScadenzarioInterno(id_cliente, anno) {
       for (let s = 1; s <= 2; s++) {
         const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND semestre=?`, [id_cliente, a.id, anno, s]);
         if (!exists) {
-          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`, [id_cliente, a.id, anno, s, 'da_fare']);
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, s, 'da_fare']);
           totaleGenerati++;
         }
       }
@@ -277,14 +252,16 @@ function generaScadenzarioInterno(id_cliente, anno) {
       for (let m = 1; m <= 12; m++) {
         const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND mese=?`, [id_cliente, a.id, anno, m]);
         if (!exists) {
-          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`, [id_cliente, a.id, anno, m, 'da_fare']);
+          runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
+            [id_cliente, a.id, anno, m, 'da_fare']);
           totaleGenerati++;
         }
       }
     } else {
       const exists = queryOne(`SELECT id FROM adempimenti_cliente WHERE id_cliente=? AND id_adempimento=? AND anno=? AND mese IS NULL AND trimestre IS NULL AND semestre IS NULL`, [id_cliente, a.id, anno]);
       if (!exists) {
-        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`, [id_cliente, a.id, anno, 'da_fare']);
+        runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+          [id_cliente, a.id, anno, 'da_fare']);
         totaleGenerati++;
       }
     }
@@ -309,57 +286,50 @@ function generaAdempimentoPerTutti(id_adempimento, anno) {
 
     if (scadenza === 'trimestrale') {
       for (let t = 1; t <= 4; t++) {
-        try { runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`, [cliente.id, id_adempimento, anno, t, 'da_fare']); totale++; } catch (e) { }
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, t, 'da_fare']);
+          totale++;
+        } catch(e) {}
       }
     } else if (scadenza === 'semestrale') {
       for (let s = 1; s <= 2; s++) {
-        try { runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`, [cliente.id, id_adempimento, anno, s, 'da_fare']); totale++; } catch (e) { }
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, s, 'da_fare']);
+          totale++;
+        } catch(e) {}
       }
     } else if (scadenza === 'mensile') {
       for (let m = 1; m <= 12; m++) {
-        try { runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`, [cliente.id, id_adempimento, anno, m, 'da_fare']); totale++; } catch (e) { }
+        try {
+          runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
+            [cliente.id, id_adempimento, anno, m, 'da_fare']);
+          totale++;
+        } catch(e) {}
       }
     } else {
-      try { runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`, [cliente.id, id_adempimento, anno, 'da_fare']); totale++; } catch (e) { }
+      try {
+        runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+          [cliente.id, id_adempimento, anno, 'da_fare']);
+        totale++;
+      } catch(e) {}
     }
   });
 
   return totale;
 }
 
-// Genera scadenzario per TUTTI i clienti per un dato anno
-function generaTuttiClientiAnno(anno) {
-  const clienti = queryAll(`SELECT * FROM clienti WHERE attivo=1`);
-  let totale = 0;
-  clienti.forEach(c => {
-    try { totale += generaScadenzarioInterno(c.id, anno); } catch (e) { }
-  });
-  return totale;
-}
-
-// Copia anno per TUTTI i clienti
-function copiaTuttiClienti(anno_da, anno_a) {
-  const clienti = queryAll(`SELECT * FROM clienti WHERE attivo=1`);
-  let totale = 0;
-  clienti.forEach(cliente => {
-    const righe = queryAll(`SELECT * FROM adempimenti_cliente WHERE id_cliente=? AND anno=?`, [cliente.id, anno_da]);
-    runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=? AND stato='da_fare'`, [cliente.id, anno_a]);
-    righe.forEach(r => {
-      try {
-        runQuery(`INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, trimestre, semestre, stato, data_scadenza, note, importo) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-          [r.id_cliente, r.id_adempimento, anno_a, r.mese, r.trimestre, r.semestre, 'da_fare', null, null, null]);
-        totale++;
-      } catch (e) { }
-    });
-  });
-  return totale;
-}
-
+// ========================================
+// 🌍 FUNZIONI PER OTTENERE IP
+// ========================================
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
     }
   }
   return 'localhost';
@@ -372,25 +342,48 @@ async function getPublicIP() {
       https.get('https://api.ipify.org?format=json', (res) => {
         let data = '';
         res.on('data', (chunk) => data += chunk);
-        res.on('end', () => { try { resolve(JSON.parse(data).ip); } catch (e) { reject(e); } });
+        res.on('end', () => {
+          try {
+            const ip = JSON.parse(data).ip;
+            resolve(ip);
+          } catch (e) {
+            reject(e);
+          }
+        });
       }).on('error', reject);
     });
   } catch (error) {
+    console.error('⚠️ Impossibile recuperare IP pubblico:', error.message);
     return null;
   }
 }
 
+// ========================================
+// 🏥 HEALTH CHECK
+// ========================================
 app.get('/api/health', async (req, res) => {
   const publicIP = await getPublicIP();
-  res.json({ status: 'OK', timestamp: new Date().toISOString(), uptime: Math.floor(process.uptime()), socketConnections: io.engine.clientsCount, publicIP, port: PORT, dbSize: fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0 });
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    socketConnections: io.engine.clientsCount,
+    publicIP: publicIP,
+    port: PORT,
+    dbSize: fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0
+  });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SOCKET.IO
-// ═══════════════════════════════════════════════════════════════════════════
+// ========================================
+// 🔌 GESTIONE CONNESSIONI SOCKET.IO
+// ========================================
 io.on('connection', (socket) => {
-  console.log(`✅ Client connesso: ${socket.id}`);
-  socket.emit('connected', { message: 'Connesso al server', timestamp: new Date().toISOString() });
+  console.log(`✅ Client connesso: ${socket.id} da ${socket.handshake.address}`);
+
+  socket.emit('connected', {
+    message: 'Connesso al server',
+    timestamp: new Date().toISOString()
+  });
 
   socket.on('get:tipologie', () => {
     try {
@@ -412,7 +405,10 @@ io.on('connection', (socket) => {
         WHERE c.attivo = 1
       `;
       const params = [];
-      if (filtri.tipologia && filtri.tipologia !== '') { sql += ` AND t.codice = ?`; params.push(filtri.tipologia); }
+      if (filtri.tipologia && filtri.tipologia !== '') {
+        sql += ` AND t.codice = ?`;
+        params.push(filtri.tipologia);
+      }
       if (filtri.search && filtri.search.trim() !== '') {
         const s = `%${filtri.search.trim()}%`;
         sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ? OR c.indirizzo LIKE ?)`;
@@ -455,9 +451,12 @@ io.on('connection', (socket) => {
       const categorieAttive = JSON.stringify(data.categorie_attive || []);
       runQuery(`UPDATE clienti SET nome=?, id_tipologia=?, id_sottotipologia=?, codice_fiscale=?, partita_iva=?, email=?, telefono=?, indirizzo=?, note=?, categorie_attive=? WHERE id=?`,
         [data.nome, data.id_tipologia, data.id_sottotipologia || null, data.codice_fiscale || null, data.partita_iva || null, data.email || null, data.telefono || null, data.indirizzo || null, data.note || null, categorieAttive, data.id]);
+
       const annoCorrente = new Date().getFullYear();
       let totale = 0;
-      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) totale += generaScadenzarioInterno(data.id, anno);
+      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) {
+        totale += generaScadenzarioInterno(data.id, anno);
+      }
       io.emit('notify', { type: 'success', msg: `✅ Cliente aggiornato, scadenzario rigenerato (${totale} adempimenti)` });
       socket.emit('res:update:cliente', { success: true });
     } catch (e) { socket.emit('res:update:cliente', { success: false, error: e.message }); }
@@ -490,23 +489,25 @@ io.on('connection', (socket) => {
     try {
       const existing = queryOne(`SELECT id FROM adempimenti WHERE codice=?`, [data.codice]);
       if (existing) throw new Error(`Codice "${data.codice}" già esistente`);
-      const rateLabels = data.has_rate && data.rate_labels ? JSON.stringify(data.rate_labels) : null;
-      runQuery(`INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo, is_contabilita, has_rate, rate_labels) VALUES (?,?,?,?,?,?,?,?)`,
-        [data.codice, data.nome, data.descrizione || null, data.categoria, data.scadenza_tipo, data.is_contabilita ? 1 : 0, data.has_rate ? 1 : 0, rateLabels]);
+      runQuery(`INSERT INTO adempimenti (codice, nome, descrizione, categoria, scadenza_tipo) VALUES (?,?,?,?,?)`,
+        [data.codice, data.nome, data.descrizione || null, data.categoria, data.scadenza_tipo]);
       const newId = queryOne(`SELECT last_insert_rowid() as id`).id;
+
       const annoCorrente = new Date().getFullYear();
       let totaleRighe = 0;
-      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) totaleRighe += generaAdempimentoPerTutti(newId, anno);
-      io.emit('notify', { type: 'success', msg: `✅ Adempimento "${data.nome}" creato e assegnato (${totaleRighe} righe)` });
+      for (let anno = annoCorrente; anno <= annoCorrente + 1; anno++) {
+        totaleRighe += generaAdempimentoPerTutti(newId, anno);
+      }
+
+      io.emit('notify', { type: 'success', msg: `✅ Adempimento "${data.nome}" creato e assegnato a tutti i clienti (${totaleRighe} righe)` });
       socket.emit('res:create:adempimento', { success: true });
     } catch (e) { socket.emit('res:create:adempimento', { success: false, error: e.message }); }
   });
 
   socket.on('update:adempimento', (data) => {
     try {
-      const rateLabels = data.has_rate && data.rate_labels ? JSON.stringify(data.rate_labels) : null;
-      runQuery(`UPDATE adempimenti SET codice=?, nome=?, descrizione=?, categoria=?, scadenza_tipo=?, is_contabilita=?, has_rate=?, rate_labels=? WHERE id=?`,
-        [data.codice, data.nome, data.descrizione || null, data.categoria, data.scadenza_tipo, data.is_contabilita ? 1 : 0, data.has_rate ? 1 : 0, rateLabels, data.id]);
+      runQuery(`UPDATE adempimenti SET codice=?, nome=?, descrizione=?, categoria=?, scadenza_tipo=? WHERE id=?`,
+        [data.codice, data.nome, data.descrizione || null, data.categoria, data.scadenza_tipo, data.id]);
       io.emit('notify', { type: 'success', msg: `✅ Adempimento aggiornato` });
       socket.emit('res:update:adempimento', { success: true });
     } catch (e) { socket.emit('res:update:adempimento', { success: false, error: e.message }); }
@@ -524,7 +525,6 @@ io.on('connection', (socket) => {
     try {
       let sql = `
         SELECT ac.*, a.codice, a.nome as adempimento_nome, a.scadenza_tipo, a.categoria,
-               a.is_contabilita, a.has_rate, a.rate_labels,
                c.nome as cliente_nome
         FROM adempimenti_cliente ac
         JOIN adempimenti a ON ac.id_adempimento = a.id
@@ -548,7 +548,6 @@ io.on('connection', (socket) => {
     try {
       let sql = `
         SELECT ac.*, a.codice, a.nome as adempimento_nome, a.scadenza_tipo, a.categoria,
-               a.is_contabilita, a.has_rate, a.rate_labels,
                c.nome as cliente_nome, t.codice as tipologia_codice
         FROM adempimenti_cliente ac
         JOIN adempimenti a ON ac.id_adempimento = a.id
@@ -580,41 +579,21 @@ io.on('connection', (socket) => {
     } catch (e) { socket.emit('res:genera:scadenzario', { success: false, error: e.message }); }
   });
 
-  // Genera scadenzario per TUTTI i clienti
-  socket.on('genera:tutti', ({ anno }) => {
-    try {
-      const totale = generaTuttiClientiAnno(anno);
-      io.emit('notify', { type: 'success', msg: `⚡ Scadenzario ${anno} generato per tutti i clienti (${totale} adempimenti)` });
-      socket.emit('res:genera:tutti', { success: true, totale });
-    } catch (e) { socket.emit('res:genera:tutti', { success: false, error: e.message }); }
-  });
-
   socket.on('copia:scadenzario', ({ id_cliente, anno_da, anno_a }) => {
     try {
       const righe = queryAll(`SELECT * FROM adempimenti_cliente WHERE id_cliente=? AND anno=?`, [id_cliente, anno_da]);
-      runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=? AND stato='da_fare'`, [id_cliente, anno_a]);
-      righe.forEach(r => runQuery(
-        `INSERT OR IGNORE INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, trimestre, semestre, stato, data_scadenza, note, importo) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [r.id_cliente, r.id_adempimento, anno_a, r.mese, r.trimestre, r.semestre, 'da_fare', null, null, null]
-      ));
+      runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente=? AND anno=?`, [id_cliente, anno_a]);
+      righe.forEach(r => runQuery(`INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, trimestre, semestre, stato, data_scadenza, note, importo) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [r.id_cliente, r.id_adempimento, anno_a, r.mese, r.trimestre, r.semestre, r.stato, null, null, null]));
       io.emit('notify', { type: 'success', msg: `📋 Scadenzario copiato da ${anno_da} a ${anno_a}` });
       socket.emit('res:copia:scadenzario', { success: true });
     } catch (e) { socket.emit('res:copia:scadenzario', { success: false, error: e.message }); }
   });
 
-  // Copia anno per TUTTI i clienti
-  socket.on('copia:tutti', ({ anno_da, anno_a }) => {
+  socket.on('update:adempimento_stato', ({ id, stato, data_completamento, importo, note, data_scadenza }) => {
     try {
-      const totale = copiaTuttiClienti(anno_da, anno_a);
-      io.emit('notify', { type: 'success', msg: `📋 Anno ${anno_da} copiato → ${anno_a} per tutti i clienti (${totale} righe)` });
-      socket.emit('res:copia:tutti', { success: true, totale });
-    } catch (e) { socket.emit('res:copia:tutti', { success: false, error: e.message }); }
-  });
-
-  socket.on('update:adempimento_stato', ({ id, stato, data_completamento, importo, note, data_scadenza, importo_saldo, importo_acconto1, importo_acconto2, importo_iva, importo_contabilita }) => {
-    try {
-      runQuery(`UPDATE adempimenti_cliente SET stato=?, data_completamento=?, importo=?, note=?, data_scadenza=?, importo_saldo=?, importo_acconto1=?, importo_acconto2=?, importo_iva=?, importo_contabilita=? WHERE id=?`,
-        [stato, data_completamento || null, importo || null, note || null, data_scadenza || null, importo_saldo || null, importo_acconto1 || null, importo_acconto2 || null, importo_iva || null, importo_contabilita || null, id]);
+      runQuery(`UPDATE adempimenti_cliente SET stato=?, data_completamento=?, importo=?, note=?, data_scadenza=? WHERE id=?`,
+        [stato, data_completamento || null, importo || null, note || null, data_scadenza || null, id]);
       socket.emit('res:update:adempimento_stato', { success: true });
     } catch (e) { socket.emit('res:update:adempimento_stato', { success: false, error: e.message }); }
   });
@@ -636,8 +615,18 @@ io.on('connection', (socket) => {
     } catch (e) { socket.emit('res:add:adempimento_cliente', { success: false, error: e.message }); }
   });
 
-  socket.on('get:stats', ({ anno }) => {
+  socket.on('get:stats', ({ anno, search }) => {
     try {
+      let whereCliente = `c.attivo=1`;
+      const params = [];
+      const paramsAnno = [anno];
+      const paramsAnnoSearch = [anno];
+
+      if (search && search.trim() !== '') {
+        const s = `%${search.trim()}%`;
+        whereCliente += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ?)`;
+      }
+
       const totClienti = queryOne(`SELECT COUNT(*) as n FROM clienti c WHERE c.attivo=1`).n;
       const perTipologia = queryAll(`SELECT t.codice, t.nome, COUNT(c.id) as n FROM tipologie_cliente t LEFT JOIN clienti c ON c.id_tipologia=t.id AND c.attivo=1 GROUP BY t.id ORDER BY t.id`);
       const totAdempimenti = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND c.attivo=1`, [anno]).n;
@@ -646,84 +635,77 @@ io.on('connection', (socket) => {
       const inCorso = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='in_corso' AND c.attivo=1`, [anno]).n;
       const na = queryOne(`SELECT COUNT(*) as n FROM adempimenti_cliente ac JOIN clienti c ON ac.id_cliente=c.id WHERE ac.anno=? AND ac.stato='n_a' AND c.attivo=1`, [anno]).n;
 
-      // Statistiche per categoria
-      const perCategoria = queryAll(`
-        SELECT a.categoria, 
-               COUNT(*) as totale,
-               SUM(CASE WHEN ac.stato='completato' THEN 1 ELSE 0 END) as completati,
-               SUM(CASE WHEN ac.stato='da_fare' THEN 1 ELSE 0 END) as da_fare
-        FROM adempimenti_cliente ac
-        JOIN adempimenti a ON ac.id_adempimento = a.id
-        JOIN clienti c ON ac.id_cliente = c.id
-        WHERE ac.anno=? AND c.attivo=1
-        GROUP BY a.categoria
-        ORDER BY a.categoria`, [anno]);
-
-      // Clienti per categoria con dettagli
-      const clientiPerCategoria = queryAll(`
-        SELECT DISTINCT c.id, c.nome, c.codice_fiscale, c.partita_iva, c.email, c.telefono, 
-               c.indirizzo, c.note, c.categorie_attive,
-               t.codice as tipologia_codice, t.nome as tipologia_nome,
-               s.nome as sottotipologia_nome,
-               a.categoria
-        FROM adempimenti_cliente ac
-        JOIN adempimenti a ON ac.id_adempimento = a.id
-        JOIN clienti c ON ac.id_cliente = c.id
-        JOIN tipologie_cliente t ON c.id_tipologia = t.id
-        LEFT JOIN sottotipologie s ON c.id_sottotipologia = s.id
-        WHERE ac.anno=? AND c.attivo=1
-        ORDER BY a.categoria, c.nome`, [anno]);
-
       const scadenzeAperte = queryAll(`
         SELECT c.nome, COUNT(*) as n FROM adempimenti_cliente ac
         JOIN clienti c ON ac.id_cliente=c.id
         WHERE ac.anno=? AND ac.stato='da_fare' AND c.attivo=1
         GROUP BY ac.id_cliente ORDER BY n DESC LIMIT 5`, [anno]);
 
-      // Adempimenti stats con conteggio completati/da_fare per adempimento
-      const adempimentiStats = queryAll(`
-        SELECT a.id, a.codice, a.nome, a.categoria,
-               COUNT(*) as totale,
-               SUM(CASE WHEN ac.stato='completato' THEN 1 ELSE 0 END) as completati,
-               SUM(CASE WHEN ac.stato='da_fare' THEN 1 ELSE 0 END) as da_fare
-        FROM adempimenti_cliente ac
-        JOIN adempimenti a ON ac.id_adempimento = a.id
-        JOIN clienti c ON ac.id_cliente = c.id
-        WHERE ac.anno=? AND c.attivo=1
-        GROUP BY a.id
-        ORDER BY a.categoria, a.codice`, [anno]);
-
-      socket.emit('res:stats', { success: true, data: { totClienti, perTipologia, totAdempimenti, completati, daFare, inCorso, na, anno, scadenzeAperte, perCategoria, clientiPerCategoria, adempimentiStats } });
+      socket.emit('res:stats', { success: true, data: { totClienti, perTipologia, totAdempimenti, completati, daFare, inCorso, na, anno, scadenzeAperte } });
     } catch (e) { socket.emit('res:stats', { success: false, error: e.message }); }
   });
 
-  socket.on('disconnect', () => { console.log(`❌ Client disconnesso: ${socket.id}`); });
-  socket.on('error', (error) => { console.error(`⚠️ Errore Socket.IO (${socket.id}):`, error); });
-  socket.on('ping', () => { socket.emit('pong', { timestamp: new Date().toISOString() }); });
+  socket.on('disconnect', () => {
+    console.log(`❌ Client disconnesso: ${socket.id}`);
+  });
+
+  socket.on('error', (error) => {
+    console.error(`⚠️ Errore Socket.IO (${socket.id}):`, error);
+  });
+
+  socket.on('ping', () => {
+    socket.emit('pong', { timestamp: new Date().toISOString() });
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 
+// ========================================
+// 🛑 CHIUSURA GRACEFUL
+// ========================================
 const gracefulShutdown = (signal) => {
   console.log(`\nℹ️ ${signal} ricevuto. Chiusura in corso...`);
   server.close(() => {
-    io.close(() => { process.exit(0); });
+    console.log("✅ Server chiuso");
+    io.close(() => {
+      console.log("✅ Socket.IO chiuso");
+      process.exit(0);
+    });
   });
-  setTimeout(() => { process.exit(1); }, 10000);
+  setTimeout(() => {
+    console.error("⚠️ Timeout chiusura. Forzatura uscita...");
+    process.exit(1);
+  }, 10000);
 };
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("uncaughtException", (error) => { console.error("❌ Uncaught Exception:", error); });
-process.on("unhandledRejection", (reason) => { console.error("❌ Unhandled Rejection:", reason); });
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
 
+// ========================================
+// 🚀 AVVIO SERVER SU 0.0.0.0 (TUTTE LE INTERFACCE)
+// ========================================
 initDB().then(async () => {
   server.listen(PORT, "0.0.0.0", async () => {
     const localIP = getLocalIP();
     const publicIP = await getPublicIP();
-    console.log(`✅ Backend avviato`);
-    if (publicIP) console.log(`🌐 IP Pubblico: http://${publicIP}:${PORT}`);
+    
+    console.log(`✅ Backend avviato su VPS`);
+    if (publicIP) {
+      console.log(`🌐 IP Pubblico: http://${publicIP}:${PORT}`);
+    } else {
+      console.log(`⚠️ IP Pubblico: non disponibile (verifica connessione internet)`);
+    }
     console.log(`🏠 IP Locale: http://${localIP}:${PORT}`);
     console.log(`📍 Localhost: http://localhost:${PORT}`);
+    console.log(`🔌 Socket.IO abilitato per sincronizzazione real-time`);
+    console.log(`📂 Frontend servito da: ../frontend/index.html`);
+    console.log(`🏥 Health check: http://${localIP}:${PORT}/api/health`);
+    console.log(`💾 Database path: ${DB_PATH}`);
   });
 });
