@@ -1,4 +1,4 @@
-const { runQuery, queryAll, queryOne } = require('./database');
+const { runQuery, queryAll, queryOne } = require("./database");
 
 function getClientiConDettagli(filtri = {}) {
   let sql = `
@@ -15,16 +15,33 @@ function getClientiConDettagli(filtri = {}) {
     WHERE c.attivo=1
   `;
   const params = [];
-  
+
   if (filtri.tipologia) {
     sql += ` AND t.codice=?`;
     params.push(filtri.tipologia);
   }
+
+  if (filtri.col2) {
+    sql += ` AND c.col2_value=?`;
+    params.push(filtri.col2);
+  }
+
+  if (filtri.col3) {
+    sql += ` AND c.col3_value=?`;
+    params.push(filtri.col3);
+  }
+
+  if (filtri.periodicita) {
+    sql += ` AND c.periodicita=?`;
+    params.push(filtri.periodicita);
+  }
+
   if (filtri.search?.trim()) {
     const s = `%${filtri.search.trim()}%`;
     sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ? OR c.indirizzo LIKE ? OR c.pec LIKE ? OR c.sdi LIKE ?)`;
     params.push(s, s, s, s, s, s, s, s);
   }
+
   sql += ` ORDER BY c.nome`;
   return queryAll(sql, params);
 }
@@ -71,7 +88,7 @@ function createCliente(data) {
       data.note || null,
       data.referente || null,
       cat,
-    ]
+    ],
   );
   return queryOne(`SELECT last_insert_rowid() as id`).id;
 }
@@ -102,7 +119,7 @@ function updateCliente(data) {
       data.referente || null,
       cat,
       data.id,
-    ]
+    ],
   );
 }
 
@@ -115,5 +132,5 @@ module.exports = {
   getClienteConDettagli,
   createCliente,
   updateCliente,
-  deleteCliente
+  deleteCliente,
 };

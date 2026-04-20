@@ -55,9 +55,7 @@
 
     <div class="notif-container" id="notif-container"></div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL CLIENTE
-    ══════════════════════════════════════════════════════════ -->
+    <!-- MODAL CLIENTE -->
     <div class="modal-overlay" id="modal-cliente">
       <div class="modal modal-lg">
         <div class="modal-title">
@@ -65,58 +63,40 @@
         </div>
         <input type="hidden" id="cliente-id" />
 
-        <!-- Nome -->
         <div class="form-group">
           <label>Nome / Ragione Sociale *</label>
           <input class="input" id="c-nome" placeholder="Es. Mario Rossi o Alfa Srl" />
         </div>
 
-        <!-- ── 4 COLONNE CLASSIFICAZIONE ─────────────────────── -->
         <div class="infobox" style="margin-bottom: 14px">
           🗂️ Classifica il cliente nelle 4 colonne. I campi si attivano in cascata in base alle selezioni precedenti.
         </div>
 
         <div class="quattro-colonne-grid">
-          <!-- Colonna 1: Tipologia -->
           <div class="form-group col-classificazione">
-            <label>
-              <span class="col-num">1</span>
-              Tipologia *
-            </label>
+            <label><span class="col-num">1</span> Tipologia *</label>
             <select class="select" id="c-tipologia" onchange="onTipologiaChange()"></select>
             <div class="col-hint">PF · SP · SC · ASS</div>
           </div>
 
-          <!-- Colonna 2: Solo per PF -->
           <div class="form-group col-classificazione" id="wrap-col2" style="display: none">
-            <label>
-              <span class="col-num">2</span>
-              Sottocategoria PF
-            </label>
+            <label><span class="col-num">2</span> Sottocategoria PF</label>
             <select class="select" id="c-col2" onchange="onCol2Change()">
               <option value="">-- Seleziona --</option>
             </select>
             <div class="col-hint">Privato · Ditta · Socio · Prof.</div>
           </div>
 
-          <!-- Colonna 3: Regime contabile -->
           <div class="form-group col-classificazione" id="wrap-col3" style="display: none">
-            <label>
-              <span class="col-num">3</span>
-              Regime
-            </label>
+            <label><span class="col-num">3</span> Regime</label>
             <select class="select" id="c-col3" onchange="onCol3Change()">
               <option value="">-- Seleziona --</option>
             </select>
             <div class="col-hint">Ord. · Sempl. · Forf.</div>
           </div>
 
-          <!-- Colonna 4: Periodicità -->
           <div class="form-group col-classificazione" id="wrap-col4" style="display: none">
-            <label>
-              <span class="col-num">4</span>
-              Periodicità
-            </label>
+            <label><span class="col-num">4</span> Periodicità</label>
             <select class="select" id="c-col4">
               <option value="">-- Seleziona --</option>
               <option value="mensile">📅 Mensile</option>
@@ -126,7 +106,6 @@
           </div>
         </div>
 
-        <!-- Riepilogo classificazione -->
         <div class="cliente-riepilogo-box" id="cliente-riepilogo-box" style="display:none">
           <div class="riepilogo-title">📋 Riepilogo Classificazione</div>
           <div class="riepilogo-content" id="riepilogo-classificazione"></div>
@@ -212,15 +191,13 @@
     <div class="modal-overlay" id="modal-adempimento">
       <div class="modal modal-sm">
         <div class="modal-title">
-          ✏️
-          <span id="adp-nome-label" style="color: var(--accent); font-size: 14px"></span>
+          ✏️ <span id="adp-nome-label" style="color: var(--accent); font-size: 14px"></span>
         </div>
         <input type="hidden" id="adp-id" />
         <input type="hidden" id="adp-is-contabilita" />
         <input type="hidden" id="adp-has-rate" />
         <input type="hidden" id="adp-rate-labels-json" />
 
-        <!-- Info cliente nel modal adempimento -->
         <div class="adp-cliente-info-box" id="adp-cliente-info"></div>
 
         <div class="form-group">
@@ -415,10 +392,7 @@
       <div class="modal modal-sm">
         <div class="modal-title">➕ Aggiungi Adempimento</div>
         <input type="hidden" id="add-adp-cliente-id" />
-
-        <!-- Info cliente -->
         <div class="add-adp-cliente-info" id="add-adp-cliente-info"></div>
-
         <div class="form-group">
           <label>Adempimento</label>
           <select class="select" id="add-adp-select" onchange="updatePeriodoOptions()"></select>

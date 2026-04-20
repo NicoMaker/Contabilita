@@ -3,16 +3,16 @@ const {
   getClienteConDettagli,
   createCliente,
   updateCliente,
-  deleteCliente
-} = require('./clientiQueries');
+  deleteCliente,
+} = require("./clientiQueries");
 
 const {
   getAdempimenti,
   createAdempimento,
   updateAdempimento,
   deleteAdempimento,
-  generaAdempimentoPerTutti
-} = require('./adempimentiQueries');
+  generaAdempimentoPerTutti,
+} = require("./adempimentiQueries");
 
 const {
   getScadenzarioConDettagliCliente,
@@ -23,11 +23,11 @@ const {
   copiaTuttiClienti,
   updateAdempimentoStato,
   deleteAdempimentoCliente,
-  addAdempimentoCliente
-} = require('./scadenzarioQueries');
+  addAdempimentoCliente,
+} = require("./scadenzarioQueries");
 
-const { getStats } = require('./statsQueries');
-const { queryAll, queryOne } = require('./database');
+const { getStats } = require("./statsQueries");
+const { queryAll, queryOne } = require("./database");
 
 module.exports = function setupSocketHandlers(io) {
   io.on("connection", (socket) => {
@@ -37,7 +37,9 @@ module.exports = function setupSocketHandlers(io) {
     socket.on("get:tipologie", () => {
       try {
         const tip = queryAll(`SELECT * FROM tipologie_cliente ORDER BY id`);
-        const sub = queryAll(`SELECT * FROM sottotipologie ORDER BY id_tipologia, ordine, id`);
+        const sub = queryAll(
+          `SELECT * FROM sottotipologie ORDER BY id_tipologia, ordine, id`,
+        );
         tip.forEach((t) => {
           t.sottotipologie = sub.filter((s) => s.id_tipologia === t.id);
         });
@@ -47,7 +49,7 @@ module.exports = function setupSocketHandlers(io) {
       }
     });
 
-    // ── CLIENTI ──
+    // ── CLIENTI (con filtri avanzati) ──
     socket.on("get:clienti", (filtri = {}) => {
       try {
         const data = getClientiConDettagli(filtri);
@@ -71,7 +73,10 @@ module.exports = function setupSocketHandlers(io) {
         const newId = createCliente(data);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:create:cliente", { success: true, id: newId });
-        socket.emit("notify", { type: "success", msg: "Cliente creato con successo" });
+        socket.emit("notify", {
+          type: "success",
+          msg: "Cliente creato con successo",
+        });
       } catch (e) {
         socket.emit("res:create:cliente", { success: false, error: e.message });
       }
@@ -116,9 +121,16 @@ module.exports = function setupSocketHandlers(io) {
         const tot = generaAdempimentoPerTutti(newId, anno);
         io.emit("broadcast:adempimenti_updated");
         io.emit("broadcast:scadenzario_updated", { anno });
-        socket.emit("res:create:adempimento", { success: true, id: newId, generati: tot });
+        socket.emit("res:create:adempimento", {
+          success: true,
+          id: newId,
+          generati: tot,
+        });
       } catch (e) {
-        socket.emit("res:create:adempimento", { success: false, error: e.message });
+        socket.emit("res:create:adempimento", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -128,7 +140,10 @@ module.exports = function setupSocketHandlers(io) {
         io.emit("broadcast:adempimenti_updated");
         socket.emit("res:update:adempimento", { success: true });
       } catch (e) {
-        socket.emit("res:update:adempimento", { success: false, error: e.message });
+        socket.emit("res:update:adempimento", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -138,7 +153,10 @@ module.exports = function setupSocketHandlers(io) {
         io.emit("broadcast:adempimenti_updated");
         socket.emit("res:delete:adempimento", { success: true });
       } catch (e) {
-        socket.emit("res:delete:adempimento", { success: false, error: e.message });
+        socket.emit("res:delete:adempimento", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -159,7 +177,10 @@ module.exports = function setupSocketHandlers(io) {
         io.emit("broadcast:stats_updated", { anno });
         socket.emit("res:genera:scadenzario", { success: true, inseriti: tot });
       } catch (e) {
-        socket.emit("res:genera:scadenzario", { success: false, error: e.message });
+        socket.emit("res:genera:scadenzario", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -181,7 +202,10 @@ module.exports = function setupSocketHandlers(io) {
         io.emit("broadcast:scadenzario_updated", { id_cliente, anno: anno_a });
         socket.emit("res:copia:scadenzario", { success: true, copiati: tot });
       } catch (e) {
-        socket.emit("res:copia:scadenzario", { success: false, error: e.message });
+        socket.emit("res:copia:scadenzario", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -199,33 +223,51 @@ module.exports = function setupSocketHandlers(io) {
     socket.on("update:adempimento_stato", (data) => {
       try {
         const result = updateAdempimentoStato(data);
-        io.emit("broadcast:scadenzario_updated", { id_cliente: result.id_cliente, anno: result.anno });
+        io.emit("broadcast:scadenzario_updated", {
+          id_cliente: result.id_cliente,
+          anno: result.anno,
+        });
         io.emit("broadcast:globale_updated", { anno: result.anno });
         io.emit("broadcast:stats_updated", { anno: result.anno });
         socket.emit("res:update:adempimento_stato", { success: true });
       } catch (e) {
-        socket.emit("res:update:adempimento_stato", { success: false, error: e.message });
+        socket.emit("res:update:adempimento_stato", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
     socket.on("delete:adempimento_cliente", ({ id }) => {
       try {
         const result = deleteAdempimentoCliente(id);
-        io.emit("broadcast:scadenzario_updated", { id_cliente: result.id_cliente, anno: result.anno });
+        io.emit("broadcast:scadenzario_updated", {
+          id_cliente: result.id_cliente,
+          anno: result.anno,
+        });
         io.emit("broadcast:globale_updated", { anno: result.anno });
         socket.emit("res:delete:adempimento_cliente", { success: true });
       } catch (e) {
-        socket.emit("res:delete:adempimento_cliente", { success: false, error: e.message });
+        socket.emit("res:delete:adempimento_cliente", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
     socket.on("add:adempimento_cliente", (data) => {
       try {
         addAdempimentoCliente(data);
-        io.emit("broadcast:scadenzario_updated", { id_cliente: data.id_cliente, anno: data.anno });
+        io.emit("broadcast:scadenzario_updated", {
+          id_cliente: data.id_cliente,
+          anno: data.anno,
+        });
         socket.emit("res:add:adempimento_cliente", { success: true });
       } catch (e) {
-        socket.emit("res:add:adempimento_cliente", { success: false, error: e.message });
+        socket.emit("res:add:adempimento_cliente", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -235,7 +277,10 @@ module.exports = function setupSocketHandlers(io) {
         const data = getScadenzarioGlobale(anno, filtri);
         socket.emit("res:scadenzario_globale", { success: true, data });
       } catch (e) {
-        socket.emit("res:scadenzario_globale", { success: false, error: e.message });
+        socket.emit("res:scadenzario_globale", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
