@@ -3,3 +3,8 @@ Mettere caratteri più grandi
 in scadenziario filtri adempimenti come in vista globale 
 
 metti quando passi sopra a tutte le icone cosa fa 
+
+sistemare che quando mi sposto da ogni parte da una sezione all'altra sempre in alto 
+
+
+e ricerche in tutti i menù a tendina e poi sistema per lato vista globale che quando ho cliccato su un elemento (adempiemnto) posso vedere anche gli altri e non solo quello visualizzato e poi sistemami lato clienti in ogni parte il bottone tutti che vede tutto di quei dati 
