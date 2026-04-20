@@ -1,1 +1,0 @@
-non vanno creazione adempimenti nella parte dei clienti che nell'anno se non presente quell'adempimento capito ma non per semestre ma crea nell'anno e vedo solo quelli che l'utente non ha creato li 

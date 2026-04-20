@@ -1,4 +1,0 @@
-vedere tutti i dati sia in vista globale clliente che della parte compelta tutti i dati che compili insomma che vista globale e per semestre devo vedere entrambi i casi sia gennaio giugno che luglio dicembre 
-
-
-per i dati che occuoano più mesi non vedo i prezzi e le categorie inserite e se contabilità anche nel caso die più mesi devo vedere tutti i dati per uttti i casi sia in visto globale che per singolo cliente e dashboard a cgriglia per gli adempimenti 
