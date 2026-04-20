@@ -2156,7 +2156,6 @@ document.addEventListener("keydown", (e) => {
       .forEach((m) => m.classList.remove("open"));
 });
 
-
 // ═══════════════════════════════════════════════════════════════
 // SOSTITUISCI renderGlobaleTabella e renderGlobaleClienteRow
 // nel tuo script.js con queste versioni
@@ -2165,7 +2164,8 @@ document.addEventListener("keydown", (e) => {
 function renderGlobaleTabella(rawData) {
   const st = state.globaleStats;
   const filtroTipo = document.getElementById("glob-filtro-tipo")?.value || "";
-  const filtroPer = document.getElementById("glob-filtro-periodicita")?.value || "";
+  const filtroPer =
+    document.getElementById("glob-filtro-periodicita")?.value || "";
   const data = rawData.filter((r) => {
     if (filtroTipo && r.cliente_tipologia_codice !== filtroTipo) return false;
     if (filtroPer && r.cliente_periodicita !== filtroPer) return false;
@@ -2195,12 +2195,13 @@ function renderGlobaleTabella(rawData) {
   data.forEach((r) => {
     storeRow(r);
     const adpKey = r.adempimento_nome;
-    if (!grouped[adpKey]) grouped[adpKey] = {
-      nome: r.adempimento_nome,
-      codice: r.adempimento_codice,
-      categoria: r.categoria,
-      clienti: {}
-    };
+    if (!grouped[adpKey])
+      grouped[adpKey] = {
+        nome: r.adempimento_nome,
+        codice: r.adempimento_codice,
+        categoria: r.categoria,
+        clienti: {},
+      };
     const cliKey = r.cliente_id;
     if (!grouped[adpKey].clienti[cliKey]) {
       grouped[adpKey].clienti[cliKey] = {
@@ -2214,7 +2215,7 @@ function renderGlobaleTabella(rawData) {
         periodicita: r.cliente_periodicita,
         col2: r.cliente_col2,
         col3: r.cliente_col3,
-        periodi: []
+        periodi: [],
       };
     }
     grouped[adpKey].clienti[cliKey].periodi.push(r);
@@ -2222,31 +2223,57 @@ function renderGlobaleTabella(rawData) {
 
   let content = "";
   Object.values(grouped).forEach((g) => {
-    const allRows = Object.values(g.clienti).flatMap(c => c.periodi);
-    const compG = allRows.filter(r => r.stato === "completato").length;
+    const allRows = Object.values(g.clienti).flatMap((c) => c.periodi);
+    const compG = allRows.filter((r) => r.stato === "completato").length;
     const totG = allRows.length;
     const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
-    const catInfo = CATEGORIE.find(x => x.codice === g.categoria);
+    const catInfo = CATEGORIE.find((x) => x.codice === g.categoria);
     const catColor = catInfo?.color || "var(--accent)";
 
-    const clientiHtml = Object.values(g.clienti).map(c => {
-      const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
-      const avatar = (c.nome || "?").charAt(0).toUpperCase();
-      const compC = c.periodi.filter(r => r.stato === "completato").length;
-      const totC = c.periodi.length;
-      const pC = totC > 0 ? Math.round((compC / totC) * 100) : 0;
-      const pgColor = pC === 100 ? "var(--green)" : pC > 50 ? "var(--yellow)" : "var(--red)";
+    const clientiHtml = Object.values(g.clienti)
+      .map((c) => {
+        const tipColor =
+          c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
+        const avatar = (c.nome || "?").charAt(0).toUpperCase();
+        const compC = c.periodi.filter((r) => r.stato === "completato").length;
+        const totC = c.periodi.length;
+        const pC = totC > 0 ? Math.round((compC / totC) * 100) : 0;
+        const pgColor =
+          pC === 100
+            ? "var(--green)"
+            : pC > 50
+              ? "var(--yellow)"
+              : "var(--red)";
 
-      let classInfo = "";
-      const parts = [];
-      if (c.col2) parts.push({ privato:"Privato", ditta:"Ditta Ind.", socio:"Socio", professionista:"Prof." }[c.col2] || c.col2);
-      if (c.col3) parts.push({ ordinario:"Ord.", semplificato:"Sempl.", forfettario:"Forf.", ordinaria:"Ord.", semplificata:"Sempl." }[c.col3] || c.col3);
-      if (c.periodicita) parts.push(c.periodicita === "mensile" ? "Mens." : "Trim.");
-      if (parts.length) classInfo = `<div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${parts.join(" · ")}</div>`;
+        let classInfo = "";
+        const parts = [];
+        if (c.col2)
+          parts.push(
+            {
+              privato: "Privato",
+              ditta: "Ditta Ind.",
+              socio: "Socio",
+              professionista: "Prof.",
+            }[c.col2] || c.col2,
+          );
+        if (c.col3)
+          parts.push(
+            {
+              ordinario: "Ord.",
+              semplificato: "Sempl.",
+              forfettario: "Forf.",
+              ordinaria: "Ord.",
+              semplificata: "Sempl.",
+            }[c.col3] || c.col3,
+          );
+        if (c.periodicita)
+          parts.push(c.periodicita === "mensile" ? "Mens." : "Trim.");
+        if (parts.length)
+          classInfo = `<div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${parts.join(" · ")}</div>`;
 
-      const periodiHtml = c.periodi.map(r => renderPeriodoPill(r)).join("");
+        const periodiHtml = c.periodi.map((r) => renderPeriodoPill(r)).join("");
 
-      return `<div class="glob-cliente-card">
+        return `<div class="glob-cliente-card">
         <div class="glob-cliente-header">
           <div class="gcr-avatar" style="border-color:${tipColor};color:${tipColor};background:${tipColor}15">${avatar}</div>
           <div style="flex:1;min-width:0">
@@ -2255,8 +2282,8 @@ function renderGlobaleTabella(rawData) {
             ${classInfo}
           </div>
           <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
-            <span class="badge b-${(c.tipologia_codice||"").toLowerCase()}">${c.tipologia_codice||"-"}</span>
-            ${c.periodicita ? `<span class="badge-per" style="font-size:9px">${c.periodicita==="mensile"?"📅":"📆"} ${c.periodicita==="mensile"?"Mens.":"Trim."}</span>` : ""}
+            <span class="badge b-${(c.tipologia_codice || "").toLowerCase()}">${c.tipologia_codice || "-"}</span>
+            ${c.periodicita ? `<span class="badge-per" style="font-size:9px">${c.periodicita === "mensile" ? "📅" : "📆"} ${c.periodicita === "mensile" ? "Mens." : "Trim."}</span>` : ""}
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-left:12px">
             <div class="mini-bar" style="width:50px"><div class="mini-fill" style="width:${pC}%;background:${pgColor}"></div></div>
@@ -2265,7 +2292,8 @@ function renderGlobaleTabella(rawData) {
         </div>
         <div class="glob-cliente-periodi">${periodiHtml}</div>
       </div>`;
-    }).join("");
+      })
+      .join("");
 
     content += `<div class="table-wrap" style="margin-bottom:14px">
       <div class="table-header">
@@ -2291,7 +2319,6 @@ function renderGlobaleTabella(rawData) {
 
   document.getElementById("content").innerHTML = headerCard + content;
 }
-
 
 // ═══════════════════════════════════════════════════════════════
 // SOSTITUISCI buildDashboardShell e updateDashboardContent
@@ -2333,37 +2360,65 @@ function updateDashboardContent(stats) {
 
   const adpVis = allAdp.filter((a) => {
     if (sc !== "tutti" && a.categoria !== sc) return false;
-    if (sq && !a.nome.toLowerCase().includes(sq) && !a.codice.toLowerCase().includes(sq) && !a.categoria.toLowerCase().includes(sq)) return false;
+    if (
+      sq &&
+      !a.nome.toLowerCase().includes(sq) &&
+      !a.codice.toLowerCase().includes(sq) &&
+      !a.categoria.toLowerCase().includes(sq)
+    )
+      return false;
     return true;
   });
 
   const fT = adpVis.reduce((s, a) => s + a.totale, 0);
   const fC = adpVis.reduce((s, a) => s + a.completati, 0);
   const fD = adpVis.reduce((s, a) => s + a.da_fare, 0);
-  const fI = adpVis.reduce((s, a) => s + Math.max(0, a.totale - a.completati - a.da_fare), 0);
+  const fI = adpVis.reduce(
+    (s, a) => s + Math.max(0, a.totale - a.completati - a.da_fare),
+    0,
+  );
   const fP = fT > 0 ? Math.round((fC / fT) * 100) : 0;
   const isF = sc !== "tutti" || sq !== "";
 
-  const se = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  const si = (id, v) => { const e = document.getElementById(id); if (e) e.innerHTML = v; };
+  const se = (id, v) => {
+    const e = document.getElementById(id);
+    if (e) e.textContent = v;
+  };
+  const si = (id, v) => {
+    const e = document.getElementById(id);
+    if (e) e.innerHTML = v;
+  };
 
-  si("ds-lbl-tot", `Adempimenti ${stats.anno}${isF ? ` <span style="font-size:9px;color:var(--yellow)">(filtro)</span>` : ""}`);
-  se("ds-tot", fT); se("ds-comp", fC); se("ds-dafare", fD); se("ds-incorso", fI);
-  se("ds-na", stats.na || 0); se("ds-perc", fP + "%");
+  si(
+    "ds-lbl-tot",
+    `Adempimenti ${stats.anno}${isF ? ` <span style="font-size:9px;color:var(--yellow)">(filtro)</span>` : ""}`,
+  );
+  se("ds-tot", fT);
+  se("ds-comp", fC);
+  se("ds-dafare", fD);
+  se("ds-incorso", fI);
+  se("ds-na", stats.na || 0);
+  se("ds-perc", fP + "%");
   const dp = document.getElementById("ds-prog");
   if (dp) dp.style.width = fP + "%";
 
   const title = document.getElementById("dash-adp-count-title");
-  if (title) title.innerHTML = `Adempimenti ${stats.anno} <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:6px">${adpVis.length}/${allAdp.length} — clicca per Vista Globale</span>`;
+  if (title)
+    title.innerHTML = `Adempimenti ${stats.anno} <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:6px">${adpVis.length}/${allAdp.length} — clicca per Vista Globale</span>`;
 
   // Tabs categoria
   const tabsEl = document.getElementById("dash-cat-tabs");
-  if (tabsEl) tabsEl.innerHTML = [{ codice: "tutti", nome: "Tutti", color: "var(--text2)" }, ...CATEGORIE]
-    .map((c) => {
-      const active = state.dashFiltroCategoria === c.codice;
-      const col = c.color || "var(--text2)";
-      return `<button class="cat-tab${active ? " cat-tab-active" : ""}" style="${active ? `background:${col}22;border-color:${col};color:${col}` : ""}" onclick="setDashCat('${c.codice}')">${c.nome || c.codice}</button>`;
-    }).join("");
+  if (tabsEl)
+    tabsEl.innerHTML = [
+      { codice: "tutti", nome: "Tutti", color: "var(--text2)" },
+      ...CATEGORIE,
+    ]
+      .map((c) => {
+        const active = state.dashFiltroCategoria === c.codice;
+        const col = c.color || "var(--text2)";
+        return `<button class="cat-tab${active ? " cat-tab-active" : ""}" style="${active ? `background:${col}22;border-color:${col};color:${col}` : ""}" onclick="setDashCat('${c.codice}')">${c.nome || c.codice}</button>`;
+      })
+      .join("");
 
   // Raggruppa per categoria
   const grouped = {};
@@ -2384,7 +2439,7 @@ function updateDashboardContent(stats) {
   // Costruisci griglia raggruppata per categoria
   let html = "";
   Object.entries(grouped).forEach(([catCode, items]) => {
-    const catInfo = CATEGORIE.find(x => x.codice === catCode);
+    const catInfo = CATEGORIE.find((x) => x.codice === catCode);
     const cc = catInfo?.color || "var(--accent)";
 
     // Intestazione categoria (occupa tutta la riga)
@@ -2398,7 +2453,8 @@ function updateDashboardContent(stats) {
     items.forEach((a) => {
       const p = a.totale > 0 ? Math.round((a.completati / a.totale) * 100) : 0;
       const iC = Math.max(0, a.totale - a.completati - a.da_fare);
-      const pgColor = p === 100 ? "var(--green)" : p > 50 ? "var(--yellow)" : "var(--red)";
+      const pgColor =
+        p === 100 ? "var(--green)" : p > 50 ? "var(--yellow)" : "var(--red)";
 
       html += `<div class="dash-adp-card" onclick="goVistaGlobaleAdp('${escAttr(a.nome)}')" title="Clicca per Vista Globale">
         <div class="dash-adp-card-top">
