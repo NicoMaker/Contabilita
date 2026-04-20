@@ -3,13 +3,9 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-// Percorso corretto per gestionale.db (backend/db/gestionale.db)
-// Attenzione: il file potrebbe essere in posizioni diverse
-const DB_PATH = path.join(__dirname, '..', 'db', 'gestionale.db');
-// Percorso alternativo se il DB è in backend/
-// const DB_PATH = path.join(__dirname, '..', 'gestionale.db');
-
-// Funzione per trovare il DB in più possibili posizioni
+/**
+ * Cerca il database in diverse posizioni comuni per evitare errori di path
+ */
 function findDatabasePath() {
   const possiblePaths = [
     path.join(__dirname, '..', 'db', 'gestionale.db'),
@@ -28,32 +24,44 @@ function findDatabasePath() {
   return null;
 }
 
+/**
+ * Endpoint per il download del database
+ */
 router.get("/download-db", (req, res) => {
   const dbPath = findDatabasePath();
   
+  // Controllo esistenza file
   if (!dbPath || !fs.existsSync(dbPath)) {
     console.error("❌ File database non trovato nelle posizioni cercate");
     return res.status(404).json({
       success: false,
       error: "File database non trovato",
-      message: "Il database non esiste o non è accessibile"
+      message: "Il database non esiste o non è accessibile nel filesystem del server"
     });
   }
 
-  const downloadFilename = `gestionale_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.db`;
+  // Nome che l'utente vedrà al momento del salvataggio
+  const downloadFilename = "gestionale.db";
 
-  console.log(`📥 Download DB richiesto - File: ${downloadFilename} - Path: ${dbPath}`);
+  console.log(`📥 Download DB richiesto - Path sorgente: ${dbPath}`);
 
+  // Header per forzare il download con il nome specificato
   res.setHeader("Content-Type", "application/octet-stream");
   res.setHeader("Content-Disposition", `attachment; filename="${downloadFilename}"`);
 
+  // Streaming del file per gestire correttamente la memoria del server
   const fileStream = fs.createReadStream(dbPath);
+
   fileStream.on("error", (err) => {
-    console.error("❌ Errore lettura DB:", err);
+    console.error("❌ Errore durante lo streaming del DB:", err);
     if (!res.headersSent) {
-      res.status(500).json({ success: false, error: "Errore durante la lettura del database" });
+      res.status(500).json({ 
+        success: false, 
+        error: "Errore durante il trasferimento del file" 
+      });
     }
   });
+
   fileStream.pipe(res);
 });
 
