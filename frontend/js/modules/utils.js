@@ -140,7 +140,7 @@ function scaricaDatabase() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `gestionale_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.db`;
+      a.download = `gestionale.db`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
