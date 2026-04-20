@@ -1,10 +1,1 @@
-impelentami anche le richerce sopra che decido per che tipi anche quelli che decidi dentro cliente e dopo quando vedi il cleinte in questa parte che si capisca che tipo è  dammi tutti i file compeltii sistemati
-
- e anche nella sexione cliente devo vedere tutto quelli che imposti in base ai dati nel senso mesnile ordianrio tutti i casi 
-
-
- e fammi parte adempimenti più bella graficamente, non stampa tutti i dati e poi per vista cliente (scadenziario) -> ademp9enti e periodi non allineati in modo corretto graficamnete 
-
- e anche nella sexione cliente devo vedere tutto quelli che imposti in base ai dati nel senso mesnile ordianrio tutti i casi e fammi parte adempimenti più bella graficamente
-
- se è stessa categoria -> mostea un solo elemento mettendo tutti quanti vedendo bene 
+impelentami anche le richerce sopra che decido per che tipi anche quelli che decidi dentro cliente e dopo quando vedi il cleinte in questa parte che si capisca che tipo è  dammi tutti i file compeltii sistemati   e anche nella sexione cliente devo vedere tutto quelli che imposti in base ai dati nel senso mesnile ordianrio tutti i casi     e fammi parte adempimenti più bella graficamente, non stampa tutti i dati e poi per vista cliente (scadenziario) -> ademp9enti e periodi non allineati in modo corretto graficamnete    e anche nella sexione cliente devo vedere tutto quelli che imposti in base ai dati nel senso mesnile ordianrio tutti i casi e fammi parte adempimenti più bella graficamente   se è stessa categoria -> mostea un solo elemento mettendo tutti quanti vedendo bene  le stampe da nessuna parte prende tutto 
