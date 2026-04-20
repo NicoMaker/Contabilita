@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const cors = require('cors');
-const { initDB, getLocalIP } = require('./modules/database');
+const { initDB, getLocalIP, getPublicIP } = require('./modules/database'); // Importata getPublicIP
 const setupSocketHandlers = require('./modules/socketHandlers');
 const downloadDbRouter = require('./modules/downloadDb');
 
@@ -22,10 +22,8 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// Endpoint per scaricare il database - DEVE essere prima di altri route
 app.use('/api', downloadDbRouter);
 
-// Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
@@ -39,10 +37,16 @@ setupSocketHandlers(io);
 
 const PORT = process.env.PORT || 3001;
 
-initDB().then(() => {
+// Logica di avvio con recupero IP
+initDB().then(async () => {
+  const localIP = getLocalIP();
+  const publicIP = await getPublicIP();
+
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`\n🚀 Server avviato!`);
-    console.log(`   Local:   http://localhost:${PORT}`);
-    console.log(`   Network: http://${getLocalIP()}:${PORT}`);
+    console.log(`\n🚀 Server avviato con successo!`);
+    console.log(`🌐 IP Pubblico: http://${publicIP}:${PORT}`);
+    console.log(`🏠 IP Locale:   http://${localIP}:${PORT}`);
+    console.log(`📍 Localhost:  http://localhost:${PORT}`);
+    console.log(`\n--------------------------------------`);
   });
 });
