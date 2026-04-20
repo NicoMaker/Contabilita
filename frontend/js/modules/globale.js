@@ -161,6 +161,7 @@ function renderGlobaleTabella(rawData) {
         : "";
 
       const periodiHtml = c.periodi.map(r => renderPeriodoPill(r)).join("");
+      const isMensile = c.periodi.length > 4;
 
       return `<div class="glob-cliente-card">
         <div class="glob-cliente-header">
@@ -179,7 +180,7 @@ function renderGlobaleTabella(rawData) {
             <span style="font-size:10px;font-family:var(--mono);color:${pgColor}">${compC}/${totC}</span>
           </div>
         </div>
-        <div class="glob-cliente-periodi">${periodiHtml}</div>
+        <div class="glob-cliente-periodi${isMensile ? " periodi-mensili" : ""}">${periodiHtml}</div>
       </div>`;
     }).join("");
 

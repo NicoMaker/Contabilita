@@ -42,17 +42,27 @@ function renderPeriodoPill(r) {
     n_a:        "var(--text3)",
   };
   const statoColor = statoColors[stato] || "var(--text3)";
+  const statoIcon  = stato === "da_fare" ? "⭕" : stato === "in_corso" ? "🔄" : stato === "completato" ? "✅" : "➖";
   const impHtml = renderImportoCellCompact(r);
   const hasImp  = impHtml !== `<span class="imp-empty">—</span>`;
 
+  // Date su riga separata per leggibilità
+  let dateLine = "";
+  if (r.data_scadenza || r.data_completamento) {
+    dateLine = `<div class="pp-dates">`;
+    if (r.data_scadenza)      dateLine += `<span class="pp-date">📅 ${r.data_scadenza}</span>`;
+    if (r.data_completamento) dateLine += `<span class="pp-date" style="color:var(--green)">✅ ${r.data_completamento}</span>`;
+    dateLine += `</div>`;
+  }
+
   return `<div class="periodo-pill s-${stato}" onclick="openAdpById(${r.id})" title="${escAttr(getPeriodoLabel(r))} — ${escAttr(STATI[stato] || stato)}\nClicca per modificare">
-    <div class="pp-header">
-      <span class="pp-tag"   style="border-color:${statoColor};color:${statoColor}">${ps}</span>
-      <span class="pp-stato" style="color:${statoColor}">${stato === "da_fare" ? "⭕" : stato === "in_corso" ? "🔄" : stato === "completato" ? "✅" : "➖"}</span>
-      ${r.data_scadenza     ? `<span class="pp-date">📅${r.data_scadenza}</span>` : ""}
-      ${r.data_completamento ? `<span class="pp-date" style="color:var(--green)">✅${r.data_completamento}</span>` : ""}
+    <div class="pp-top">
+      <span class="pp-tag" style="border-color:${statoColor};color:${statoColor}">${ps}</span>
+      <span class="pp-stato-icon">${statoIcon}</span>
     </div>
-    ${hasImp || r.note ? `<div class="pp-body">${hasImp ? impHtml : ""}${r.note ? `<div class="pp-note">📝 ${r.note}</div>` : ""}</div>` : ""}
+    ${dateLine}
+    ${hasImp ? `<div class="pp-imp">${impHtml}</div>` : ""}
+    ${r.note ? `<div class="pp-note">📝 ${r.note}</div>` : ""}
   </div>`;
 }
 

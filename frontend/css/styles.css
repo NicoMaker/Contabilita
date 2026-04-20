@@ -1818,3 +1818,214 @@ tr.clickable:hover td {
   font-size: 10px;
   color: var(--text3);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PILL-FIX.CSS — Periodo pill leggibili, layout globale/scad.
+   Aggiungere DOPO styles.css nell'HTML
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── PERIODO PILL — NUOVA STRUTTURA ────────────────────────── */
+.periodo-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  transition: all 0.12s;
+  /* Larghezza minima generosa per contenere date + importi */
+  min-width: 120px;
+  flex: 1 1 120px;         /* cresce liberamente */
+  max-width: none;         /* rimosso il vecchio max-width:200px */
+  box-sizing: border-box;
+}
+.periodo-pill:hover {
+  border-color: var(--accent);
+  background: var(--surface3);
+  transform: translateY(-1px);
+}
+.periodo-pill.s-completato { border-left: 3px solid var(--green);  background: rgba(52,211,153,0.05); }
+.periodo-pill.s-in_corso   { border-left: 3px solid var(--yellow); background: rgba(251,191,36,0.05); }
+.periodo-pill.s-da_fare    { border-left: 3px solid var(--red); }
+.periodo-pill.s-n_a        { opacity: 0.55; }
+
+/* Riga superiore: tag periodo + icona stato */
+.pp-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pp-tag {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.pp-stato-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Date su riga propria, ben spaziata */
+.pp-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pp-date {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+/* Importi — usa tutta la larghezza disponibile */
+.pp-imp {
+  margin-top: 2px;
+}
+.pp-imp .importi-cell {
+  width: 100%;
+}
+.pp-imp .imp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.pp-imp .imp-lbl { color: var(--text3); }
+.pp-imp .imp-val { color: var(--green); font-weight: 700; }
+
+/* Note */
+.pp-note {
+  font-size: 9px;
+  color: var(--text2);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+/* ─── CONTENITORE PILL NEL SCADENZARIO SINGOLO ──────────────── */
+.adp-card-periodi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+  align-items: flex-start;
+}
+
+/* Per adempimenti mensili (12 pill): griglia compatta ma leggibile */
+.adp-card-periodi.periodi-mensili {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+/* ─── CONTENITORE PILL NELLA VISTA GLOBALE ───────────────────── */
+.glob-cliente-periodi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  align-items: flex-start;
+}
+
+/* Per clienti mensili nella globale: griglia */
+.glob-cliente-periodi.periodi-mensili {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+/* ─── CARD CLIENTE NELLA VISTA GLOBALE ───────────────────────── */
+.glob-cliente-card {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.12s;
+  /* Garantisce che la card si espanda per contenere i periodi */
+  width: 100%;
+}
+.glob-cliente-card:hover {
+  border-color: var(--accent);
+}
+.glob-cliente-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface3);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* ─── PRINT FIX COMPLETO ─────────────────────────────────────── */
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .main {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    margin: 0; padding: 0;
+  }
+  .content {
+    padding: 16px !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: none !important;
+    display: block !important;
+  }
+  body { background: white !important; color: black !important; }
+
+  .table-wrap, .cliente-preview-card, .globale-preview-card,
+  .glob-cliente-card, .adp-card, .cat-section-body {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .adp-card, .cat-section, .cat-section-body,
+  .glob-cliente-card, .globale-cliente-row { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Pill in stampa: sfondo chiaro, testo leggibile */
+  .periodo-pill {
+    border: 1px solid #999 !important;
+    background: #f8f8f8 !important;
+    color: #000 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    min-width: 110px;
+  }
+  .pp-tag { color: #333 !important; border-color: #999 !important; }
+  .pp-stato-icon { display: inline !important; }
+  .pp-date { color: #555 !important; }
+  .pp-imp .imp-lbl { color: #555 !important; }
+  .pp-imp .imp-val { color: #222 !important; }
+  .pp-note { color: #666 !important; }
+
+  /* Griglia pill in stampa */
+  .adp-card-periodi,
+  .adp-card-periodi.periodi-mensili,
+  .glob-cliente-periodi,
+  .glob-cliente-periodi.periodi-mensili {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  /* Sezioni che possono andare su più pagine */
+  .table-wrap, #scad-content, .adp-def-grid, .glob-cliente-periodi {
+    page-break-inside: auto;
+  }
+}

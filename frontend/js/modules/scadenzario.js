@@ -146,6 +146,7 @@ function renderScadenzarioTabella(data) {
       const pG    = totG > 0 ? Math.round((compG / totG) * 100) : 0;
       const pgColor = pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
       const periodiHtml = g.rows.map(r => renderPeriodoPill(r)).join("");
+      const isMensile   = g.rows.length > 4;
       adpHtml += `<div class="adp-card">
         <div class="adp-card-header">
           <span class="adp-codice">${g.codice}</span>
@@ -156,7 +157,7 @@ function renderScadenzarioTabella(data) {
             <span style="font-size:10px;font-family:var(--mono);color:${pgColor}">${compG}/${totG}</span>
           </div>
         </div>
-        <div class="adp-card-periodi">${periodiHtml}</div>
+        <div class="adp-card-periodi${isMensile ? " periodi-mensili" : ""}">${periodiHtml}</div>
       </div>`;
     });
     content += `<div class="cat-section">
