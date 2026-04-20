@@ -3,25 +3,38 @@
 // ═══════════════════════════════════════════════════════════════
 
 function renderTipologiePage() {
+  // ─── PERCORSI REALI ───────────────────────────────────────────
+  // hasPer: false → 1 sola riga, nessuna col4
+  // hasPer: true  → 2 righe (Mensile + Trimestrale)
+  //
+  // PF_PRIV  → 1 PF › 2 Privato                    (no col3, no col4)
+  // PF_SOCIO → 1 PF › 2 Socio                      (no col3, no col4)
+  // PF_DITTA → 1 PF › 2 Ditta › 3 Regime › 4 Per  (×2 per regime = 6 righe)
+  // PF_PROF  → 1 PF › 2 Prof  › 3 Regime › 4 Per  (×2 per regime = 6 righe)
+  // SP       → 1 SP › 3 Regime › 4 Per             (4 righe)
+  // SC       → 1 SC › 3 Ord   › 4 Per              (2 righe)
+  // ASS      → 1 ASS › 3 Regime › 4 Per            (4 righe)
   const PERCORSI = {
     PF: [
-      { col2Label: null,                 col3Label: null,           codice: "PF_PRIV",      hasPer: true },
-      { col2Label: "Ditta Individuale",  col3Label: "Ordinario",    codice: "PF_DITTA_ORD", hasPer: true },
-      { col2Label: "Ditta Individuale",  col3Label: "Semplificato", codice: "PF_DITTA_SEM", hasPer: true },
-      { col2Label: "Ditta Individuale",  col3Label: "Forfettario",  codice: "PF_DITTA_FOR", hasPer: true },
-      { col2Label: "Socio",              col3Label: null,           codice: "PF_SOCIO",     hasPer: true },
-      { col2Label: "Professionista",     col3Label: "Ordinario",    codice: "PF_PROF_ORD",  hasPer: true },
-      { col2Label: "Professionista",     col3Label: "Semplificato", codice: "PF_PROF_SEM",  hasPer: true },
-      { col2Label: "Professionista",     col3Label: "Forfettario",  codice: "PF_PROF_FOR",  hasPer: true },
+      { sepLabel: "PRIVATO",           col2Label: "Privato",           col3Label: null,           codice: "PF_PRIV",      hasPer: false },
+      { sepLabel: "SOCIO",             col2Label: "Socio",             col3Label: null,           codice: "PF_SOCIO",     hasPer: false },
+      { sepLabel: "DITTA INDIVIDUALE", col2Label: "Ditta Individuale", col3Label: "Ordinario",    codice: "PF_DITTA_ORD", hasPer: true },
+      { sepLabel: null,                col2Label: "Ditta Individuale", col3Label: "Semplificato", codice: "PF_DITTA_SEM", hasPer: true },
+      { sepLabel: null,                col2Label: "Ditta Individuale", col3Label: "Forfettario",  codice: "PF_DITTA_FOR", hasPer: true },
+      { sepLabel: "PROFESSIONISTA",    col2Label: "Professionista",    col3Label: "Ordinario",    codice: "PF_PROF_ORD",  hasPer: true },
+      { sepLabel: null,                col2Label: "Professionista",    col3Label: "Semplificato", codice: "PF_PROF_SEM",  hasPer: true },
+      { sepLabel: null,                col2Label: "Professionista",    col3Label: "Forfettario",  codice: "PF_PROF_FOR",  hasPer: true },
     ],
-    SP:  [
-      { col2Label: null, col3Label: "Ordinaria",    codice: "SP_ORD",   hasPer: true },
-      { col2Label: null, col3Label: "Semplificata", codice: "SP_SEMP",  hasPer: true },
+    SP: [
+      { sepLabel: null, col2Label: null, col3Label: "Ordinaria",    codice: "SP_ORD",  hasPer: true },
+      { sepLabel: null, col2Label: null, col3Label: "Semplificata", codice: "SP_SEMP", hasPer: true },
     ],
-    SC:  [{ col2Label: null, col3Label: "Ordinaria",    codice: "SC_ORD",   hasPer: true }],
+    SC: [
+      { sepLabel: null, col2Label: null, col3Label: "Ordinaria",    codice: "SC_ORD",  hasPer: true },
+    ],
     ASS: [
-      { col2Label: null, col3Label: "Ordinaria",    codice: "ASS_ORD",  hasPer: true },
-      { col2Label: null, col3Label: "Semplificata", codice: "ASS_SEMP", hasPer: true },
+      { sepLabel: null, col2Label: null, col3Label: "Ordinaria",    codice: "ASS_ORD",  hasPer: true },
+      { sepLabel: null, col2Label: null, col3Label: "Semplificata", codice: "ASS_SEMP", hasPer: true },
     ],
   };
 
@@ -30,46 +43,56 @@ function renderTipologiePage() {
     { value: "trimestrale", label: "📆 Trimestrale", color: "#a78bfa" },
   ];
 
-  const tipColors  = { PF: "#5b8df6", SP: "#a78bfa", SC: "#34d399", ASS: "#fbbf24" };
-  const tipDesc    = { PF: "Persona Fisica", SP: "Società di Persone", SC: "Società di Capitali", ASS: "Associazione" };
-  const tipIcons   = { PF: "👤", SP: "🤝", SC: "🏢", ASS: "🏛️" };
-  const col2Colors = { "Ditta Individuale": "#fb923c", "Professionista": "#34d399", "Socio": "#a78bfa" };
-  const col3Colors = { "Ordinario": "#5b8df6", "Semplificato": "#22d3ee", "Forfettario": "#fbbf24", "Ordinaria": "#5b8df6", "Semplificata": "#22d3ee" };
+  const tipColors = { PF: "#5b8df6", SP: "#a78bfa", SC: "#34d399", ASS: "#fbbf24" };
+  const tipDesc   = { PF: "Persona Fisica", SP: "Società di Persone", SC: "Società di Capitali", ASS: "Associazione" };
+  const tipIcons  = { PF: "👤", SP: "🤝", SC: "🏢", ASS: "🏛️" };
 
-  function step(colNum, label, color) {
+  const col2Colors = {
+    "Privato":           "#5b8df6",
+    "Socio":             "#a78bfa",
+    "Ditta Individuale": "#fb923c",
+    "Professionista":    "#34d399",
+  };
+  const col3Colors = {
+    "Ordinario":    "#5b8df6", "Ordinaria":    "#5b8df6",
+    "Semplificato": "#22d3ee", "Semplificata": "#22d3ee",
+    "Forfettario":  "#fbbf24",
+  };
+  const sepColors = {
+    "PRIVATO":           "#5b8df6",
+    "SOCIO":             "#a78bfa",
+    "DITTA INDIVIDUALE": "#fb923c",
+    "PROFESSIONISTA":    "#34d399",
+  };
+
+  function step(num, label, color) {
     const c = color || "var(--accent)";
     return `<div class="tp-step">
-      <div class="tp-num" style="background:${c}18;border-color:${c}44;color:${c}">${colNum}</div>
+      <div class="tp-num" style="background:${c}18;border-color:${c}44;color:${c}">${num}</div>
       <div class="tp-val">${label}</div>
     </div>`;
   }
 
   function arrow() { return `<span class="tp-arr">›</span>`; }
 
-  function gruppiPF(percorsi) {
-    const map = {}, order = [];
-    percorsi.forEach(p => {
-      const k = p.col2Label || "__nessuna__";
-      if (!map[k]) { map[k] = []; order.push(k); }
-      map[k].push(p);
-    });
-    return order.map(k => ({ label: k === "__nessuna__" ? null : k, items: map[k] }));
-  }
-
   function buildPercorsoRows(p, tipCodice, tipColor) {
     let html = "";
     const perRows = p.hasPer ? PERIODICITA : [null];
     perRows.forEach(per => {
       const parts = [];
+      // Col 1 — sempre
       parts.push(step(1, tipCodice, tipColor));
+      // Col 2 — solo se presente
       if (p.col2Label) {
         parts.push(arrow());
         parts.push(step(2, p.col2Label, col2Colors[p.col2Label] || "#7c85a2"));
       }
+      // Col 3 — solo se presente
       if (p.col3Label) {
         parts.push(arrow());
         parts.push(step(3, p.col3Label, col3Colors[p.col3Label] || "#7c85a2"));
       }
+      // Col 4 — solo se hasPer
       if (per) {
         parts.push(arrow());
         parts.push(`<div class="tp-step">
@@ -77,12 +100,14 @@ function renderTipologiePage() {
           <span class="tp-per" style="color:${per.color};border-color:${per.color}44;background:${per.color}11">${per.label}</span>
         </div>`);
       }
+      // Codice (a destra)
       parts.push(`<span class="tp-codice" style="background:${tipColor}12;color:${tipColor};border:1px solid ${tipColor}30">${p.codice}</span>`);
       html += `<div class="tp-row">${parts.join("")}</div>`;
     });
     return html;
   }
 
+  // ─── BUILD HTML ───────────────────────────────────────────────
   let html = `
     <div class="infobox" style="margin-bottom:20px">
       🗂️ Tutti i percorsi di classificazione possibili. I numeri cerchiati indicano sempre la colonna reale:
@@ -94,7 +119,7 @@ function renderTipologiePage() {
     <div class="tp-grid">`;
 
   Object.entries(PERCORSI).forEach(([tipCodice, percorsi]) => {
-    const tipColor = tipColors[tipCodice];
+    const tipColor    = tipColors[tipCodice];
     const totalePaths = percorsi.reduce((n, p) => n + (p.hasPer ? 2 : 1), 0);
 
     html += `<div class="tp-card">
@@ -107,13 +132,12 @@ function renderTipologiePage() {
       </div>
       <div class="tp-percorsi">`;
 
-    const gruppi = tipCodice === "PF" ? gruppiPF(percorsi) : [{ label: null, items: percorsi }];
-    gruppi.forEach(g => {
-      if (g.label) {
-        const gc = col2Colors[g.label] || tipColor;
-        html += `<div class="tp-sep-label"><span style="color:${gc}">● ${g.label}</span></div>`;
+    percorsi.forEach(p => {
+      if (p.sepLabel) {
+        const sc = sepColors[p.sepLabel] || tipColor;
+        html += `<div class="tp-sep-label"><span style="color:${sc}">● ${p.sepLabel}</span></div>`;
       }
-      g.items.forEach(p => { html += buildPercorsoRows(p, tipCodice, tipColor); });
+      html += buildPercorsoRows(p, tipCodice, tipColor);
     });
 
     html += `</div></div>`;
@@ -129,7 +153,7 @@ function renderTipologiePage() {
     .tp-card-title { font-size:15px; font-weight:700; }
     .tp-card-sub { font-size:11px; color:var(--text3); margin-top:2px; }
     .tp-percorsi { padding:12px 16px; display:flex; flex-direction:column; gap:5px; }
-    .tp-sep-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:8px 0 4px; border-bottom:1px solid var(--border); margin:2px 0; }
+    .tp-sep-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:8px 0 4px; border-bottom:1px solid var(--border); margin:4px 0 2px; }
     .tp-row { display:flex; align-items:center; flex-wrap:wrap; gap:3px; padding:7px 10px; background:var(--surface2); border:1px solid var(--border2); border-radius:7px; transition:border-color .12s, background .12s; }
     .tp-row:hover { border-color:var(--accent); background:var(--surface3); }
     .tp-step { display:flex; align-items:center; gap:5px; }
