@@ -54,12 +54,20 @@ const CATEGORIE = [
 ];
 
 // ─── FUNZIONE SCARICA DATABASE ─────────────────────────────────
+// ─── FUNZIONE SCARICA DATABASE ─────────────────────────────────
 function scaricaDatabase() {
-  fetch("/api/download-db")
+  showNotif("⏳ Download in corso...", "info");
+  
+  fetch("/api/download-db", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
     .then((response) => {
       if (!response.ok) {
         return response.json().then((err) => {
-          throw new Error(err.error || "Download fallito");
+          throw new Error(err.error || err.message || "Download fallito");
         });
       }
       return response.blob();
@@ -73,11 +81,11 @@ function scaricaDatabase() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      showNotif("Database scaricato con successo", "success");
+      showNotif("✅ Database scaricato con successo!", "success");
     })
     .catch((error) => {
       console.error("Errore download:", error);
-      showNotif("Errore durante il download del database", "error");
+      showNotif(`❌ Errore: ${error.message}`, "error");
     });
 }
 
@@ -386,13 +394,22 @@ socket.on("res:add:adempimento_cliente", ({ success }) => {
 
 // ─── NAV ──────────────────────────────────────────────────────
 document.querySelectorAll(".nav-item").forEach((el) => {
-  el.addEventListener("click", () => {
-    document
-      .querySelectorAll(".nav-item")
-      .forEach((x) => x.classList.remove("active"));
-    el.classList.add("active");
-    renderPage(el.dataset.page);
-  });
+  // Salta il pulsante Scarica DB che non ha data-page
+  if (el.dataset.page) {
+    el.addEventListener("click", () => {
+      document
+        .querySelectorAll(".nav-item")
+        .forEach((x) => x.classList.remove("active"));
+      el.classList.add("active");
+      renderPage(el.dataset.page);
+    });
+  }
+});
+
+// Listener per il pulsante Scarica DB nella sidebar
+document.getElementById("btn-scarica-db")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  scaricaDatabase();
 });
 
 function renderPage(page) {
@@ -413,7 +430,6 @@ function renderPage(page) {
       <div class="year-sel"><button onclick="changeAnno(-1)">&#9664;</button><span class="year-num">${state.anno}</span><button onclick="changeAnno(1)">&#9654;</button></div>
       <button class="btn btn-orange btn-sm no-print" onclick="openGeneraTutti()">⚡ Genera Tutti</button>
       <button class="btn btn-cyan btn-sm no-print" onclick="openCopiaTutti()">📋 Copia Anno</button>
-      <button class="btn btn-purple btn-sm no-print" onclick="scaricaDatabase()">💾 Scarica DB</button>
       <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Stampa</button>`;
     socket.emit("get:stats", { anno: state.anno });
   } else if (page === "clienti") {
@@ -686,18 +702,18 @@ function updateDashboardContent(stats) {
         ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${catColor[a.categoria]};margin-right:5px;vertical-align:middle"></span>`
         : "";
       return `<tr class="adp-dash-row" onclick="goVistaGlobaleAdp('${escAttr(a.nome)}')" title="Clicca per Vista Globale">
-      <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:700">${a.codice}</span></td>
-      <td style="font-weight:700">${a.nome}</td>
-      <td>${dot}<span class="badge b-categoria">${a.categoria}</span></td>
-      <td style="font-family:var(--mono);font-size:13px;font-weight:700;text-align:right">${a.totale}</td>
-      <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green);text-align:right">${a.completati}</td>
-      <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--red);text-align:right">${a.da_fare}</td>
-      <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--yellow);text-align:right">${iC > 0 ? iC : "-"}</td>
-      <td><div style="display:flex;align-items:center;gap:6px;min-width:110px">
-        <div class="mini-bar" style="flex:1;height:7px"><div class="mini-fill" style="width:${p}%"></div></div>
-        <span style="font-size:10px;font-family:var(--mono);color:var(--text3);min-width:30px;text-align:right">${p}%</span>
-      </div></td>
-    </tr>`;
+        <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:700">${a.codice}</span></td>
+        <td style="font-weight:700">${a.nome}</td>
+        <td>${dot}<span class="badge b-categoria">${a.categoria}</span></td>
+        <td style="font-family:var(--mono);font-size:13px;font-weight:700;text-align:right">${a.totale}</td>
+        <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green);text-align:right">${a.completati}</td>
+        <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--red);text-align:right">${a.da_fare}</td>
+        <td style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--yellow);text-align:right">${iC > 0 ? iC : "-"}</td>
+        <td><div style="display:flex;align-items:center;gap:6px;min-width:110px">
+          <div class="mini-bar" style="flex:1;height:7px"><div class="mini-fill" style="width:${p}%"></div></div>
+          <span style="font-size:10px;font-family:var(--mono);color:var(--text3);min-width:30px;text-align:right">${p}%</span>
+        </div></td>
+      </tr>`;
     })
     .join("");
 }
@@ -750,18 +766,18 @@ function renderClientiTabella(clienti) {
     ? clienti
         .map(
           (c) => `<tr class="clickable" onclick="showClienteDettaglio(${c.id})">
-        <td><strong>${c.nome}</strong></td>
-        <td><span class="badge b-${(c.tipologia_codice || "").toLowerCase()}">${c.tipologia_codice || "-"}</span></td>
-        <td class="td-dim">${c.sottotipologia_nome || "-"}</td>
-        <td class="td-mono td-dim">${c.codice_fiscale || c.partita_iva || "-"}</td>
-        <td class="td-dim">${c.periodicita || "-"}</td>
-        <td class="td-dim">${c.email || "-"}</td>
-        <td class="col-actions no-print"><div style="display:flex;gap:5px" onclick="event.stopPropagation()">
-          <button class="btn btn-sm btn-secondary" onclick="editCliente(${c.id})">✏️</button>
-          <button class="btn btn-sm btn-success" onclick="goScadenzario(${c.id})">📅</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteCliente(${c.id})">🗑️</button>
-        </div></td>
-      </tr>`,
+          <td><strong>${c.nome}</strong></td>
+          <td><span class="badge b-${(c.tipologia_codice || "").toLowerCase()}">${c.tipologia_codice || "-"}</span></td>
+          <td class="td-dim">${c.sottotipologia_nome || "-"}</td>
+          <td class="td-mono td-dim">${c.codice_fiscale || c.partita_iva || "-"}</td>
+          <td class="td-dim">${c.periodicita || "-"}</td>
+          <td class="td-dim">${c.email || "-"}</td>
+          <td class="col-actions no-print"><div style="display:flex;gap:5px" onclick="event.stopPropagation()">
+            <button class="btn btn-sm btn-secondary" onclick="editCliente(${c.id})">✏️</button>
+            <button class="btn btn-sm btn-success" onclick="goScadenzario(${c.id})">📅</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCliente(${c.id})">🗑️</button>
+          </div></td>
+        </tr>`,
         )
         .join("")
     : `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
@@ -1883,8 +1899,9 @@ function renderAdempimentiTabella(adempimenti) {
   document.getElementById("content").innerHTML = `
     <div class="table-wrap">
       <div class="table-header no-print"><h3>Adempimenti (${adempimenti.length})</h3></div>
-      <table><thead><tr><th>Codice</th><th>Nome</th><th>Categoria</th><th>Scadenza</th><th>Flags</th><th class="no-print">Azioni</th></tr></thead>
-      <tbody>${tbody}</tbody></table>
+      <tr><thead>汽<th>Codice</th><th>Nome</th><th>Categoria</th><th>Scadenza</th><th>Flags</th><th class="no-print">Azioni</th></tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>
     </div>`;
 }
 

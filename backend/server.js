@@ -22,7 +22,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// Endpoint per scaricare il database
+// Endpoint per scaricare il database - DEVE essere prima di altri route
 app.use('/api', downloadDbRouter);
 
 // Health check endpoint
