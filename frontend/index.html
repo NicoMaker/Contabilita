@@ -8,10 +8,31 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <!-- Socket.IO (fornito dal server Node.js) -->
     <script src="/socket.io/socket.io.js"></script>
-    <!-- Foglio di stile -->
     <link rel="stylesheet" href="css/styles.css" />
+
+    <style>
+      /* ── FIX: 4 colonne allineate in altezza ── */
+      .quattro-colonne-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+        align-items: stretch;   /* <-- tutte alla stessa altezza */
+      }
+      .col-classificazione {
+        display: flex;
+        flex-direction: column;
+      }
+      .col-classificazione .select,
+      .col-classificazione .input {
+        flex: 1;
+        height: 42px;
+      }
+      .col-hint {
+        min-height: 18px; /* riserva spazio anche quando non c'è testo */
+      }
+    </style>
   </head>
   <body>
     <!-- ═══ SIDEBAR ═════════════════════════════════════════ -->
@@ -85,6 +106,7 @@
         </div>
 
         <div class="quattro-colonne-grid">
+          <!-- COL 1 sempre visibile -->
           <div class="form-group col-classificazione">
             <label><span class="col-num">1</span> Tipologia *</label>
             <select
@@ -98,6 +120,7 @@
             <div class="col-hint">PF · SP · SC · ASS (obbligatorio)</div>
           </div>
 
+          <!-- COL 2 — si mostra/nasconde via JS -->
           <div
             class="form-group col-classificazione"
             id="wrap-col2"
@@ -118,6 +141,7 @@
             <div class="col-hint">Privato · Ditta · Socio · Prof.</div>
           </div>
 
+          <!-- COL 3 -->
           <div
             class="form-group col-classificazione"
             id="wrap-col3"
@@ -138,6 +162,7 @@
             <div class="col-hint">Ord. · Sempl. · Forf.</div>
           </div>
 
+          <!-- COL 4 -->
           <div
             class="form-group col-classificazione"
             id="wrap-col4"
@@ -628,7 +653,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL DETTAGLIO CLIENTE                             -->
+    <!-- MODAL DETTAGLIO CLIENTE  ← FIX: aggiunto id actions -->
     <!-- ═══════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-cliente-dettaglio">
       <div class="modal">
@@ -636,7 +661,8 @@
           👤 <span id="modal-cliente-det-title">Dettaglio Cliente</span>
         </div>
         <div id="cliente-dettaglio-content"></div>
-        <div class="modal-actions">
+        <!-- Le azioni vengono iniettate dinamicamente da showClienteDettaglio() -->
+        <div class="modal-actions" id="modal-cliente-det-actions">
           <button
             class="btn btn-secondary"
             onclick="closeModal('modal-cliente-dettaglio')"

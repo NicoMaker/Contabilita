@@ -51,7 +51,6 @@ function renderClientiTabella(clienti) {
     semplificata: "Sempl.",
   };
 
-  // Legge i valori correnti dei filtri per ripristinarli dopo il render
   const curTipo = document.getElementById("filter-tipo")?.value || "";
   const curCol2 = document.getElementById("filter-col2")?.value || "";
   const curCol3 = document.getElementById("filter-col3")?.value || "";
@@ -215,7 +214,33 @@ function showClienteDettaglio(id) {
     ${classificazioneHtml}
     ${catHtml ? `<div style="margin:12px 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3)">📋 Categorie attive</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">${catHtml}</div>` : ""}
     ${renderClienteDatiRiferimento(c)}`;
+
+  // ─── Aggiorna i bottoni del modal con Modifica, Elimina e Scadenzario ───
+  const actions = document.getElementById("modal-cliente-det-actions");
+  if (actions) {
+    actions.innerHTML = `
+      <button class="btn btn-danger btn-sm" onclick="deleteClienteFromDettaglio()" title="Elimina il cliente">🗑️ Elimina</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal('modal-cliente-dettaglio')">Chiudi</button>
+      <button class="btn btn-secondary" onclick="editClienteFromDettaglio()" title="Modifica i dati del cliente">✏️ Modifica</button>
+      <button class="btn btn-primary" onclick="goToClienteScadenzario()">📅 Vai a Scadenzario</button>`;
+  }
+
   openModal("modal-cliente-dettaglio");
+}
+
+function editClienteFromDettaglio() {
+  const c = state._currentClienteDettaglio;
+  if (!c) return;
+  closeModal("modal-cliente-dettaglio");
+  editCliente(c.id);
+}
+
+function deleteClienteFromDettaglio() {
+  const c = state._currentClienteDettaglio;
+  if (!c) return;
+  closeModal("modal-cliente-dettaglio");
+  deleteCliente(c.id);
 }
 
 function goToClienteScadenzario() {
@@ -504,7 +529,6 @@ function saveCliente() {
     return;
   }
 
-  // ─── VALIDAZIONE CAMPI OBBLIGATORI CLASSIFICAZIONE ───
   if (!validaClassificazioneCliente()) return;
 
   const categorie = getSelectedCategorie();
@@ -548,8 +572,9 @@ function saveCliente() {
     socket.emit("update:cliente", data);
   } else socket.emit("create:cliente", data);
 }
+
 function deleteCliente(id) {
-  if (confirm("Eliminare questo cliente?"))
+  if (confirm("Eliminare questo cliente? L'operazione è irreversibile."))
     socket.emit("delete:cliente", { id });
 }
 
@@ -578,12 +603,10 @@ function validaClassificazioneCliente() {
     return false;
   }
 
-  const tipCodice = _getTipologiaCodice();
   const col2Wrap = document.getElementById("wrap-col2");
   const col3Wrap = document.getElementById("wrap-col3");
   const col4Wrap = document.getElementById("wrap-col4");
 
-  // Validazione Col2 (se visibile)
   if (col2Wrap && col2Wrap.style.display !== "none") {
     const col2Value = document.getElementById("c-col2").value;
     if (!col2Value) {
@@ -596,7 +619,6 @@ function validaClassificazioneCliente() {
     }
   }
 
-  // Validazione Col3 (se visibile)
   if (col3Wrap && col3Wrap.style.display !== "none") {
     const col3Value = document.getElementById("c-col3").value;
     if (!col3Value) {
@@ -606,7 +628,6 @@ function validaClassificazioneCliente() {
     }
   }
 
-  // Validazione Col4 (se visibile)
   if (col4Wrap && col4Wrap.style.display !== "none") {
     const col4Value = document.getElementById("c-col4").value;
     if (!col4Value) {
