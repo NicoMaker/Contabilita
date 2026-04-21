@@ -8,3 +8,5 @@ sistemare che quando mi sposto da ogni parte da una sezione all'altra sempre in 
 
 
 e ricerche in tutti i menù a tendina e poi sistema per lato vista globale che quando ho cliccato su un elemento (adempiemnto) posso vedere anche gli altri e non solo quello visualizzato e poi sistemami lato clienti in ogni parte il bottone tutti che vede tutto di quei dati 
+
+altra cosa cliente sempre con due caratteri per esempio Studio Verdi (sV) non s Anna va bene A ma principalmente con 2 cifre 
