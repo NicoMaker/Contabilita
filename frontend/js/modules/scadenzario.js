@@ -22,91 +22,8 @@ function renderBtnAddAdp(id_cliente) {
   return `<button class="btn btn-sm btn-purple" onclick="openAddAdp(${id_cliente})" title="Aggiungi un adempimento mancante (${mancanti.length} disponibili)">+ Adempimento <span class="badge-count">${mancanti.length}</span></button>`;
 }
 
-// ─── SEZIONE RIEPILOGO ADEMPIMENTI DEL CLIENTE ────────────────
-function renderAdpRiepilogoCliente(data) {
-  if (!data || !data.length) return "";
-
-  const adpMap = {};
-  data.forEach(r => {
-    const key = r.id_adempimento;
-    if (!adpMap[key]) adpMap[key] = {
-      nome: r.adempimento_nome,
-      codice: r.adempimento_codice,
-      categoria: r.categoria,
-      scadenza_tipo: r.scadenza_tipo,
-      rows: []
-    };
-    adpMap[key].rows.push(r);
-  });
-
-  const catMap = {};
-  Object.values(adpMap).forEach(g => {
-    const cat = g.categoria || "ALTRI";
-    if (!catMap[cat]) catMap[cat] = [];
-    catMap[cat].push(g);
-  });
-
-  const scadIcons = { annuale: "📅", semestrale: "📆", trimestrale: "📊", mensile: "🗓️" };
-
-  let html = `<div class="riepilogo-adp-wrap">
-    <div class="riepilogo-adp-header">
-      <span class="riepilogo-adp-header-icon">📋</span>
-      <span class="riepilogo-adp-header-title">Riepilogo Adempimenti</span>
-      <span class="riepilogo-adp-header-sub">${Object.keys(adpMap).length} adempimenti · Anno ${state.anno}</span>
-      <span style="font-size:11px;color:var(--text3);margin-left:8px">— clicca una card per filtrare</span>
-    </div>
-    <div class="riepilogo-adp-body">`;
-
-  Object.entries(catMap).forEach(([catCode, items]) => {
-    const catInfo  = CATEGORIE.find(x => x.codice === catCode);
-    const catColor = catInfo?.color || "var(--accent)";
-
-    html += `<div class="riepilogo-cat-block">
-      <div class="riepilogo-cat-label" style="border-left:3px solid ${catColor}">
-        <span>${catInfo?.icona || "📋"}</span>
-        <span style="color:${catColor}">${catCode}</span>
-        <span class="riepilogo-cat-count">${items.length} adempiment${items.length===1?"o":"i"}</span>
-      </div>
-      <div class="riepilogo-adp-grid">`;
-
-    items.forEach(g => {
-      const comp    = g.rows.filter(r => r.stato === "completato").length;
-      const daFare  = g.rows.filter(r => r.stato === "da_fare").length;
-      const inCorso = g.rows.filter(r => r.stato === "in_corso").length;
-      const tot     = g.rows.length;
-      const p       = tot > 0 ? Math.round((comp / tot) * 100) : 0;
-      const pgColor = p === 100 ? "var(--green)" : p > 50 ? "var(--yellow)" : "var(--red)";
-      // FIX: id_adempimento per filtrare al click
-      const idAdp = g.rows[0]?.id_adempimento;
-
-      html += `<div class="riepilogo-adp-card" 
-        onclick="filtraScadPerAdp(${idAdp})" 
-        title="Clicca per filtrare: ${escAttr(g.nome)}" 
-        style="cursor:pointer">
-        <div class="riepilogo-adp-card-top">
-          <span class="riepilogo-adp-codice">${g.codice}</span>
-          <span class="riepilogo-adp-scad">${scadIcons[g.scadenza_tipo]||"📅"} ${g.scadenza_tipo}</span>
-        </div>
-        <div class="riepilogo-adp-nome">${g.nome}</div>
-        <div class="riepilogo-adp-bar-row">
-          <div class="riepilogo-adp-bar"><div class="riepilogo-adp-bar-fill" style="width:${p}%;background:${pgColor}"></div></div>
-          <span class="riepilogo-adp-perc" style="color:${pgColor}">${p}%</span>
-        </div>
-        <div class="riepilogo-adp-badges">
-          <span class="rap-chip rap-tot">${tot} tot.</span>
-          ${comp    > 0 ? `<span class="rap-chip rap-comp">✅ ${comp}</span>` : ""}
-          ${daFare  > 0 ? `<span class="rap-chip rap-da">⭕ ${daFare}</span>` : ""}
-          ${inCorso > 0 ? `<span class="rap-chip rap-corso">🔄 ${inCorso}</span>` : ""}
-        </div>
-      </div>`;
-    });
-
-    html += `</div></div>`;
-  });
-
-  html += `</div></div>`;
-  return html;
-}
+// ─── SEZIONE RIEPILOGO ADEMPIMENTI DEL CLIENTE (RIMOSSA) ────────────────
+// La funzione renderAdpRiepilogoCliente è stata rimossa perché non più utilizzata
 
 // FIX: Funzione per filtrare lo scadenzario cliccando dal riepilogo
 function filtraScadPerAdp(idAdp) {
@@ -351,7 +268,8 @@ function renderScadenzarioTabella(data) {
     ${renderClienteDatiRiferimento(c)}
   </div>`;
 
-  const riepilogoHtml = renderAdpRiepilogoCliente(data);
+  // RIEPILOGO RIMOSSO - non viene più incluso
+  // const riepilogoHtml = renderAdpRiepilogoCliente(data);
 
   const grouped = {};
   dataFiltrata.forEach(r => {
@@ -406,7 +324,8 @@ function renderScadenzarioTabella(data) {
       <button class="btn btn-primary" onclick="generaScadenzario()" style="margin-top:16px">⚡ Genera Scadenzario</button>
     </div>`;
 
-  document.getElementById("content").innerHTML = `${clienteCard}${riepilogoHtml}<div id="scad-content">${content}</div>`;
+  // Il riepilogo non viene più incluso
+  document.getElementById("content").innerHTML = `${clienteCard}<div id="scad-content">${content}</div>`;
 }
 
 // ─── AZIONI ───────────────────────────────────────────────────
