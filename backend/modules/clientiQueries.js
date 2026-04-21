@@ -124,7 +124,25 @@ function updateCliente(data) {
 }
 
 function deleteCliente(id) {
+  // Verifica se il cliente ha adempimenti associati
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
+    [id]
+  );
+  
+  if (count.cnt > 0) {
+    throw new Error(`Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati. Elimina prima gli adempimenti dal cliente.`);
+  }
+  
   runQuery(`UPDATE clienti SET attivo=0 WHERE id=?`, [id]);
+}
+
+function canDeleteCliente(id) {
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
+    [id]
+  );
+  return { canDelete: count.cnt === 0, adempimentiCount: count.cnt };
 }
 
 module.exports = {
@@ -133,4 +151,5 @@ module.exports = {
   createCliente,
   updateCliente,
   deleteCliente,
+  canDeleteCliente,
 };

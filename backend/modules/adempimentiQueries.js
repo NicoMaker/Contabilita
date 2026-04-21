@@ -22,7 +22,25 @@ function updateAdempimento(data) {
 }
 
 function deleteAdempimento(id) {
+  // Verifica se l'adempimento è stato assegnato a qualche cliente
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_adempimento = ?`,
+    [id]
+  );
+  
+  if (count.cnt > 0) {
+    throw new Error(`Impossibile eliminare l'adempimento: è assegnato a ${count.cnt} clienti. Elimina prima gli adempimenti dai clienti.`);
+  }
+  
   runQuery(`UPDATE adempimenti SET attivo=0 WHERE id=?`, [id]);
+}
+
+function canDeleteAdempimento(id) {
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_adempimento = ?`,
+    [id]
+  );
+  return { canDelete: count.cnt === 0, clientiCount: count.cnt };
 }
 
 function inserisciAdempimentoSeAssente(id_cliente, adp, anno) {
@@ -103,5 +121,6 @@ module.exports = {
   updateAdempimento,
   deleteAdempimento,
   generaAdempimentoPerTutti,
-  inserisciAdempimentoSeAssente
+  inserisciAdempimentoSeAssente,
+  canDeleteAdempimento
 };
