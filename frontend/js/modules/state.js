@@ -16,6 +16,7 @@ const state = {
   dashSearch:        "",
   dashFiltroCategoria:    "tutti",
   dashFiltroClienteStato: "",
+  dashFiltroStatoAdp:     "",   // ← nuovo: filtra da_fare/in_corso/completato/n_a
   globalePreFiltroAdp: "",
   globaleStats:      null,
   _dashRendered:     false,

@@ -41,7 +41,7 @@
           <span class="nav-icon">🏷️</span> Tipologie Clienti
         </div>
         <div class="nav-sep"></div>
-        <div class="nav-item" id="btn-scarica-db" style="cursor:pointer">
+        <div class="nav-item" id="btn-scarica-db" style="cursor: pointer">
           <span class="nav-icon">💾</span> Scarica DB
         </div>
       </nav>
@@ -72,40 +72,81 @@
 
         <div class="form-group">
           <label>Nome / Ragione Sociale *</label>
-          <input class="input" id="c-nome" placeholder="Es. Mario Rossi o Alfa Srl" />
+          <input
+            class="input"
+            id="c-nome"
+            placeholder="Es. Mario Rossi o Alfa Srl"
+          />
         </div>
 
-        <div class="infobox" style="margin-bottom:14px">
-          🗂️ Classifica il cliente nelle 4 colonne. I campi si attivano in cascata.
+        <div class="infobox" style="margin-bottom: 14px">
+          🗂️ Classifica il cliente nelle 4 colonne. I campi si attivano in
+          cascata.
         </div>
 
         <div class="quattro-colonne-grid">
           <div class="form-group col-classificazione">
             <label><span class="col-num">1</span> Tipologia *</label>
-            <select class="select" id="c-tipologia" onchange="onTipologiaChange()" required>
+            <select
+              class="select"
+              id="c-tipologia"
+              onchange="onTipologiaChange()"
+              required
+            >
               <option value="">-- Seleziona Tipologia --</option>
             </select>
             <div class="col-hint">PF · SP · SC · ASS (obbligatorio)</div>
           </div>
 
-          <div class="form-group col-classificazione" id="wrap-col2" style="display:none">
-            <label><span class="col-num">2</span> Sottocategoria PF <span class="required-star">*</span></label>
-            <select class="select" id="c-col2" onchange="onCol2Change()" required>
+          <div
+            class="form-group col-classificazione"
+            id="wrap-col2"
+            style="display: none"
+          >
+            <label
+              ><span class="col-num">2</span> Sottocategoria PF
+              <span class="required-star">*</span></label
+            >
+            <select
+              class="select"
+              id="c-col2"
+              onchange="onCol2Change()"
+              required
+            >
               <option value="">-- Seleziona --</option>
             </select>
             <div class="col-hint">Privato · Ditta · Socio · Prof.</div>
           </div>
 
-          <div class="form-group col-classificazione" id="wrap-col3" style="display:none">
-            <label><span class="col-num">3</span> Regime <span class="required-star">*</span></label>
-            <select class="select" id="c-col3" onchange="onCol3Change()" required>
+          <div
+            class="form-group col-classificazione"
+            id="wrap-col3"
+            style="display: none"
+          >
+            <label
+              ><span class="col-num">3</span> Regime
+              <span class="required-star">*</span></label
+            >
+            <select
+              class="select"
+              id="c-col3"
+              onchange="onCol3Change()"
+              required
+            >
               <option value="">-- Seleziona --</option>
             </select>
             <div class="col-hint">Ord. · Sempl. · Forf.</div>
           </div>
 
-          <div class="form-group col-classificazione" id="wrap-col4" style="display:none">
-            <label><span class="col-num">4</span> Periodicità <span class="required-star">*</span></label>
+          <div
+            class="form-group col-classificazione"
+            id="wrap-col4"
+            style="display: none"
+          >
+            <label
+              ><span class="col-num">4</span> Periodicità
+              <span class="required-star">*</span></label
+            >
             <select class="select" id="c-col4" required>
               <option value="">-- Seleziona --</option>
               <option value="mensile">📅 Mensile</option>
@@ -115,7 +156,11 @@
           </div>
         </div>
 
-        <div class="cliente-riepilogo-box" id="cliente-riepilogo-box" style="display:none">
+        <div
+          class="cliente-riepilogo-box"
+          id="cliente-riepilogo-box"
+          style="display: none"
+        >
           <div class="riepilogo-title">📋 Riepilogo Classificazione</div>
           <div class="riepilogo-content" id="riepilogo-classificazione"></div>
         </div>
@@ -123,7 +168,12 @@
         <div class="form-row">
           <div class="form-group">
             <label>Codice Fiscale</label>
-            <input class="input" id="c-cf" placeholder="RSSMRA80A01L219K" style="text-transform:uppercase" />
+            <input
+              class="input"
+              id="c-cf"
+              placeholder="RSSMRA80A01L219K"
+              style="text-transform: uppercase"
+            />
           </div>
           <div class="form-group">
             <label>Partita IVA</label>
@@ -133,7 +183,12 @@
         <div class="form-row">
           <div class="form-group">
             <label>Email</label>
-            <input class="input" id="c-email" type="email" placeholder="email@esempio.it" />
+            <input
+              class="input"
+              id="c-email"
+              type="email"
+              placeholder="email@esempio.it"
+            />
           </div>
           <div class="form-group">
             <label>Telefono</label>
@@ -143,11 +198,21 @@
         <div class="form-row">
           <div class="form-group">
             <label>PEC</label>
-            <input class="input" id="c-pec" type="email" placeholder="email@pec.it" />
+            <input
+              class="input"
+              id="c-pec"
+              type="email"
+              placeholder="email@pec.it"
+            />
           </div>
           <div class="form-group">
             <label>Codice SDI</label>
-            <input class="input" id="c-sdi" placeholder="XXXXXXX" style="text-transform:uppercase" />
+            <input
+              class="input"
+              id="c-sdi"
+              placeholder="XXXXXXX"
+              style="text-transform: uppercase"
+            />
           </div>
         </div>
         <div class="form-group">
@@ -159,13 +224,19 @@
             <label>Città</label>
             <input class="input" id="c-citta" placeholder="Roma" />
           </div>
-          <div class="form-group" style="max-width:110px">
+          <div class="form-group" style="max-width: 110px">
             <label>CAP</label>
             <input class="input" id="c-cap" placeholder="00100" />
           </div>
-          <div class="form-group" style="max-width:90px">
+          <div class="form-group" style="max-width: 90px">
             <label>Prov.</label>
-            <input class="input" id="c-prov" placeholder="RM" style="text-transform:uppercase" maxlength="2" />
+            <input
+              class="input"
+              id="c-prov"
+              placeholder="RM"
+              style="text-transform: uppercase"
+              maxlength="2"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -175,23 +246,41 @@
           </div>
           <div class="form-group">
             <label>IBAN</label>
-            <input class="input" id="c-iban" placeholder="IT00X0000000000000000000000" style="text-transform:uppercase" />
+            <input
+              class="input"
+              id="c-iban"
+              placeholder="IT00X0000000000000000000000"
+              style="text-transform: uppercase"
+            />
           </div>
         </div>
         <div class="form-group">
           <label>Note</label>
-          <textarea class="input" id="c-note" rows="2" placeholder="Note aggiuntive..."></textarea>
+          <textarea
+            class="input"
+            id="c-note"
+            rows="2"
+            placeholder="Note aggiuntive..."
+          ></textarea>
         </div>
         <div class="form-group">
           <label>📋 Categorie Adempimenti Applicabili</label>
-          <div class="infobox" style="margin-bottom:12px">
-            💡 Seleziona le categorie — lo scadenzario viene generato automaticamente.
+          <div class="infobox" style="margin-bottom: 12px">
+            💡 Seleziona le categorie — lo scadenzario viene generato
+            automaticamente.
           </div>
           <div class="categorie-group" id="categorie-attive"></div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Annulla</button>
-          <button class="btn btn-primary" onclick="saveCliente()">💾 Salva</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-cliente')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="saveCliente()">
+            💾 Salva
+          </button>
         </div>
       </div>
     </div>
@@ -202,7 +291,11 @@
     <div class="modal-overlay" id="modal-adempimento">
       <div class="modal modal-sm">
         <div class="modal-title">
-          ✏️ <span id="adp-nome-label" style="color:var(--accent);font-size:15px"></span>
+          ✏️
+          <span
+            id="adp-nome-label"
+            style="color: var(--accent); font-size: 15px"
+          ></span>
         </div>
         <input type="hidden" id="adp-id" />
         <input type="hidden" id="adp-is-contabilita" />
@@ -234,36 +327,72 @@
         <div id="sect-importo-normale">
           <div class="form-group">
             <label>Importo (€)</label>
-            <input class="input" id="adp-importo" type="number" step="0.01" placeholder="0.00" />
+            <input
+              class="input"
+              id="adp-importo"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+            />
           </div>
         </div>
 
-        <div id="sect-importo-rate" style="display:none">
+        <div id="sect-importo-rate" style="display: none">
           <div class="rate-grid">
             <div class="form-group">
               <label id="rate-l0">💰 Saldo (€)</label>
-              <input class="input" id="adp-imp-saldo" type="number" step="0.01" placeholder="0.00" />
+              <input
+                class="input"
+                id="adp-imp-saldo"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+              />
             </div>
             <div class="form-group">
               <label id="rate-l1">1° Acconto (€)</label>
-              <input class="input" id="adp-imp-acc1" type="number" step="0.01" placeholder="0.00" />
+              <input
+                class="input"
+                id="adp-imp-acc1"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+              />
             </div>
             <div class="form-group">
               <label id="rate-l2">2° Acconto (€)</label>
-              <input class="input" id="adp-imp-acc2" type="number" step="0.01" placeholder="0.00" />
+              <input
+                class="input"
+                id="adp-imp-acc2"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+              />
             </div>
           </div>
         </div>
 
-        <div id="sect-importo-cont" style="display:none">
+        <div id="sect-importo-cont" style="display: none">
           <div class="form-row">
             <div class="form-group">
               <label>💰 IVA (€)</label>
-              <input class="input" id="adp-imp-iva" type="number" step="0.01" placeholder="0.00" />
+              <input
+                class="input"
+                id="adp-imp-iva"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+              />
             </div>
             <div class="form-group">
               <label>📊 Contabilità (€)</label>
-              <input class="input" id="adp-imp-cont" type="number" step="0.01" placeholder="0.00" />
+              <input
+                class="input"
+                id="adp-imp-cont"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+              />
             </div>
           </div>
         </div>
@@ -273,10 +402,19 @@
           <input class="input" id="adp-note" placeholder="Note..." />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteAdpCliente()">🗑️ Rimuovi</button>
-          <div style="flex:1"></div>
-          <button class="btn btn-secondary" onclick="closeModal('modal-adempimento')">Annulla</button>
-          <button class="btn btn-primary" onclick="saveAdpStato()">💾 Salva</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAdpCliente()">
+            🗑️ Rimuovi
+          </button>
+          <div style="flex: 1"></div>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-adempimento')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="saveAdpStato()">
+            💾 Salva
+          </button>
         </div>
       </div>
     </div>
@@ -290,13 +428,19 @@
           📋 <span id="modal-adp-def-title">Nuovo Adempimento</span>
         </div>
         <input type="hidden" id="adp-def-id" />
-        <div class="infobox" style="margin-bottom:18px">
-          ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i clienti con la categoria corrispondente.
+        <div class="infobox" style="margin-bottom: 18px">
+          ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i
+          clienti con la categoria corrispondente.
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Codice *</label>
-            <input class="input" id="adp-def-codice" placeholder="Es. IMU_2" style="text-transform:uppercase" />
+            <input
+              class="input"
+              id="adp-def-codice"
+              placeholder="Es. IMU_2"
+              style="text-transform: uppercase"
+            />
           </div>
           <div class="form-group">
             <label>Tipo Scadenza *</label>
@@ -310,11 +454,19 @@
         </div>
         <div class="form-group">
           <label>Nome *</label>
-          <input class="input" id="adp-def-nome" placeholder="Es. Imposta Municipale Unica" />
+          <input
+            class="input"
+            id="adp-def-nome"
+            placeholder="Es. Imposta Municipale Unica"
+          />
         </div>
         <div class="form-group">
           <label>Descrizione</label>
-          <input class="input" id="adp-def-desc" placeholder="Descrizione breve" />
+          <input
+            class="input"
+            id="adp-def-desc"
+            placeholder="Descrizione breve"
+          />
         </div>
         <div class="form-group">
           <label>Categoria</label>
@@ -330,16 +482,26 @@
         </div>
         <div class="flags-row">
           <label class="flag-chip">
-            <input type="checkbox" id="adp-def-contabilita" onchange="onAdpFlagsChange()" />
+            <input
+              type="checkbox"
+              id="adp-def-contabilita"
+              onchange="onAdpFlagsChange()"
+            />
             <span>📊 Contabilità (IVA + Cont.)</span>
           </label>
           <label class="flag-chip">
-            <input type="checkbox" id="adp-def-rate" onchange="onAdpFlagsChange()" />
+            <input
+              type="checkbox"
+              id="adp-def-rate"
+              onchange="onAdpFlagsChange()"
+            />
             <span>💰 Rate (Saldo + Acconti)</span>
           </label>
         </div>
-        <div id="sect-rate-labels" style="display:none">
-          <div class="infobox" style="margin-bottom:12px">Personalizza le etichette delle rate:</div>
+        <div id="sect-rate-labels" style="display: none">
+          <div class="infobox" style="margin-bottom: 12px">
+            Personalizza le etichette delle rate:
+          </div>
           <div class="form-row">
             <div class="form-group">
               <label>Label 1</label>
@@ -356,8 +518,15 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-adp-def')">Annulla</button>
-          <button class="btn btn-primary" onclick="saveAdpDef()">💾 Salva</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-adp-def')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="saveAdpDef()">
+            💾 Salva
+          </button>
         </div>
       </div>
     </div>
@@ -370,7 +539,7 @@
         <div class="modal-title">📋 Copia Scadenzario</div>
         <input type="hidden" id="copia-cliente-id" />
         <input type="hidden" id="copia-modalita" />
-        <div id="copia-info" class="infobox" style="margin-bottom:18px"></div>
+        <div id="copia-info" class="infobox" style="margin-bottom: 18px"></div>
         <div class="form-row">
           <div class="form-group">
             <label>Anno di partenza</label>
@@ -382,8 +551,12 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-copia')">Annulla</button>
-          <button class="btn btn-primary" onclick="eseguiCopia()">📋 Copia</button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-copia')">
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="eseguiCopia()">
+            📋 Copia
+          </button>
         </div>
       </div>
     </div>
@@ -394,16 +567,24 @@
     <div class="modal-overlay" id="modal-genera-tutti">
       <div class="modal modal-sm">
         <div class="modal-title">⚡ Genera Scadenzario per Tutti</div>
-        <div class="infobox" style="margin-bottom:18px">
-          Genera lo scadenzario per <strong>tutti i clienti attivi</strong>. Gli adempimenti già presenti vengono conservati.
+        <div class="infobox" style="margin-bottom: 18px">
+          Genera lo scadenzario per <strong>tutti i clienti attivi</strong>. Gli
+          adempimenti già presenti vengono conservati.
         </div>
         <div class="form-group">
           <label>Anno</label>
           <input class="input" id="genera-tutti-anno" type="number" />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-genera-tutti')">Annulla</button>
-          <button class="btn btn-primary" onclick="eseguiGeneraTutti()">⚡ Genera per Tutti</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-genera-tutti')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="eseguiGeneraTutti()">
+            ⚡ Genera per Tutti
+          </button>
         </div>
       </div>
     </div>
@@ -418,7 +599,11 @@
         <div class="add-adp-cliente-info" id="add-adp-cliente-info"></div>
         <div class="form-group">
           <label>Adempimento</label>
-          <select class="select" id="add-adp-select" onchange="updatePeriodoOptions()"></select>
+          <select
+            class="select"
+            id="add-adp-select"
+            onchange="updatePeriodoOptions()"
+          ></select>
         </div>
         <div class="form-group">
           <label>Anno</label>
@@ -429,8 +614,15 @@
           <select class="select" id="add-adp-periodo"></select>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-add-adp')">Annulla</button>
-          <button class="btn btn-primary" onclick="eseguiAddAdp()">➕ Aggiungi</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-add-adp')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="eseguiAddAdp()">
+            ➕ Aggiungi
+          </button>
         </div>
       </div>
     </div>
@@ -445,8 +637,15 @@
         </div>
         <div id="cliente-dettaglio-content"></div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-cliente-dettaglio')">Chiudi</button>
-          <button class="btn btn-primary" onclick="goToClienteScadenzario()">📅 Vai a Scadenzario</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-cliente-dettaglio')"
+          >
+            Chiudi
+          </button>
+          <button class="btn btn-primary" onclick="goToClienteScadenzario()">
+            📅 Vai a Scadenzario
+          </button>
         </div>
       </div>
     </div>

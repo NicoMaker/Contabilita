@@ -1588,3 +1588,29 @@ button[title], .btn[title], .nav-item[title], .periodo-pill[title],
   .nav-item { justify-content: center; padding: 14px; }
   .nav-icon { width: auto; margin: 0; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD — badge stato nelle card (aggiunto)
+   ════════════════════════════════════════════════════════════════ */
+.ds-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+  transition: box-shadow 0.15s;
+}
+
+/* Barra filtri dashboard — wrappa bene su schermi piccoli */
+.dash-filtri-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1300px) {
+  .dash-filtri-bar {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}

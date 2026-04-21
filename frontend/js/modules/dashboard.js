@@ -17,11 +17,19 @@ function buildDashboardShell(stats) {
         <h3 id="dash-adp-count-title">Adempimenti ${stats.anno}</h3>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1">
           <div id="dash-cat-tabs" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-          <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <div class="search-wrap" style="width:230px">
+          <div class="dash-filtri-bar" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
+            <select class="select" id="dash-filtro-stato-adp" style="width:170px;font-size:13px" onchange="onDashFiltroStatoAdp()" title="Filtra per stato adempimento">
+              <option value="">🔵 Tutti gli stati</option>
+              <option value="da_fare">⭕ Da fare</option>
+              <option value="in_corso">🔄 In corso</option>
+              <option value="completato">✅ Completato</option>
+              <option value="n_a">➖ N/A</option>
+            </select>
+            <div class="search-wrap" style="width:220px">
               <span class="search-icon">🔍</span>
-              <input class="input" id="dash-adp-search" placeholder="Cerca nome, codice..." value="" oninput="onDashAdpSearch(this.value)">
+              <input class="input" id="dash-adp-search" placeholder="Cerca nome, codice..." value="" oninput="onDashAdpSearch(this.value)" style="font-size:13px">
             </div>
+            <button class="btn btn-sm btn-primary" onclick="resetDashFiltri()" title="Azzera tutti i filtri">⟳ Tutti</button>
           </div>
         </div>
       </div>
@@ -30,13 +38,28 @@ function buildDashboardShell(stats) {
   state._dashRendered = true;
 }
 
-// ─── FILTRO CLIENTE STATO (lato client, per dashboard) ────────
+// ─── FILTRO STATO ADEMPIMENTO ─────────────────────────────────
+function onDashFiltroStatoAdp() {
+  state.dashFiltroStatoAdp = document.getElementById("dash-filtro-stato-adp")?.value || "";
+  if (state.dashStats) updateDashboardContent(state.dashStats);
+}
+
+// ─── RESET TUTTI I FILTRI DASHBOARD ───────────────────────────
+function resetDashFiltri() {
+  state.dashSearch = "";
+  state.dashFiltroCategoria = "tutti";
+  state.dashFiltroClienteStato = "";
+  state.dashFiltroStatoAdp = "";
+  ["dash-adp-search", "dash-filtro-cliente-stato", "dash-filtro-stato-adp"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  if (state.dashStats) updateDashboardContent(state.dashStats);
+}
+
+// ─── FILTRO CLIENTE STATO ─────────────────────────────────────
 function adempimentoPassaFiltroClienteStato(a, filtro) {
   if (!filtro) return true;
-  // a.clienti_dettaglio è un array [{comp, in_corso, da_fare, na, totale}] per cliente
-  // Se non disponibile, fallback: usa le statistiche aggregate dell'adempimento
-  // Nota: il server non fornisce il dettaglio per cliente nell'endpoint stats,
-  // quindi approssimiamo con i dati aggregati dell'adempimento.
   const inCorso = Math.max(0, a.totale - a.completati - a.da_fare);
   switch (filtro) {
     case "con_in_corso":     return inCorso > 0;
@@ -55,18 +78,32 @@ function onDashFiltroClienteStato() {
   if (state.dashStats) updateDashboardContent(state.dashStats);
 }
 
+// ─── FILTRO STATO: filtra card in base a da_fare/in_corso/completato/n_a ──
+function adempimentoPassaFiltroStato(a, filtroStato) {
+  if (!filtroStato) return true;
+  const inCorso = Math.max(0, a.totale - a.completati - a.da_fare - (a.na || 0));
+  const na = a.na || 0;
+  switch (filtroStato) {
+    case "da_fare":    return a.da_fare > 0;
+    case "in_corso":   return inCorso > 0;
+    case "completato": return a.completati > 0;
+    case "n_a":        return na > 0;
+    default:           return true;
+  }
+}
+
 function updateDashboardContent(stats) {
   const allAdp = stats.adempimentiStats || [];
   const sq = (state.dashSearch || "").toLowerCase().trim();
   const sc = state.dashFiltroCategoria || "tutti";
   const sf = state.dashFiltroClienteStato || "";
-  const catColor = {};
-  CATEGORIE.forEach(c => catColor[c.codice] = c.color);
+  const ss = state.dashFiltroStatoAdp || "";
 
   const adpVis = allAdp.filter(a => {
     if (sc !== "tutti" && a.categoria !== sc) return false;
     if (sq && !a.nome.toLowerCase().includes(sq) && !a.codice.toLowerCase().includes(sq) && !a.categoria.toLowerCase().includes(sq)) return false;
     if (!adempimentoPassaFiltroClienteStato(a, sf)) return false;
+    if (!adempimentoPassaFiltroStato(a, ss)) return false;
     return true;
   });
 
@@ -75,7 +112,7 @@ function updateDashboardContent(stats) {
   const fD = adpVis.reduce((s, a) => s + a.da_fare, 0);
   const fI = adpVis.reduce((s, a) => s + Math.max(0, a.totale - a.completati - a.da_fare), 0);
   const fP = fT > 0 ? Math.round((fC / fT) * 100) : 0;
-  const isF = sc !== "tutti" || sq !== "" || sf !== "";
+  const isF = sc !== "tutti" || sq !== "" || sf !== "" || ss !== "";
 
   const se = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
   const si = (id, v) => { const e = document.getElementById(id); if (e) e.innerHTML = v; };
@@ -94,21 +131,13 @@ function updateDashboardContent(stats) {
   if (title)
     title.innerHTML = `Adempimenti ${stats.anno} <span style="font-size:12px;font-weight:400;color:var(--text3);margin-left:6px">${adpVis.length}/${allAdp.length} — clicca su una card per Vista Globale</span>`;
 
-  // Badge filtro cliente stato attivo
-  const filtroLabels = {
-    con_in_corso:     "🔄 Con almeno 1 in corso",
-    senza_in_corso:   "✅ Senza in corso",
-    tutti_completati: "🏆 Tutto completato",
-    con_da_fare:      "⭕ Con almeno 1 da fare",
-    solo_da_fare:     "🚨 Solo da fare",
-    non_completati:   "⚠️ Non al 100%",
-    con_na:           "➖ Con almeno 1 N/A",
-  };
-  // Aggiorna il select (in caso di re-render)
+  // Sync selects
   const sfSel = document.getElementById("dash-filtro-cliente-stato");
   if (sfSel && sfSel.value !== sf) sfSel.value = sf;
+  const ssSel = document.getElementById("dash-filtro-stato-adp");
+  if (ssSel && ssSel.value !== ss) ssSel.value = ss;
 
-  // Tabs categoria — con "Tutti" in evidenza
+  // Tabs categoria
   const tabsEl = document.getElementById("dash-cat-tabs");
   if (tabsEl)
     tabsEl.innerHTML = [{ codice: "tutti", nome: "📋 Tutti", color: "var(--accent)" }, ...CATEGORIE]
@@ -121,7 +150,7 @@ function updateDashboardContent(stats) {
         return `<button class="cat-tab${active ? " cat-tab-active" : ""}"
           style="${active ? `background:${col}22;border-color:${col};color:${col}` : ""}"
           onclick="setDashCat('${c.codice}')"
-          title="Filtra per: ${c.nome || c.codice}">
+          title="${c.nome || c.codice}">
           ${c.nome || c.codice}
           <span style="font-size:10px;opacity:0.7;margin-left:3px">${count}</span>
         </button>`;
@@ -142,7 +171,7 @@ function updateDashboardContent(stats) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text3)">
       <div style="font-size:40px;margin-bottom:16px">📋</div>
       <div style="font-size:15px">Nessun adempimento trovato</div>
-      ${sf ? `<button class="btn btn-sm btn-primary" onclick="document.getElementById('dash-filtro-cliente-stato').value='';onDashFiltroClienteStato()" style="margin-top:12px">⟳ Rimuovi filtro</button>` : ""}
+      <button class="btn btn-sm btn-primary" onclick="resetDashFiltri()" style="margin-top:14px">⟳ Rimuovi filtri</button>
     </div>`;
     return;
   }
@@ -160,16 +189,18 @@ function updateDashboardContent(stats) {
 
     items.forEach(a => {
       const p = a.totale > 0 ? Math.round((a.completati / a.totale) * 100) : 0;
-      const iC = Math.max(0, a.totale - a.completati - a.da_fare);
+      const iC = Math.max(0, a.totale - a.completati - a.da_fare - (a.na || 0));
       const na = a.na || 0;
       const pgColor = p === 100 ? "var(--green)" : p > 50 ? "var(--yellow)" : "var(--red)";
 
-      // Mini badge stato
+      // Highlight badge se filtro stato attivo
+      const hl = (col) => ss ? `box-shadow:0 0 0 2px ${col};` : "";
+
       const statoBadges = [];
-      if (a.completati > 0) statoBadges.push(`<span style="font-size:10px;color:var(--green);background:var(--green)12;border:1px solid var(--green)33;border-radius:10px;padding:1px 6px" title="${a.completati} completati">✅ ${a.completati}</span>`);
-      if (iC > 0)           statoBadges.push(`<span style="font-size:10px;color:var(--yellow);background:var(--yellow)12;border:1px solid var(--yellow)33;border-radius:10px;padding:1px 6px" title="${iC} in corso">🔄 ${iC}</span>`);
-      if (a.da_fare > 0)    statoBadges.push(`<span style="font-size:10px;color:var(--red);background:var(--red)12;border:1px solid var(--red)33;border-radius:10px;padding:1px 6px" title="${a.da_fare} da fare">⭕ ${a.da_fare}</span>`);
-      if (na > 0)           statoBadges.push(`<span style="font-size:10px;color:var(--text3);background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:1px 6px" title="${na} N/A">➖ ${na}</span>`);
+      if (a.completati > 0) statoBadges.push(`<span class="ds-badge" style="color:var(--green);background:var(--green)12;border-color:var(--green)33;${ss==="completato"?hl("var(--green)"):""}" title="${a.completati} completati">✅ ${a.completati}</span>`);
+      if (iC > 0)           statoBadges.push(`<span class="ds-badge" style="color:var(--yellow);background:var(--yellow)12;border-color:var(--yellow)33;${ss==="in_corso"?hl("var(--yellow)"):""}" title="${iC} in corso">🔄 ${iC}</span>`);
+      if (a.da_fare > 0)    statoBadges.push(`<span class="ds-badge" style="color:var(--red);background:var(--red)12;border-color:var(--red)33;${ss==="da_fare"?hl("var(--red)"):""}" title="${a.da_fare} da fare">⭕ ${a.da_fare}</span>`);
+      if (na > 0)           statoBadges.push(`<span class="ds-badge" style="color:var(--text3);background:var(--surface3);border-color:var(--border);${ss==="n_a"?hl("var(--text3)"):""}" title="${na} N/A">➖ ${na}</span>`);
 
       html += `<div class="dash-adp-card" onclick="goVistaGlobaleAdp('${escAttr(a.nome)}')" title="Clicca per Vista Globale — ${escAttr(a.nome)}">
         <div class="dash-adp-card-top">
