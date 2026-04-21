@@ -9,6 +9,15 @@ function getAdempimentiMancanti() {
   return compatibili.filter(a => !state.adpInseriti.includes(a.id));
 }
 
+// ─── VERIFICA SE CI SONO DATI DA GENERARE ──────────────────────
+function hasDatiDaGenerare() {
+  if (!state.selectedCliente) return false;
+  // Se non ci sono adempimenti nello scadenzario per quest'anno, ci sono dati da generare
+  if (!state.scadenzario || state.scadenzario.length === 0) return true;
+  // Oppure se ci sono adempimenti mancanti
+  return getAdempimentiMancanti().length > 0;
+}
+
 function renderBtnAddAdp(id_cliente) {
   const mancanti = getAdempimentiMancanti();
   if (!mancanti.length)
@@ -129,20 +138,20 @@ function renderScadenzarioPage() {
       <option value="">📋 Tutti adempimenti</option>
     </select>
     <select class="select topbar-select" id="scad-filtro-stato" onchange="applyScadFiltri()" title="Filtra per stato">
-      <option value="">🔵 Tutti gli stati</option>
+      <option value="">📋 Tutti gli stati</option>
       <option value="da_fare">⭕ Da fare</option>
       <option value="in_corso">🔄 In corso</option>
       <option value="completato">✅ Completato</option>
       <option value="n_a">➖ N/A</option>
     </select>
     <select class="select topbar-select" id="scad-filtro-cat" onchange="applyScadFiltri()" title="Filtra per categoria">
-      <option value="">🗂 Tutte categorie</option>
+      <option value="">📋 Tutte le categorie</option>
       ${CATEGORIE.map(c => `<option value="${c.codice}">${c.icona} ${c.codice}</option>`).join("")}
     </select>
-    <button class="btn btn-sm btn-primary" onclick="resetScadFiltri()" title="Azzera tutti i filtri">⟳ Tutti</button>
+    <button class="btn btn-sm btn-primary" onclick="resetScadFiltri()" title="Azzera tutti i filtri e mostra tutti gli adempimenti">⟳ Tutti</button>
     <div class="search-wrap" style="width:180px">
       <span class="search-icon">🔍</span>
-      <input class="input" id="scad-search" placeholder="Cerca..." oninput="applyScadSearch()" title="Cerca adempimento">
+      <input class="input" id="scad-search" placeholder="Cerca adempimento..." oninput="applyScadSearch()" title="Cerca per nome o codice adempimento">
     </div>`;
 
   if (state.selectedCliente) loadScadenzario();
@@ -190,8 +199,16 @@ function applyScadFiltri() {
 }
 
 function resetScadFiltri() {
-  ["scad-filtro-stato","scad-filtro-cat","scad-search","scad-filtro-adp"]
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  const statoSelect = document.getElementById("scad-filtro-stato");
+  const catSelect = document.getElementById("scad-filtro-cat");
+  const adpSelect = document.getElementById("scad-filtro-adp");
+  const searchInput = document.getElementById("scad-search");
+  
+  if (statoSelect) statoSelect.value = "";
+  if (catSelect) catSelect.value = "";
+  if (adpSelect) adpSelect.value = "";
+  if (searchInput) searchInput.value = "";
+  
   if (state.selectedCliente) loadScadenzario();
 }
 
@@ -228,6 +245,31 @@ function renderScadenzarioTabella(data) {
   const col3Map = { ordinario: "Ord.", semplificato: "Sempl.", forfettario: "Forf.", ordinaria: "Ord.", semplificata: "Sempl." };
   const pgColor = perc === 100 ? "var(--green)" : perc > 50 ? "var(--yellow)" : "var(--red)";
 
+  // Determina lo stile del bottone Genera in base ai dati esistenti
+  const hasDati = data && data.length > 0;
+  const mancanti = getAdempimentiMancanti();
+  const hasDatiDaGenerare = mancanti.length > 0;
+  
+  let generaBtnClass = "btn btn-sm btn-orange";
+  let generaBtnTitle = "Genera adempimenti mancanti per l'anno selezionato";
+  let generaBtnIcon = "⚡";
+  
+  if (!hasDati) {
+    // Nessun dato: bottone normale (arancione)
+    generaBtnClass = "btn btn-sm btn-orange";
+    generaBtnTitle = "Nessun adempimento presente. Genera lo scadenzario per l'anno selezionato";
+  } else if (hasDati && !hasDatiDaGenerare) {
+    // Dati presenti e nessun adempimento mancante: bottone disabilitato (grigio/verde)
+    generaBtnClass = "btn btn-sm btn-success";
+    generaBtnTitle = "✅ Tutti gli adempimenti sono già stati generati per quest'anno";
+    generaBtnIcon = "✓";
+  } else if (hasDati && hasDatiDaGenerare) {
+    // Dati presenti ma ci sono adempimenti mancanti: bottone normale (arancione)
+    generaBtnClass = "btn btn-sm btn-orange";
+    generaBtnTitle = `Genera ${mancanti.length} adempimento/i mancante/i per l'anno selezionato`;
+    generaBtnIcon = "⚡";
+  }
+
   const clienteCard = `<div class="cliente-preview-card" style="border-left-color:${tipColor}">
     <div class="cpc-inner">
       <div class="cpc-avatar" style="border-color:${tipColor};color:${tipColor};background:${tipColor}22">${avatar}</div>
@@ -261,7 +303,7 @@ function renderScadenzarioTabella(data) {
       </div>
     </div>
     <div class="cpc-actions no-print">
-      <button class="btn btn-sm btn-orange" onclick="generaScadenzario()">⚡ Genera</button>
+      <button class="${generaBtnClass}" onclick="generaScadenzario()" title="${generaBtnTitle}" ${!hasDatiDaGenerare && hasDati ? 'disabled' : ''}>${generaBtnIcon} Genera</button>
       <button class="btn btn-sm btn-cyan"   onclick="openCopia()">📋 Copia</button>
       ${renderBtnAddAdp(c.id)}
       <button class="btn btn-print btn-sm" style="margin-left:auto" onclick="window.print()">🖨️ Stampa</button>
@@ -332,6 +374,11 @@ function renderScadenzarioTabella(data) {
 // ─── AZIONI ───────────────────────────────────────────────────
 function generaScadenzario() {
   if (!state.selectedCliente) return;
+  // Se ci sono già tutti gli adempimenti, non fare nulla
+  if (state.scadenzario && state.scadenzario.length > 0 && getAdempimentiMancanti().length === 0) {
+    showNotif("✅ Tutti gli adempimenti sono già stati generati per quest'anno", "info");
+    return;
+  }
   socket.emit("genera:scadenzario", { id_cliente: state.selectedCliente.id, anno: state.anno });
 }
 
@@ -386,6 +433,7 @@ function openAddAdp(id_cliente) {
 function refreshAddAdpSelect() {
   const mancanti = getAdempimentiMancanti();
   const sel = document.getElementById("add-adp-select");
+  if (!sel) return;
   sel.innerHTML = mancanti
     .map(a => `<option value="${a.id}" data-scadenza="${a.scadenza_tipo}">${a.codice} — ${a.nome}</option>`)
     .join("");

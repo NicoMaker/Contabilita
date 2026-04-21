@@ -27,6 +27,12 @@ function renderClientiTabella(clienti) {
   const col2Map = { privato: "Privato", ditta: "Ditta Ind.", socio: "Socio", professionista: "Prof." };
   const col3Map = { ordinario: "Ord.", semplificato: "Sempl.", forfettario: "Forf.", ordinaria: "Ord.", semplificata: "Sempl." };
 
+  // Legge i valori correnti dei filtri per ripristinarli dopo il render
+  const curTipo        = document.getElementById("filter-tipo")?.value || "";
+  const curCol2        = document.getElementById("filter-col2")?.value || "";
+  const curCol3        = document.getElementById("filter-col3")?.value || "";
+  const curPeriodicita = document.getElementById("filter-periodicita")?.value || "";
+
   const tbody = clienti.length
     ? clienti.map(c => {
         const tipColor = getTipologiaColor(c.tipologia_codice);
@@ -66,38 +72,49 @@ function renderClientiTabella(clienti) {
   document.getElementById("content").innerHTML = `
     <div class="filtri-avanzati no-print" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:var(--r-sm);">
       <span style="font-size:11px;color:var(--text3);font-weight:700;">🔍 Filtri:</span>
-      <select id="filter-col2" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per sottocategoria">
-        <option value="">— Sottocategoria —</option>
-        <option value="privato">Privato</option>
-        <option value="ditta">Ditta Individuale</option>
-        <option value="socio">Socio</option>
-        <option value="professionista">Professionista</option>
+      <select id="filter-tipo" class="select" style="width:160px" onchange="applyClientiFiltri()" title="Filtra per tipologia cliente">
+        <option value="" ${!curTipo ? "selected" : ""}>📋 Tutti i tipi</option>
+        <option value="PF"  ${curTipo === "PF"  ? "selected" : ""}>👤 PF – Persona Fisica</option>
+        <option value="SP"  ${curTipo === "SP"  ? "selected" : ""}>🤝 SP – Soc. Persone</option>
+        <option value="SC"  ${curTipo === "SC"  ? "selected" : ""}>🏢 SC – Soc. Capitali</option>
+        <option value="ASS" ${curTipo === "ASS" ? "selected" : ""}>🏛️ ASS – Associazione</option>
       </select>
-      <select id="filter-col3" class="select" style="width:150px" onchange="applyClientiFiltri()" title="Filtra per regime fiscale">
-        <option value="">— Regime —</option>
-        <option value="ordinario">Ordinario</option>
-        <option value="semplificato">Semplificato</option>
-        <option value="forfettario">Forfettario</option>
-        <option value="ordinaria">Ordinaria</option>
-        <option value="semplificata">Semplificata</option>
+      <select id="filter-col2" class="select" style="width:190px" onchange="applyClientiFiltri()" title="Filtra per sottocategoria">
+        <option value="" ${!curCol2 ? "selected" : ""}>📋 Tutte le sottocategorie</option>
+        <option value="privato"        ${curCol2 === "privato"        ? "selected" : ""}>👤 Privato</option>
+        <option value="ditta"          ${curCol2 === "ditta"          ? "selected" : ""}>🏢 Ditta Individuale</option>
+        <option value="socio"          ${curCol2 === "socio"          ? "selected" : ""}>🤝 Socio</option>
+        <option value="professionista" ${curCol2 === "professionista" ? "selected" : ""}>⚕️ Professionista</option>
       </select>
-      <select id="filter-periodicita" class="select" style="width:150px" onchange="applyClientiFiltri()" title="Filtra per periodicità contabile">
-        <option value="">— Periodicità —</option>
-        <option value="mensile">📅 Mensile</option>
-        <option value="trimestrale">📆 Trimestrale</option>
+      <select id="filter-col3" class="select" style="width:180px" onchange="applyClientiFiltri()" title="Filtra per regime fiscale">
+        <option value="" ${!curCol3 ? "selected" : ""}>📋 Tutti i regimi</option>
+        <option value="ordinario"    ${curCol3 === "ordinario"    ? "selected" : ""}>📊 Ordinario</option>
+        <option value="semplificato" ${curCol3 === "semplificato" ? "selected" : ""}>📄 Semplificato</option>
+        <option value="forfettario"  ${curCol3 === "forfettario"  ? "selected" : ""}>💰 Forfettario</option>
+        <option value="ordinaria"    ${curCol3 === "ordinaria"    ? "selected" : ""}>📊 Ordinaria</option>
+        <option value="semplificata" ${curCol3 === "semplificata" ? "selected" : ""}>📄 Semplificata</option>
+      </select>
+      <select id="filter-periodicita" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per periodicità contabile">
+        <option value="" ${!curPeriodicita ? "selected" : ""}>📋 Tutte le periodicità</option>
+        <option value="mensile"     ${curPeriodicita === "mensile"     ? "selected" : ""}>📅 Mensile</option>
+        <option value="trimestrale" ${curPeriodicita === "trimestrale" ? "selected" : ""}>📆 Trimestrale</option>
       </select>
       <button class="btn btn-sm btn-primary" onclick="resetClientiFiltri()" style="margin-left:auto" title="Azzera tutti i filtri e mostra tutti i clienti">⟳ Tutti</button>
     </div>
     <div class="table-wrap">
       <div class="table-header no-print"><h3>Clienti (${clienti.length})</h3></div>
-      <table><thead><tr>
-        <th>Cliente</th>
-        <th>Classificazione</th>
-        <th>Email</th>
-        <th title="Categorie adempimenti attive per questo cliente — passa il mouse sulle icone per i dettagli">Categorie</th>
-        <th class="no-print">Azioni</th>
-      </tr></thead>
-      <tbody>${tbody}</tbody></table>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Classificazione</th>
+            <th>Email</th>
+            <th title="Categorie adempimenti attive per questo cliente — passa il mouse sulle icone per i dettagli">Categorie</th>
+            <th class="no-print">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>${tbody}</tbody>
+      </table>
     </div>`;
 }
 

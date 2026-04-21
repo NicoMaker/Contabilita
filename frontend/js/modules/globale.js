@@ -41,16 +41,6 @@ function renderGlobalePage() {
       <option value="mensile">📅 Mensile</option>
       <option value="trimestrale">📆 Trimestrale</option>
     </select>
-    <select class="select" id="glob-filtro-cliente-stato" style="width:210px;font-size:13px" onchange="applyGlobaleFiltriLocali()" title="Filtra clienti per situazione complessiva">
-      <option value="">👤 Tutti i clienti</option>
-      <option value="con_in_corso">🔄 Con almeno 1 in corso</option>
-      <option value="senza_in_corso">✅ Senza in corso</option>
-      <option value="tutti_completati">🏆 Tutto completato</option>
-      <option value="con_da_fare">⭕ Con almeno 1 da fare</option>
-      <option value="solo_da_fare">🚨 Solo da fare (nessun avanzamento)</option>
-      <option value="non_completati">⚠️ Non ancora completati al 100%</option>
-      <option value="con_na">➖ Con almeno 1 N/A</option>
-    </select>
     <div class="search-wrap" style="width:200px">
       <span class="search-icon">🔍</span>
       <input class="input" id="glob-search" placeholder="Cerca cliente..." oninput="applyGlobaleFiltriDebounced()" title="Cerca per nome cliente, CF o P.IVA" style="font-size:13px">

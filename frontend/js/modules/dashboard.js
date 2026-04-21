@@ -18,16 +18,6 @@ function buildDashboardShell(stats) {
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1">
           <div id="dash-cat-tabs" style="display:flex;gap:5px;flex-wrap:wrap"></div>
           <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <select class="select" id="dash-filtro-cliente-stato" style="width:210px;font-size:12px" onchange="onDashFiltroClienteStato()" title="Filtra adempimenti per situazione cliente">
-              <option value="">👤 Tutti i clienti</option>
-              <option value="con_in_corso">🔄 Con almeno 1 in corso</option>
-              <option value="senza_in_corso">✅ Senza in corso</option>
-              <option value="tutti_completati">🏆 Tutto completato</option>
-              <option value="con_da_fare">⭕ Con almeno 1 da fare</option>
-              <option value="solo_da_fare">🚨 Solo da fare</option>
-              <option value="non_completati">⚠️ Non al 100%</option>
-              <option value="con_na">➖ Con almeno 1 N/A</option>
-            </select>
             <div class="search-wrap" style="width:230px">
               <span class="search-icon">🔍</span>
               <input class="input" id="dash-adp-search" placeholder="Cerca nome, codice..." value="" oninput="onDashAdpSearch(this.value)">
