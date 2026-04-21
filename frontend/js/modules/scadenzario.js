@@ -5,8 +5,10 @@
 function getAdempimentiMancanti() {
   if (!state.selectedCliente) return [];
   const cat = JSON.parse(state.selectedCliente.categorie_attive || "[]");
-  const compatibili = state.adempimenti.filter(a => a.categoria === "TUTTI" || cat.includes(a.categoria));
-  return compatibili.filter(a => !state.adpInseriti.includes(a.id));
+  const compatibili = state.adempimenti.filter(
+    (a) => a.categoria === "TUTTI" || cat.includes(a.categoria),
+  );
+  return compatibili.filter((a) => !state.adpInseriti.includes(a.id));
 }
 
 function hasDatiDaGenerare() {
@@ -22,40 +24,39 @@ function renderBtnAddAdp(id_cliente) {
   return `<button class="btn btn-sm btn-purple" onclick="openAddAdp(${id_cliente})" title="Aggiungi un adempimento mancante (${mancanti.length} disponibili)">+ Adempimento <span class="badge-count">${mancanti.length}</span></button>`;
 }
 
-// ─── SEZIONE RIEPILOGO ADEMPIMENTI DEL CLIENTE (RIMOSSA) ────────────────
-// La funzione renderAdpRiepilogoCliente è stata rimossa perché non più utilizzata
-
 // FIX: Funzione per filtrare lo scadenzario cliccando dal riepilogo
 function filtraScadPerAdp(idAdp) {
   const sel = document.getElementById("scad-filtro-adp");
   if (!sel) return;
   sel.value = idAdp ? String(idAdp) : "";
-  // Aggiorna il trigger della searchable select se presente
   if (sel._ssRefresh) sel._ssRefresh();
-  // Applica il filtro lato client (senza reload da server)
   applyScadFiltriAdp();
-  // Scorri fino alla sezione scadenzario
   const scadContent = document.getElementById("scad-content");
-  if (scadContent) scadContent.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scadContent)
+    scadContent.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ─── AGGIORNA SELECT ADEMPIMENTO FILTRO (lato client, searchable) ─
+// ─── AGGIORNA SELECT ADEMPIMENTO FILTRO ──────────────────────────
 function aggiornaFiltroAdpScad(data) {
   const sel = document.getElementById("scad-filtro-adp");
   if (!sel) return;
   const currentValue = sel.value;
 
   const adpSet = {};
-  data.forEach(r => { adpSet[r.id_adempimento] = r.adempimento_nome; });
+  data.forEach((r) => {
+    adpSet[r.id_adempimento] = r.adempimento_nome;
+  });
 
-  // Ricostruisce le opzioni native (il searchable le leggerà)
-  sel.innerHTML = `<option value="">📋 Tutti adempimenti</option>` +
+  sel.innerHTML =
+    `<option value="">📋 Tutti adempimenti</option>` +
     Object.entries(adpSet)
       .sort((a, b) => a[1].localeCompare(b[1]))
-      .map(([id, nome]) => `<option value="${id}" ${currentValue == id ? "selected" : ""}>${nome}</option>`)
+      .map(
+        ([id, nome]) =>
+          `<option value="${id}" ${currentValue == id ? "selected" : ""}>${nome}</option>`,
+      )
       .join("");
 
-  // Inizializza searchable se non ancora fatto; altrimenti aggiorna il trigger
   if (!sel.dataset.ssinit) {
     initSearchableSelect("scad-filtro-adp");
   } else if (sel._ssRefresh) {
@@ -66,7 +67,10 @@ function aggiornaFiltroAdpScad(data) {
 // ─── RENDER PAGE ──────────────────────────────────────────────
 function renderScadenzarioPage() {
   const opts = state.clienti
-    .map(c => `<option value="${c.id}" ${state.selectedCliente?.id===c.id?"selected":""}>[${c.tipologia_codice}] ${c.nome}</option>`)
+    .map(
+      (c) =>
+        `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice}] ${c.nome}</option>`,
+    )
     .join("");
 
   document.getElementById("topbar-actions").innerHTML = `
@@ -90,7 +94,7 @@ function renderScadenzarioPage() {
     </select>
     <select class="select topbar-select" id="scad-filtro-cat" onchange="applyScadFiltri()" title="Filtra per categoria">
       <option value="">📋 Tutte le categorie</option>
-      ${CATEGORIE.map(c => `<option value="${c.codice}">${c.icona} ${c.codice}</option>`).join("")}
+      ${CATEGORIE.map((c) => `<option value="${c.codice}">${c.icona} ${c.codice}</option>`).join("")}
     </select>
     <button class="btn btn-sm btn-primary" onclick="resetScadFiltri()" title="Azzera tutti i filtri">⟳ Tutti</button>
     <div class="search-wrap" style="width:180px">
@@ -98,19 +102,18 @@ function renderScadenzarioPage() {
       <input class="input" id="scad-search" placeholder="Cerca adempimento..." oninput="applyScadSearch()" title="Cerca per nome o codice adempimento">
     </div>`;
 
-  // Inizializza la select cliente con ricerca
   initSearchableSelect("sel-cliente");
-  // La select adempimento verrà inizializzata in aggiornaFiltroAdpScad
 
   if (state.selectedCliente) loadScadenzario();
-  else document.getElementById("content").innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Seleziona un cliente dalla lista in alto</p></div>`;
+  else
+    document.getElementById("content").innerHTML =
+      `<div class="empty"><div class="empty-icon">📅</div><p>Seleziona un cliente dalla lista in alto</p></div>`;
 }
 
 function onClienteChange() {
   const id = parseInt(document.getElementById("sel-cliente").value);
-  state.selectedCliente = state.clienti.find(c => c.id === id) || null;
+  state.selectedCliente = state.clienti.find((c) => c.id === id) || null;
   state.adpInseriti = [];
-  // Reset select adempimento
   const adpSel = document.getElementById("scad-filtro-adp");
   if (adpSel) {
     adpSel.innerHTML = `<option value="">📋 Tutti adempimenti</option>`;
@@ -121,13 +124,15 @@ function onClienteChange() {
 
 function changeAnnoScad(d) {
   state.anno += d;
-  document.querySelectorAll(".year-num").forEach(el => el.textContent = state.anno);
+  document
+    .querySelectorAll(".year-num")
+    .forEach((el) => (el.textContent = state.anno));
   if (state.selectedCliente) loadScadenzario();
 }
 
 function loadScadenzario() {
-  const sv  = document.getElementById("scad-search")?.value || "";
-  const st  = document.getElementById("scad-filtro-stato")?.value || "";
+  const sv = document.getElementById("scad-search")?.value || "";
+  const st = document.getElementById("scad-filtro-stato")?.value || "";
   const cat = document.getElementById("scad-filtro-cat")?.value || "";
   socket.emit("get:scadenzario", {
     id_cliente: state.selectedCliente.id,
@@ -151,12 +156,12 @@ function applyScadFiltri() {
 
 function resetScadFiltri() {
   const statoSelect = document.getElementById("scad-filtro-stato");
-  const catSelect   = document.getElementById("scad-filtro-cat");
-  const adpSelect   = document.getElementById("scad-filtro-adp");
+  const catSelect = document.getElementById("scad-filtro-cat");
+  const adpSelect = document.getElementById("scad-filtro-adp");
   const searchInput = document.getElementById("scad-search");
 
   if (statoSelect) statoSelect.value = "";
-  if (catSelect)   catSelect.value   = "";
+  if (catSelect) catSelect.value = "";
   if (adpSelect) {
     adpSelect.value = "";
     if (adpSelect._ssRefresh) adpSelect._ssRefresh();
@@ -175,27 +180,49 @@ function renderScadenzarioTabella(data) {
 
   const adpFiltroId = document.getElementById("scad-filtro-adp")?.value || "";
   const dataFiltrata = adpFiltroId
-    ? data.filter(r => String(r.id_adempimento) === String(adpFiltroId))
+    ? data.filter((r) => String(r.id_adempimento) === String(adpFiltroId))
     : data;
 
   const totale = dataFiltrata.length;
-  const comp   = dataFiltrata.filter(r => r.stato === "completato").length;
-  const daF    = dataFiltrata.filter(r => r.stato === "da_fare").length;
-  const inC    = dataFiltrata.filter(r => r.stato === "in_corso").length;
-  const perc   = totale > 0 ? Math.round((comp / totale) * 100) : 0;
+  const comp = dataFiltrata.filter((r) => r.stato === "completato").length;
+  const daF = dataFiltrata.filter((r) => r.stato === "da_fare").length;
+  const inC = dataFiltrata.filter((r) => r.stato === "in_corso").length;
+  const perc = totale > 0 ? Math.round((comp / totale) * 100) : 0;
   const avatar = getAvatar(c.nome);
   const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
   const sottotipoLabel = getLabelSottotipologia(c);
 
-  const categorie = (() => { try { return JSON.parse(c.categorie_attive || "[]"); } catch (e) { return []; } })();
-  const catBadges = categorie.map(cat => {
-    const found = CATEGORIE.find(x => x.codice === cat);
-    return found ? `<span class="cat-mini-badge" style="color:${found.color};border-color:${found.color}22;background:${found.color}11" title="${found.nome}">${found.icona} ${found.codice}</span>` : "";
-  }).join("");
+  const categorie = (() => {
+    try {
+      return JSON.parse(c.categorie_attive || "[]");
+    } catch (e) {
+      return [];
+    }
+  })();
+  const catBadges = categorie
+    .map((cat) => {
+      const found = CATEGORIE.find((x) => x.codice === cat);
+      return found
+        ? `<span class="cat-mini-badge" style="color:${found.color};border-color:${found.color}22;background:${found.color}11" title="${found.nome}">${found.icona} ${found.codice}</span>`
+        : "";
+    })
+    .join("");
 
-  const col2Map = { privato: "Privato", ditta: "Ditta Ind.", socio: "Socio", professionista: "Prof." };
-  const col3Map = { ordinario: "Ord.", semplificato: "Sempl.", forfettario: "Forf.", ordinaria: "Ord.", semplificata: "Sempl." };
-  const pgColor = perc === 100 ? "var(--green)" : perc > 50 ? "var(--yellow)" : "var(--red)";
+  const col2Map = {
+    privato: "Privato",
+    ditta: "Ditta Ind.",
+    socio: "Socio",
+    professionista: "Prof.",
+  };
+  const col3Map = {
+    ordinario: "Ord.",
+    semplificato: "Sempl.",
+    forfettario: "Forf.",
+    ordinaria: "Ord.",
+    semplificata: "Sempl.",
+  };
+  const pgColor =
+    perc === 100 ? "var(--green)" : perc > 50 ? "var(--yellow)" : "var(--red)";
 
   const hasDati = data && data.length > 0;
   const mancanti = getAdempimentiMancanti();
@@ -203,21 +230,23 @@ function renderScadenzarioTabella(data) {
 
   let generaBtnClass = "btn btn-sm btn-orange";
   let generaBtnTitle = "Genera adempimenti mancanti per l'anno selezionato";
-  let generaBtnIcon  = "⚡";
+  let generaBtnIcon = "⚡";
 
   if (!hasDati) {
-    generaBtnTitle = "Nessun adempimento presente. Genera lo scadenzario per l'anno selezionato";
+    generaBtnTitle =
+      "Nessun adempimento presente. Genera lo scadenzario per l'anno selezionato";
   } else if (hasDati && !hasDatiDaGenerare) {
     generaBtnClass = "btn btn-sm btn-success";
-    generaBtnTitle = "✅ Tutti gli adempimenti sono già stati generati per quest'anno";
-    generaBtnIcon  = "✓";
+    generaBtnTitle =
+      "✅ Tutti gli adempimenti sono già stati generati per quest'anno";
+    generaBtnIcon = "✓";
   } else {
     generaBtnTitle = `Genera ${mancanti.length} adempimento/i mancante/i per l'anno selezionato`;
   }
 
-  // Indicatore filtro attivo per adempimento
   const adpFiltroAttivo = adpFiltroId
-    ? data.find(r => String(r.id_adempimento) === String(adpFiltroId))?.adempimento_nome || ""
+    ? data.find((r) => String(r.id_adempimento) === String(adpFiltroId))
+        ?.adempimento_nome || ""
     : "";
   const filtroBadge = adpFiltroAttivo
     ? `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--accent)18;border:1px solid var(--accent)44;border-radius:20px;font-size:12px;color:var(--accent)">
@@ -233,18 +262,18 @@ function renderScadenzarioTabella(data) {
         <div class="cpc-nome">${escAttr(c.nome)}</div>
         ${filtroBadge ? `<div style="margin-top:6px">${filtroBadge}</div>` : ""}
         <div class="cpc-badges">
-          <span class="badge b-${(c.tipologia_codice||"").toLowerCase()}" title="${TIPOLOGIE_INFO[c.tipologia_codice]?.desc||''}">${c.tipologia_codice||"-"}</span>
+          <span class="badge b-${(c.tipologia_codice || "").toLowerCase()}" title="${TIPOLOGIE_INFO[c.tipologia_codice]?.desc || ""}">${c.tipologia_codice || "-"}</span>
           ${sottotipoLabel ? `<span class="badge b-categoria">${sottotipoLabel}</span>` : ""}
-          ${c.col2_value ? `<span class="badge-info">${col2Map[c.col2_value]||c.col2_value}</span>` : ""}
-          ${c.col3_value ? `<span class="badge-info">${col3Map[c.col3_value]||c.col3_value}</span>` : ""}
-          ${c.periodicita ? `<span class="badge-per">${c.periodicita==="mensile"?"📅 Mensile":"📆 Trimestrale"}</span>` : ""}
+          ${c.col2_value ? `<span class="badge-info">${col2Map[c.col2_value] || c.col2_value}</span>` : ""}
+          ${c.col3_value ? `<span class="badge-info">${col3Map[c.col3_value] || c.col3_value}</span>` : ""}
+          ${c.periodicita ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : "📆 Trimestrale"}</span>` : ""}
         </div>
         <div class="cpc-cats">${catBadges}</div>
         <div class="cpc-meta-row">
           ${c.codice_fiscale ? `<span class="cpc-meta-chip">CF: <strong>${c.codice_fiscale}</strong></span>` : ""}
-          ${c.partita_iva    ? `<span class="cpc-meta-chip">P.IVA: <strong>${c.partita_iva}</strong></span>` : ""}
-          ${c.email          ? `<span class="cpc-meta-chip">📧 ${c.email}</span>` : ""}
-          ${c.telefono       ? `<span class="cpc-meta-chip">📞 ${c.telefono}</span>` : ""}
+          ${c.partita_iva ? `<span class="cpc-meta-chip">P.IVA: <strong>${c.partita_iva}</strong></span>` : ""}
+          ${c.email ? `<span class="cpc-meta-chip">📧 ${c.email}</span>` : ""}
+          ${c.telefono ? `<span class="cpc-meta-chip">📞 ${c.telefono}</span>` : ""}
         </div>
       </div>
       <div class="cpc-stats">
@@ -260,7 +289,7 @@ function renderScadenzarioTabella(data) {
       </div>
     </div>
     <div class="cpc-actions no-print">
-      <button class="${generaBtnClass}" onclick="generaScadenzario()" title="${generaBtnTitle}" ${!hasDatiDaGenerare && hasDati ? 'disabled' : ''}>${generaBtnIcon} Genera</button>
+      <button class="${generaBtnClass}" onclick="generaScadenzario()" title="${generaBtnTitle}" ${!hasDatiDaGenerare && hasDati ? "disabled" : ""}>${generaBtnIcon} Genera</button>
       <button class="btn btn-sm btn-cyan" onclick="openCopia()">📋 Copia</button>
       ${renderBtnAddAdp(c.id)}
       <button class="btn btn-print btn-sm" style="margin-left:auto" onclick="window.print()">🖨️ Stampa</button>
@@ -268,32 +297,39 @@ function renderScadenzarioTabella(data) {
     ${renderClienteDatiRiferimento(c)}
   </div>`;
 
-  // RIEPILOGO RIMOSSO - non viene più incluso
-  // const riepilogoHtml = renderAdpRiepilogoCliente(data);
-
+  // Raggruppa per categoria
   const grouped = {};
-  dataFiltrata.forEach(r => {
+  dataFiltrata.forEach((r) => {
     storeRow(r);
     const cat = r.categoria || "ALTRI";
     if (!grouped[cat]) grouped[cat] = {};
     const key = r.id_adempimento;
     if (!grouped[cat][key])
-      grouped[cat][key] = { nome: r.adempimento_nome, codice: r.adempimento_codice, categoria: r.categoria, scadenza_tipo: r.scadenza_tipo, rows: [] };
+      grouped[cat][key] = {
+        nome: r.adempimento_nome,
+        codice: r.adempimento_codice,
+        categoria: r.categoria,
+        scadenza_tipo: r.scadenza_tipo,
+        rows: [],
+      };
     grouped[cat][key].rows.push(r);
   });
 
   let content = "";
   Object.entries(grouped).forEach(([catCode, adpMap]) => {
-    const catInfo  = CATEGORIE.find(x => x.codice === catCode);
+    const catInfo = CATEGORIE.find((x) => x.codice === catCode);
     const catColor = catInfo?.color || "var(--accent)";
+    const adpCount = Object.keys(adpMap).length; // ← NUMERO ADEMPIMENTI PER CATEGORIA
+
     let adpHtml = "";
-    Object.values(adpMap).forEach(g => {
-      const compG    = g.rows.filter(r => r.stato === "completato").length;
-      const totG     = g.rows.length;
-      const pG       = totG > 0 ? Math.round((compG / totG) * 100) : 0;
-      const pgColorG = pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
-      const periodiHtml = g.rows.map(r => renderPeriodoPill(r)).join("");
-      const isMensile   = g.rows.length > 4;
+    Object.values(adpMap).forEach((g) => {
+      const compG = g.rows.filter((r) => r.stato === "completato").length;
+      const totG = g.rows.length;
+      const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
+      const pgColorG =
+        pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
+      const periodiHtml = g.rows.map((r) => renderPeriodoPill(r)).join("");
+      const isMensile = g.rows.length > 4;
       adpHtml += `<div class="adp-card">
         <div class="adp-card-header">
           <span class="adp-codice">${g.codice}</span>
@@ -307,11 +343,15 @@ function renderScadenzarioTabella(data) {
         <div class="adp-card-periodi${isMensile ? " periodi-mensili" : ""}">${periodiHtml}</div>
       </div>`;
     });
+
+    // HEADER CON NUMERO ACCANTO AL NOME DELLA CATEGORIA
     content += `<div class="cat-section">
       <div class="cat-section-header" style="border-left:3px solid ${catColor}">
-        <span class="cat-section-icon" style="color:${catColor}">${catInfo?.icona || "📋"}</span>
-        <span class="cat-section-nome" style="color:${catColor}">${catCode}</span>
-        <span class="cat-section-count">${Object.keys(adpMap).length} adempimenti</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="cat-section-icon" style="color:${catColor}">${catInfo?.icona || "📋"}</span>
+          <span class="cat-section-nome" style="color:${catColor}">${catCode}</span>
+          <span class="cat-count-badge" style="background:${catColor}20;color:${catColor};border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:4px">${adpCount}</span>
+        </div>
       </div>
       <div class="cat-section-body">${adpHtml}</div>
     </div>`;
@@ -324,46 +364,62 @@ function renderScadenzarioTabella(data) {
       <button class="btn btn-primary" onclick="generaScadenzario()" style="margin-top:16px">⚡ Genera Scadenzario</button>
     </div>`;
 
-  // Il riepilogo non viene più incluso
-  document.getElementById("content").innerHTML = `${clienteCard}<div id="scad-content">${content}</div>`;
+  document.getElementById("content").innerHTML =
+    `${clienteCard}<div id="scad-content">${content}</div>`;
 }
 
 // ─── AZIONI ───────────────────────────────────────────────────
 function generaScadenzario() {
   if (!state.selectedCliente) return;
-  if (state.scadenzario && state.scadenzario.length > 0 && getAdempimentiMancanti().length === 0) {
-    showNotif("✅ Tutti gli adempimenti sono già stati generati per quest'anno", "info");
+  if (
+    state.scadenzario &&
+    state.scadenzario.length > 0 &&
+    getAdempimentiMancanti().length === 0
+  ) {
+    showNotif(
+      "✅ Tutti gli adempimenti sono già stati generati per quest'anno",
+      "info",
+    );
     return;
   }
-  socket.emit("genera:scadenzario", { id_cliente: state.selectedCliente.id, anno: state.anno });
+  socket.emit("genera:scadenzario", {
+    id_cliente: state.selectedCliente.id,
+    anno: state.anno,
+  });
 }
 
 function openCopia() {
   if (!state.selectedCliente) return;
   document.getElementById("copia-cliente-id").value = state.selectedCliente.id;
-  document.getElementById("copia-modalita").value   = "singolo";
-  document.getElementById("copia-da").value         = state.anno - 1;
-  document.getElementById("copia-a").value          = state.anno;
-  document.getElementById("copia-info").innerHTML   = `Copia adempimenti per <strong>${state.selectedCliente.nome}</strong>`;
+  document.getElementById("copia-modalita").value = "singolo";
+  document.getElementById("copia-da").value = state.anno - 1;
+  document.getElementById("copia-a").value = state.anno;
+  document.getElementById("copia-info").innerHTML =
+    `Copia adempimenti per <strong>${state.selectedCliente.nome}</strong>`;
   openModal("modal-copia");
 }
 
 function openCopiaTutti() {
   document.getElementById("copia-cliente-id").value = "";
-  document.getElementById("copia-modalita").value   = "tutti";
-  document.getElementById("copia-da").value         = state.anno - 1;
-  document.getElementById("copia-a").value          = state.anno;
-  document.getElementById("copia-info").innerHTML   = `Copia adempimenti per <strong>tutti i clienti</strong>`;
+  document.getElementById("copia-modalita").value = "tutti";
+  document.getElementById("copia-da").value = state.anno - 1;
+  document.getElementById("copia-a").value = state.anno;
+  document.getElementById("copia-info").innerHTML =
+    `Copia adempimenti per <strong>tutti i clienti</strong>`;
   openModal("modal-copia");
 }
 
 function eseguiCopia() {
   const modalita = document.getElementById("copia-modalita").value;
   const da = parseInt(document.getElementById("copia-da").value);
-  const a  = parseInt(document.getElementById("copia-a").value);
+  const a = parseInt(document.getElementById("copia-a").value);
   if (modalita === "singolo") {
     const id = parseInt(document.getElementById("copia-cliente-id").value);
-    socket.emit("copia:scadenzario", { id_cliente: id, anno_da: da, anno_a: a });
+    socket.emit("copia:scadenzario", {
+      id_cliente: id,
+      anno_da: da,
+      anno_a: a,
+    });
   } else socket.emit("copia:tutti", { anno_da: da, anno_a: a });
 }
 
@@ -379,9 +435,11 @@ function eseguiGeneraTutti() {
 
 function openAddAdp(id_cliente) {
   document.getElementById("add-adp-cliente-id").value = id_cliente;
-  document.getElementById("add-adp-anno").value       = state.anno;
+  document.getElementById("add-adp-anno").value = state.anno;
   const c = state.selectedCliente;
-  if (c) document.getElementById("add-adp-cliente-info").innerHTML = renderClienteInfoBox(c);
+  if (c)
+    document.getElementById("add-adp-cliente-info").innerHTML =
+      renderClienteInfoBox(c);
   refreshAddAdpSelect();
   openModal("modal-add-adp");
 }
@@ -392,7 +450,10 @@ function refreshAddAdpSelect() {
   if (!sel) return;
 
   sel.innerHTML = mancanti
-    .map(a => `<option value="${a.id}" data-scadenza="${a.scadenza_tipo}">${a.codice} — ${a.nome}</option>`)
+    .map(
+      (a) =>
+        `<option value="${a.id}" data-scadenza="${a.scadenza_tipo}">${a.codice} — ${a.nome}</option>`,
+    )
     .join("");
 
   if (!sel.dataset.ssinit) {
@@ -405,32 +466,44 @@ function refreshAddAdpSelect() {
 }
 
 function updatePeriodoOptions() {
-  const sel    = document.getElementById("add-adp-select");
+  const sel = document.getElementById("add-adp-select");
   const perSel = document.getElementById("add-adp-periodo");
   if (!sel || !perSel) return;
-  const opt  = sel.options[sel.selectedIndex];
-  if (!opt) { perSel.innerHTML = ""; return; }
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) {
+    perSel.innerHTML = "";
+    return;
+  }
   const tipo = opt.dataset.scadenza;
   let opts = "";
   if (tipo === "mensile")
-    opts = MESI.map((m, i) => `<option value="mese:${i + 1}">${m}</option>`).join("");
+    opts = MESI.map(
+      (m, i) => `<option value="mese:${i + 1}">${m}</option>`,
+    ).join("");
   else if (tipo === "trimestrale")
-    opts = [1,2,3,4].map(t => `<option value="trim:${t}">${t}° Trimestre</option>`).join("");
+    opts = [1, 2, 3, 4]
+      .map((t) => `<option value="trim:${t}">${t}° Trimestre</option>`)
+      .join("");
   else if (tipo === "semestrale")
     opts = `<option value="sem:1">1° Semestre</option><option value="sem:2">2° Semestre</option>`;
-  else
-    opts = `<option value="annuale">Annuale</option>`;
+  else opts = `<option value="annuale">Annuale</option>`;
   perSel.innerHTML = opts;
 }
 
 function eseguiAddAdp() {
-  const id_cliente     = parseInt(document.getElementById("add-adp-cliente-id").value);
-  const id_adempimento = parseInt(document.getElementById("add-adp-select").value);
-  const anno           = parseInt(document.getElementById("add-adp-anno").value);
-  const periodo        = document.getElementById("add-adp-periodo").value;
+  const id_cliente = parseInt(
+    document.getElementById("add-adp-cliente-id").value,
+  );
+  const id_adempimento = parseInt(
+    document.getElementById("add-adp-select").value,
+  );
+  const anno = parseInt(document.getElementById("add-adp-anno").value);
+  const periodo = document.getElementById("add-adp-periodo").value;
   const data = { id_cliente, id_adempimento, anno };
-  if (periodo.startsWith("mese:"))      data.mese      = parseInt(periodo.split(":")[1]);
-  else if (periodo.startsWith("trim:")) data.trimestre = parseInt(periodo.split(":")[1]);
-  else if (periodo.startsWith("sem:"))  data.semestre  = parseInt(periodo.split(":")[1]);
+  if (periodo.startsWith("mese:")) data.mese = parseInt(periodo.split(":")[1]);
+  else if (periodo.startsWith("trim:"))
+    data.trimestre = parseInt(periodo.split(":")[1]);
+  else if (periodo.startsWith("sem:"))
+    data.semestre = parseInt(periodo.split(":")[1]);
   socket.emit("add:adempimento_cliente", data);
 }
