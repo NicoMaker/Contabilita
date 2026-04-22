@@ -14,3 +14,7 @@ in clienti -> sempre apri menu a tendina , al posto del flag in automatico
 mettere modifcabile categoria cliente per anno nuovo
 
 se crei cliente nel nuovo anno -> non creare per anni precendti 
+
+società di persone -> giallo
+
+associazione -> rosa
