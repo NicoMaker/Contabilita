@@ -19,14 +19,7 @@ const STATI = {
   n_a:       "➖ N/A",
 };
 
-const CATEGORIE = [
-  { codice:"IVA",          nome:"💰 IVA",           icona:"💰", color:"#fbbf24" },
-  { codice:"DICHIARAZIONI",nome:"📄 Dichiarazioni",  icona:"📄", color:"#5b8df6" },
-  { codice:"PREVIDENZA",   nome:"🏦 Previdenza",     icona:"🏦", color:"#34d399" },
-  { codice:"LAVORO",       nome:"👔 Lavoro",         icona:"👔", color:"#a78bfa" },
-  { codice:"TRIBUTI",      nome:"🏛️ Tributi",       icona:"🏛️", color:"#f87171" },
-  { codice:"BILANCIO",     nome:"📊 Bilancio",       icona:"📊", color:"#22d3ee" },
-];
+// ⭐ RIMOSSO CATEGORIE
 
 const SOTTOTIPO_LABEL_MAP = {
   PF_PRIV:    "Privato",
@@ -72,7 +65,6 @@ const SOTTOTIPO_MAP = {
   "ASS||semplificata":"ASS_SEMP",
 };
 
-// ⭐ COLORI CORRETTI: SP → giallo #fbbf24, ASS → rosa #f472b6
 const TIPOLOGIE_INFO = {
   PF:  { color:"#5b8df6", desc:"Persona Fisica",      icon:"👤" },
   SP:  { color:"#fbbf24", desc:"Società di Persone",  icon:"🤝" },
@@ -80,5 +72,4 @@ const TIPOLOGIE_INFO = {
   ASS: { color:"#f472b6", desc:"Associazione",        icon:"🏛️" },
 };
 
-// Regimi che implicano periodicità annuale fissa
 const REGIMI_ANNUALI = ["forfettario"];

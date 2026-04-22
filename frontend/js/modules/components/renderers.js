@@ -13,35 +13,18 @@ function isCheckbox(r) {
   return parseInt(r.is_checkbox) === 1 || r.is_checkbox === true || r.is_checkbox === 1;
 }
 
-// ─── CONTABILITÀ STATE ────────────────────────────────────────
-// "none"  → nessun dato
-// "iva"   → solo IVA compilata o cont_completata=0  → blu
-// "both"  → IVA + cont_completata=1                 → verde
-function getContabilitaVisualState(r) {
-  const hasIva  = r.importo_iva != null && r.importo_iva !== "";
-  // cont_completata: 1 = spuntata
-  const hasCont = parseInt(r.cont_completata) === 1;
-  if (hasIva && hasCont) return "both";
-  if (hasIva)            return "iva";
-  return "none";
-}
-
 // ─── IMPORTO CELL ─────────────────────────────────────────────
 function renderImportoCellCompact(r) {
   if (isCheckbox(r)) {
-    // Checkbox: nessun importo da mostrare nella pill
     return `<span class="imp-empty">—</span>`;
   }
   if (isContabilita(r)) {
     const iva  = r.importo_iva  ? `€${parseFloat(r.importo_iva).toFixed(2)}`  : null;
     const contDone = parseInt(r.cont_completata) === 1;
     if (!iva && !contDone) return `<span class="imp-empty">—</span>`;
-    const visState = getContabilitaVisualState(r);
-    const ivaColor  = "var(--accent)";
-    const contColor = visState === "both" ? "var(--green)" : "var(--text3)";
     return `<div class="importi-cell">
-      ${iva  ? `<div class="imp-row"><span class="imp-lbl" style="color:${ivaColor}">💰 IVA</span><span class="imp-val" style="color:${ivaColor}">${iva}</span></div>` : ""}
-      ${contDone ? `<div class="imp-row"><span class="imp-lbl" style="color:${contColor}">📊 Cont.</span><span class="imp-val" style="color:${contColor}">✓</span></div>` : ""}
+      ${iva  ? `<div class="imp-row"><span class="imp-lbl">💰 IVA</span><span class="imp-val">${iva}</span></div>` : ""}
+      ${contDone ? `<div class="imp-row"><span class="imp-lbl">📊 Cont.</span><span class="imp-val">✓</span></div>` : ""}
     </div>`;
   }
   if (hasRate(r)) {
@@ -62,51 +45,73 @@ function renderImportoCellCompact(r) {
     : `<span class="imp-empty">—</span>`;
 }
 
-// ─── CHECKBOX PILL ────────────────────────────────────────────
-// Pill speciale per adempimenti di tipo checkbox: solo ✓ / ✗ grande
-function renderCheckboxPill(r) {
-  const done = r.stato === "completato";
-  const ps = getPeriodoShort(r);
-  const color = done ? "var(--green)" : "var(--red)";
-  const icon  = done ? "✅" : "☐";
-  const tooltipText = `${getPeriodoLabel(r)} — ${done ? "Completato" : "Da fare"}\nClick: toggle | Click destro: toggle rapido`;
+// ⭐ NUOVA FUNZIONE PER DETERMINARE COLORE PILLOLA
+// Rate/Checkbox → Verde se completato, altrimenti Blu
+// Contabilità/Normale → Verde se completato, altrimenti Blu
+// Checkbox con N/A → Grigio
+function getPillColor(r, stato) {
+  const isCompletato = stato === "completato";
+  const isNA = stato === "n_a";
+  
+  // Checkbox con N/A → grigio
+  if (isCheckbox(r) && isNA) return "var(--text3)";
+  
+  // Completato → sempre verde
+  if (isCompletato) return "var(--green)";
+  
+  // Non completato → blu per tutti (rate, contabilità, normale)
+  return "var(--accent)";
+}
 
-  return `<div class="periodo-pill checkbox-pill s-${r.stato}"
-    onclick="toggleCheckboxAdp(event,${r.id})"
+// ⭐ NUOVA CHECKBOX PILL con supporto N/A
+function renderCheckboxPill(r) {
+  const stato = r.stato || "da_fare";
+  const ps = getPeriodoShort(r);
+
+  const isDone  = stato === "completato";
+  const isNA    = stato === "n_a";
+  const isDaFare = !isDone && !isNA;
+
+  const color = getPillColor(r, stato);
+  const icon  = isDone ? "✅" : isNA ? "➖" : "☐";
+
+  const btnDone = `<button
+    class="cbx-btn${isDone ? " cbx-active cbx-green" : ""}"
+    onclick="setCbxStato(event,${r.id},'completato')"
+    title="Segna completato">✅</button>`;
+  const btnNA = `<button
+    class="cbx-btn${isNA ? " cbx-active cbx-gray" : ""}"
+    onclick="setCbxStato(event,${r.id},'n_a')"
+    title="Segna N/A">➖</button>`;
+  const btnReset = `<button
+    class="cbx-btn${isDaFare ? " cbx-active cbx-red" : ""}"
+    onclick="setCbxStato(event,${r.id},'da_fare')"
+    title="Segna da fare">☐</button>`;
+
+  return `<div class="periodo-pill checkbox-pill s-${stato}"
+    onclick="openAdpById(${r.id})"
     oncontextmenu="toggleAdpCompletato(event,${r.id})"
-    title="${escAttr(tooltipText)}"
-    style="border-color:${color};min-width:90px;flex:0 1 90px">
-    <div class="pp-top" style="justify-content:center;gap:8px">
+    title="${escAttr(getPeriodoLabel(r))} — Click: modifica | Tasto DX: toggle completato"
+    style="border-color:${color};min-width:110px;flex:0 1 110px">
+    <div class="pp-top" style="justify-content:space-between;gap:4px">
       <span class="pp-tag" style="border-color:${color};color:${color}">${ps}</span>
-      <span style="font-size:22px;line-height:1">${icon}</span>
+      <span style="font-size:18px;line-height:1">${icon}</span>
+    </div>
+    <div class="cbx-btn-row" onclick="event.stopPropagation()">
+      ${btnReset}${btnNA}${btnDone}
     </div>
     ${r.note ? `<div class="pp-note" title="${escAttr(r.note)}">📝 ${r.note}</div>` : ""}
   </div>`;
 }
 
-// ─── PERIODO PILL ─────────────────────────────────────────────
+// ⭐ PERIODO PILL MODIFICATA con nuova logica colori
 function renderPeriodoPill(r) {
-  // Dispatch per tipo checkbox
   if (isCheckbox(r)) return renderCheckboxPill(r);
 
   const stato = r.stato || "da_fare";
   const ps = getPeriodoShort(r);
-  const statoColors = {
-    da_fare:   "var(--red)",
-    in_corso:  "var(--yellow)",
-    completato:"var(--green)",
-    n_a:       "var(--text3)",
-  };
-
-  let pillBorderColor = statoColors[stato] || "var(--text3)";
-  let pillBg = "";
-  if (isContabilita(r) && stato !== "completato") {
-    const vs = getContabilitaVisualState(r);
-    if (vs === "iva")  { pillBorderColor = "var(--accent)"; pillBg = "rgba(91,141,246,0.07)"; }
-    if (vs === "both") { pillBorderColor = "var(--green)";  pillBg = "rgba(52,211,153,0.07)"; }
-  }
-
-  const statoColor = statoColors[stato] || "var(--text3)";
+  
+  const pillColor = getPillColor(r, stato);
   const statoIcon =
     stato === "da_fare"   ? "⭕" :
     stato === "in_corso"  ? "🔄" :
@@ -129,15 +134,13 @@ function renderPeriodoPill(r) {
 
   const tooltipText = `${getPeriodoLabel(r)} — ${statoLabel}${r.data_scadenza ? ` | Scad: ${r.data_scadenza}` : ""}${r.data_completamento ? ` | Compl: ${r.data_completamento}` : ""}\nClick sinistro: modifica | Click destro: toggle completato`;
 
-  const extraStyle = pillBg ? `background:${pillBg};` : "";
-
   return `<div class="periodo-pill s-${stato}" 
-    style="${extraStyle}"
     onclick="openAdpById(${r.id})" 
     oncontextmenu="toggleAdpCompletato(event,${r.id})"
-    title="${escAttr(tooltipText)}">
+    title="${escAttr(tooltipText)}"
+    style="border-color:${pillColor}">
     <div class="pp-top">
-      <span class="pp-tag" style="border-color:${pillBorderColor};color:${pillBorderColor}">${ps}</span>
+      <span class="pp-tag" style="border-color:${pillColor};color:${pillColor}">${ps}</span>
       <span class="pp-stato-icon" title="${escAttr(statoLabel)}">${statoIcon}</span>
     </div>
     ${dateLine}
@@ -146,7 +149,7 @@ function renderPeriodoPill(r) {
   </div>`;
 }
 
-// ─── CLIENTE INFO BOX ─────────────────────────────────────────
+// ─── CLIENTE INFO BOX (senza categorie) ───────────────────────
 function renderClienteInfoBox(cliente) {
   if (!cliente) return "";
   const avatar   = getAvatar(cliente.nome);

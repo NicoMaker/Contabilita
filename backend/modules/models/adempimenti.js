@@ -2,24 +2,23 @@ const { runQuery, queryAll, queryOne } = require("../database");
 
 function getAdempimenti() {
   return queryAll(
-    `SELECT * FROM adempimenti WHERE attivo=1 ORDER BY categoria, nome`,
+    `SELECT * FROM adempimenti WHERE attivo=1 ORDER BY nome`,
   );
 }
 
 function createAdempimento(data) {
   const rl = data.rate_labels ? JSON.stringify(data.rate_labels) : null;
   runQuery(
-    `INSERT INTO adempimenti (codice,nome,descrizione,categoria,scadenza_tipo,is_contabilita,has_rate,rate_labels,is_checkbox) VALUES (?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO adempimenti (codice,nome,descrizione,scadenza_tipo,is_contabilita,has_rate,is_checkbox,rate_labels) VALUES (?,?,?,?,?,?,?,?)`,
     [
       data.codice,
       data.nome,
       data.descrizione || null,
-      data.categoria,
       data.scadenza_tipo,
       data.is_contabilita || 0,
       data.has_rate || 0,
-      rl,
       data.is_checkbox || 0,
+      rl,
     ],
   );
   return queryOne(`SELECT last_insert_rowid() as id`).id;
@@ -28,17 +27,16 @@ function createAdempimento(data) {
 function updateAdempimento(data) {
   const rl = data.rate_labels ? JSON.stringify(data.rate_labels) : null;
   runQuery(
-    `UPDATE adempimenti SET codice=?,nome=?,descrizione=?,categoria=?,scadenza_tipo=?,is_contabilita=?,has_rate=?,rate_labels=?,is_checkbox=? WHERE id=?`,
+    `UPDATE adempimenti SET codice=?,nome=?,descrizione=?,scadenza_tipo=?,is_contabilita=?,has_rate=?,is_checkbox=?,rate_labels=? WHERE id=?`,
     [
       data.codice,
       data.nome,
       data.descrizione || null,
-      data.categoria,
       data.scadenza_tipo,
       data.is_contabilita || 0,
       data.has_rate || 0,
-      rl,
       data.is_checkbox || 0,
+      rl,
       data.id,
     ],
   );
@@ -65,6 +63,7 @@ function canDeleteAdempimento(id) {
   return { canDelete: count.cnt === 0, clientiCount: count.cnt };
 }
 
+// ⭐ NUOVA LOGICA: genera per TUTTI i clienti (nessun filtro categoria)
 function inserisciAdempimentoSeAssente(id_cliente, adp, anno) {
   let inseriti = 0;
   if (adp.scadenza_tipo === "trimestrale") {
@@ -129,9 +128,8 @@ function generaAdempimentoPerTutti(id_adp, anno) {
   const a = queryOne(`SELECT * FROM adempimenti WHERE id=?`, [id_adp]);
   if (!a) return 0;
   let tot = 0;
+  // ⭐ TUTTI i clienti attivi (nessun filtro categoria)
   queryAll(`SELECT * FROM clienti WHERE attivo=1`).forEach((c) => {
-    const cat = JSON.parse(c.categorie_attive || "[]");
-    if (a.categoria !== "TUTTI" && !cat.includes(a.categoria)) return;
     tot += inserisciAdempimentoSeAssente(c.id, a, anno);
   });
   return tot;

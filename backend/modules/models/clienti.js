@@ -64,9 +64,8 @@ function getClienteConDettagli(id) {
 }
 
 function createCliente(data) {
-  const cat = JSON.stringify(data.categorie_attive || []);
   runQuery(
-    `INSERT INTO clienti (nome,id_tipologia,id_sottotipologia,col2_value,col3_value,periodicita,codice_fiscale,partita_iva,email,telefono,indirizzo,citta,cap,provincia,pec,sdi,iban,note,referente,categorie_attive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO clienti (nome,id_tipologia,id_sottotipologia,col2_value,col3_value,periodicita,codice_fiscale,partita_iva,email,telefono,indirizzo,citta,cap,provincia,pec,sdi,iban,note,referente) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       data.nome,
       data.id_tipologia,
@@ -87,16 +86,14 @@ function createCliente(data) {
       data.iban || null,
       data.note || null,
       data.referente || null,
-      cat,
     ],
   );
   return queryOne(`SELECT last_insert_rowid() as id`).id;
 }
 
 function updateCliente(data) {
-  const cat = JSON.stringify(data.categorie_attive || []);
   runQuery(
-    `UPDATE clienti SET nome=?,id_tipologia=?,id_sottotipologia=?,col2_value=?,col3_value=?,periodicita=?,codice_fiscale=?,partita_iva=?,email=?,telefono=?,indirizzo=?,citta=?,cap=?,provincia=?,pec=?,sdi=?,iban=?,note=?,referente=?,categorie_attive=?,updated_at=datetime('now') WHERE id=?`,
+    `UPDATE clienti SET nome=?,id_tipologia=?,id_sottotipologia=?,col2_value=?,col3_value=?,periodicita=?,codice_fiscale=?,partita_iva=?,email=?,telefono=?,indirizzo=?,citta=?,cap=?,provincia=?,pec=?,sdi=?,iban=?,note=?,referente=?,updated_at=datetime('now') WHERE id=?`,
     [
       data.nome,
       data.id_tipologia,
@@ -117,7 +114,6 @@ function updateCliente(data) {
       data.iban || null,
       data.note || null,
       data.referente || null,
-      cat,
       data.id,
     ],
   );

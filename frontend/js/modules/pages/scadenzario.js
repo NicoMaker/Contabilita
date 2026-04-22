@@ -4,11 +4,8 @@
 
 function getAdempimentiMancanti() {
   if (!state.selectedCliente) return [];
-  const cat = JSON.parse(state.selectedCliente.categorie_attive || "[]");
-  const compatibili = state.adempimenti.filter(
-    (a) => a.categoria === "TUTTI" || cat.includes(a.categoria),
-  );
-  return compatibili.filter((a) => !state.adpInseriti.includes(a.id));
+  // ⭐ TUTTI gli adempimenti (nessun filtro categoria)
+  return state.adempimenti.filter((a) => !state.adpInseriti.includes(a.id));
 }
 
 function hasDatiDaGenerare() {
@@ -20,11 +17,10 @@ function hasDatiDaGenerare() {
 function renderBtnAddAdp(id_cliente) {
   const mancanti = getAdempimentiMancanti();
   if (!mancanti.length)
-    return `<button class="btn btn-sm btn-purple" disabled style="opacity:0.4;cursor:not-allowed" title="Tutti gli adempimenti compatibili sono già inseriti">✓ Tutti inseriti</button>`;
+    return `<button class="btn btn-sm btn-purple" disabled style="opacity:0.4;cursor:not-allowed" title="Tutti gli adempimenti sono già inseriti">✓ Tutti inseriti</button>`;
   return `<button class="btn btn-sm btn-purple" onclick="openAddAdp(${id_cliente})" title="Aggiungi un adempimento mancante (${mancanti.length} disponibili)">+ Adempimento <span class="badge-count">${mancanti.length}</span></button>`;
 }
 
-// FIX: Funzione per filtrare lo scadenzario cliccando dal riepilogo
 function filtraScadPerAdp(idAdp) {
   const sel = document.getElementById("scad-filtro-adp");
   if (!sel) return;
@@ -36,7 +32,6 @@ function filtraScadPerAdp(idAdp) {
     scadContent.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ─── AGGIORNA SELECT ADEMPIMENTO FILTRO ──────────────────────────
 function aggiornaFiltroAdpScad(data) {
   const sel = document.getElementById("scad-filtro-adp");
   if (!sel) return;
@@ -64,7 +59,6 @@ function aggiornaFiltroAdpScad(data) {
   }
 }
 
-// ─── RENDER PAGE ──────────────────────────────────────────────
 function renderScadenzarioPage() {
   const opts = state.clienti
     .map(
@@ -92,11 +86,6 @@ function renderScadenzarioPage() {
       <option value="completato">✅ Completato</option>
       <option value="n_a">➖ N/A</option>
     </select>
-    <select class="select topbar-select" id="scad-filtro-cat" onchange="applyScadFiltri()" title="Filtra per categoria">
-      <option value="">📋 Tutte le categorie</option>
-      ${CATEGORIE.map((c) => `<option value="${c.codice}">${c.icona} ${c.codice}</option>`).join("")}
-    </select>
-    <button class="btn btn-sm btn-primary" onclick="resetScadFiltri()" title="Azzera tutti i filtri">⟳ Tutti</button>
     <div class="search-wrap" style="width:180px">
       <span class="search-icon">🔍</span>
       <input class="input" id="scad-search" placeholder="Cerca adempimento..." oninput="applyScadSearch()" title="Cerca per nome o codice adempimento">
@@ -133,11 +122,10 @@ function changeAnnoScad(d) {
 function loadScadenzario() {
   const sv = document.getElementById("scad-search")?.value || "";
   const st = document.getElementById("scad-filtro-stato")?.value || "";
-  const cat = document.getElementById("scad-filtro-cat")?.value || "";
   socket.emit("get:scadenzario", {
     id_cliente: state.selectedCliente.id,
     anno: state.anno,
-    filtri: { search: sv, stato: st, categoria: cat },
+    filtri: { search: sv, stato: st },
   });
 }
 
@@ -156,12 +144,10 @@ function applyScadFiltri() {
 
 function resetScadFiltri() {
   const statoSelect = document.getElementById("scad-filtro-stato");
-  const catSelect = document.getElementById("scad-filtro-cat");
   const adpSelect = document.getElementById("scad-filtro-adp");
   const searchInput = document.getElementById("scad-search");
 
   if (statoSelect) statoSelect.value = "";
-  if (catSelect) catSelect.value = "";
   if (adpSelect) {
     adpSelect.value = "";
     if (adpSelect._ssRefresh) adpSelect._ssRefresh();
@@ -192,22 +178,6 @@ function renderScadenzarioTabella(data) {
   const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
   const sottotipoLabel = getLabelSottotipologia(c);
 
-  const categorie = (() => {
-    try {
-      return JSON.parse(c.categorie_attive || "[]");
-    } catch (e) {
-      return [];
-    }
-  })();
-  const catBadges = categorie
-    .map((cat) => {
-      const found = CATEGORIE.find((x) => x.codice === cat);
-      return found
-        ? `<span class="cat-mini-badge" style="color:${found.color};border-color:${found.color}22;background:${found.color}11" title="${found.nome}">${found.icona} ${found.codice}</span>`
-        : "";
-    })
-    .join("");
-
   const col2Map = {
     privato: "Privato",
     ditta: "Ditta Ind.",
@@ -233,12 +203,10 @@ function renderScadenzarioTabella(data) {
   let generaBtnIcon = "⚡";
 
   if (!hasDati) {
-    generaBtnTitle =
-      "Nessun adempimento presente. Genera lo scadenzario per l'anno selezionato";
+    generaBtnTitle = "Nessun adempimento presente. Genera lo scadenzario per l'anno selezionato";
   } else if (hasDati && !hasDatiDaGenerare) {
     generaBtnClass = "btn btn-sm btn-success";
-    generaBtnTitle =
-      "✅ Tutti gli adempimenti sono già stati generati per quest'anno";
+    generaBtnTitle = "✅ Tutti gli adempimenti sono già stati generati per quest'anno";
     generaBtnIcon = "✓";
   } else {
     generaBtnTitle = `Genera ${mancanti.length} adempimento/i mancante/i per l'anno selezionato`;
@@ -268,7 +236,6 @@ function renderScadenzarioTabella(data) {
           ${c.col3_value ? `<span class="badge-info">${col3Map[c.col3_value] || c.col3_value}</span>` : ""}
           ${c.periodicita ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : "📆 Trimestrale"}</span>` : ""}
         </div>
-        <div class="cpc-cats">${catBadges}</div>
         <div class="cpc-meta-row">
           ${c.codice_fiscale ? `<span class="cpc-meta-chip">CF: <strong>${c.codice_fiscale}</strong></span>` : ""}
           ${c.partita_iva ? `<span class="cpc-meta-chip">P.IVA: <strong>${c.partita_iva}</strong></span>` : ""}
@@ -297,62 +264,41 @@ function renderScadenzarioTabella(data) {
     ${renderClienteDatiRiferimento(c)}
   </div>`;
 
-  // Raggruppa per categoria
+  // Raggruppa per adempimento (non per categoria)
   const grouped = {};
   dataFiltrata.forEach((r) => {
     storeRow(r);
-    const cat = r.categoria || "ALTRI";
-    if (!grouped[cat]) grouped[cat] = {};
     const key = r.id_adempimento;
-    if (!grouped[cat][key])
-      grouped[cat][key] = {
+    if (!grouped[key])
+      grouped[key] = {
         nome: r.adempimento_nome,
         codice: r.adempimento_codice,
-        categoria: r.categoria,
         scadenza_tipo: r.scadenza_tipo,
         rows: [],
       };
-    grouped[cat][key].rows.push(r);
+    grouped[key].rows.push(r);
   });
 
   let content = "";
-  Object.entries(grouped).forEach(([catCode, adpMap]) => {
-    const catInfo = CATEGORIE.find((x) => x.codice === catCode);
-    const catColor = catInfo?.color || "var(--accent)";
-    const adpCount = Object.keys(adpMap).length;
-
-    let adpHtml = "";
-    Object.values(adpMap).forEach((g) => {
-      const compG = g.rows.filter((r) => r.stato === "completato").length;
-      const totG = g.rows.length;
-      const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
-      const pgColorG =
-        pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
-      const periodiHtml = g.rows.map((r) => renderPeriodoPill(r)).join("");
-      const isMensile = g.rows.length > 4;
-      adpHtml += `<div class="adp-card">
-        <div class="adp-card-header">
-          <span class="adp-codice">${g.codice}</span>
-          <span class="adp-nome">${g.nome}</span>
-          <span class="adp-tipo-badge">${g.scadenza_tipo}</span>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-            <div class="mini-bar" style="width:70px"><div class="mini-fill" style="width:${pG}%;background:${pgColorG}"></div></div>
-            <span style="font-size:13px;font-family:var(--mono);color:${pgColorG}">${compG}/${totG}</span>
-          </div>
-        </div>
-        <div class="adp-card-periodi${isMensile ? " periodi-mensili" : ""}">${periodiHtml}</div>
-      </div>`;
-    });
-
-    content += `<div class="cat-section">
-      <div class="cat-section-header" style="border-left:3px solid ${catColor}">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="cat-section-icon" style="color:${catColor}">${catInfo?.icona || "📋"}</span>
-          <span class="cat-section-nome" style="color:${catColor}">${catCode}</span>
-          <span class="cat-count-badge" style="background:${catColor}20;color:${catColor};border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:4px">${adpCount}</span>
+  Object.values(grouped).forEach((g) => {
+    const compG = g.rows.filter((r) => r.stato === "completato").length;
+    const totG = g.rows.length;
+    const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
+    const pgColorG =
+      pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
+    const periodiHtml = g.rows.map((r) => renderPeriodoPill(r)).join("");
+    const isMensile = g.rows.length > 4;
+    content += `<div class="adp-card">
+      <div class="adp-card-header">
+        <span class="adp-codice">${g.codice}</span>
+        <span class="adp-nome">${g.nome}</span>
+        <span class="adp-tipo-badge">${g.scadenza_tipo}</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+          <div class="mini-bar" style="width:70px"><div class="mini-fill" style="width:${pG}%;background:${pgColorG}"></div></div>
+          <span style="font-size:13px;font-family:var(--mono);color:${pgColorG}">${compG}/${totG}</span>
         </div>
       </div>
-      <div class="cat-section-body">${adpHtml}</div>
+      <div class="adp-card-periodi${isMensile ? " periodi-mensili" : ""}">${periodiHtml}</div>
     </div>`;
   });
 

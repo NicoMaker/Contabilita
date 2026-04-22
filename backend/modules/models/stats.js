@@ -9,15 +9,15 @@ function getStats(anno) {
     SELECT 
       a.codice,
       a.nome,
-      a.categoria,
       COUNT(ac.id) as totale,
       SUM(CASE WHEN ac.stato='completato' THEN 1 ELSE 0 END) as completati,
-      SUM(CASE WHEN ac.stato='da_fare' THEN 1 ELSE 0 END) as da_fare
+      SUM(CASE WHEN ac.stato='da_fare' THEN 1 ELSE 0 END) as da_fare,
+      SUM(CASE WHEN ac.stato='n_a' THEN 1 ELSE 0 END) as na
     FROM adempimenti a
     LEFT JOIN adempimenti_cliente ac ON a.id=ac.id_adempimento AND ac.anno=?
     WHERE a.attivo=1
     GROUP BY a.id
-    ORDER BY a.categoria, a.nome
+    ORDER BY a.nome
   `,
     [anno],
   );

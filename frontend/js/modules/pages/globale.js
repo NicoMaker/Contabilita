@@ -139,7 +139,6 @@ function renderGlobaleHeader() {
   }
 }
 
-// ─── NAVIGAZIONE ADEMPIMENTO PRECEDENTE/SUCCESSIVO ────────────
 function navigaAdempimento(direzione) {
   const adpSel = document.getElementById("glob-filtro-adp");
   if (!adpSel || !state.globaleStats) return;
@@ -157,7 +156,6 @@ function navigaAdempimento(direzione) {
   applyGlobaleFiltri();
 }
 
-// ─── FILTRO CLIENTE PER SITUAZIONE ────────────────────────────
 function clientePassaFiltroStato(periodi, filtroClienteStato) {
   if (!filtroClienteStato) return true;
   const hasInCorso = periodi.some((r) => r.stato === "in_corso");
@@ -265,7 +263,7 @@ function renderGlobaleTabella(rawData) {
     ${navAdpHtml}
   </div>`;
 
-  // Raggruppa per adempimento → poi per cliente con tutti i periodi
+  // Raggruppa per adempimento
   const grouped = {};
   data.forEach((r) => {
     storeRow(r);
@@ -274,7 +272,6 @@ function renderGlobaleTabella(rawData) {
       grouped[adpKey] = {
         nome: r.adempimento_nome,
         codice: r.adempimento_codice,
-        categoria: r.categoria,
         clienti: {},
       };
     const cliKey = r.cliente_id;
@@ -310,7 +307,6 @@ function renderGlobaleTabella(rawData) {
   };
 
   let content = "";
-  let totalClientiVisibili = 0;
 
   Object.values(grouped).forEach((g) => {
     const clientiFiltrati = Object.values(g.clienti).filter((c) =>
@@ -323,10 +319,6 @@ function renderGlobaleTabella(rawData) {
     const compG = allRows.filter((r) => r.stato === "completato").length;
     const totG = allRows.length;
     const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
-    const catInfo = CATEGORIE.find((x) => x.codice === g.categoria);
-    const catColor = catInfo?.color || "var(--accent)";
-
-    totalClientiVisibili += clientiFiltrati.length;
 
     const clientiHtml = clientiFiltrati
       .map((c) => {
@@ -402,13 +394,9 @@ function renderGlobaleTabella(rawData) {
     content += `<div class="table-wrap" style="margin-bottom:16px">
       <div class="table-header">
         <div style="display:flex;align-items:center;gap:12px;flex:1">
-          <span style="font-size:20px" title="${catInfo?.nome || g.categoria}">${catInfo?.icona || "📋"}</span>
-          <div>
-            <span style="font-family:var(--mono);font-size:12px;color:${catColor};font-weight:700" title="Codice adempimento">${g.codice}</span>
-            <strong style="margin-left:10px;font-size:15px">${g.nome}</strong>
-            <span class="badge b-categoria" style="margin-left:10px;color:${catColor};background:${catColor}15;font-size:11px" title="Categoria: ${catInfo?.nome || g.categoria}">${g.categoria}</span>
-            ${filtroClienteStato ? `<span style="font-size:11px;color:var(--text3);margin-left:8px">${clientiFiltrati.length} client${clientiFiltrati.length === 1 ? "e" : "i"} visibil${clientiFiltrati.length === 1 ? "e" : "i"}</span>` : ""}
-          </div>
+          <strong style="font-size:15px">${g.nome}</strong>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3)" title="Codice adempimento">${g.codice}</span>
+          ${filtroClienteStato ? `<span style="font-size:11px;color:var(--text3);margin-left:8px">${clientiFiltrati.length} client${clientiFiltrati.length === 1 ? "e" : "i"} visibil${clientiFiltrati.length === 1 ? "e" : "i"}</span>` : ""}
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="mini-bar" style="width:90px" title="${pG}% completato"><div class="mini-fill" style="width:${pG}%"></div></div>

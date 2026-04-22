@@ -4,10 +4,9 @@
 
 // ─── LISTA ADEMPIMENTI ────────────────────────────────────────
 const applyAdempimentiFiltriSearch = debounce(() => {
-  const q   = document.getElementById("global-search-adempimenti")?.value?.toLowerCase() || "";
-  // Filtro categoria rimosso dalla UI ma manteniamo la logica per compatibilità
+  const q = document.getElementById("global-search-adempimenti")?.value?.toLowerCase() || "";
   const filtered = state.adempimenti.filter(a => {
-    if (q && !a.codice.toLowerCase().includes(q) && !a.nome.toLowerCase().includes(q) && !(a.categoria||"").toLowerCase().includes(q)) return false;
+    if (q && !a.codice.toLowerCase().includes(q) && !a.nome.toLowerCase().includes(q)) return false;
     return true;
   });
   renderAdempimentiTabella(filtered);
@@ -39,7 +38,6 @@ function renderAdempimentiTabella(adempimenti) {
     ${isFiltrato ? `<button class="btn btn-sm btn-primary" onclick="resetAdempimentiFiltri()" style="font-size:12px">⟳ Tutti</button>` : ""}
   </div>`;
 
-  // Griglia piatta senza raggruppamento per categoria
   const cards = adempimenti.map(a => {
     const flagsBadges = [];
     if (a.is_contabilita) flagsBadges.push(`<span class="adp-flag-badge" style="color:#22d3ee;background:#22d3ee15;border-color:#22d3ee33;font-size:11px" title="IVA + Contabilità separati">📊 Cont.</span>`);
@@ -84,7 +82,6 @@ function openNuovoAdpDef() {
   document.getElementById("adp-def-codice").value = "";
   document.getElementById("adp-def-nome").value = "";
   document.getElementById("adp-def-desc").value = "";
-  document.getElementById("adp-def-categoria").value = "TUTTI";
   document.getElementById("adp-def-scadenza").value = "annuale";
   document.getElementById("adp-def-contabilita").checked = false;
   document.getElementById("adp-def-rate").checked = false;
@@ -104,7 +101,6 @@ function editAdpDef(id) {
   document.getElementById("adp-def-codice").value = a.codice;
   document.getElementById("adp-def-nome").value = a.nome;
   document.getElementById("adp-def-desc").value = a.descrizione || "";
-  document.getElementById("adp-def-categoria").value = a.categoria || "TUTTI";
   document.getElementById("adp-def-scadenza").value = a.scadenza_tipo || "annuale";
   document.getElementById("adp-def-contabilita").checked = !!a.is_contabilita;
   document.getElementById("adp-def-rate").checked = !!a.has_rate;
@@ -122,7 +118,7 @@ function onAdpFlagsChange() {
   const isCont    = document.getElementById("adp-def-contabilita").checked;
   const hasRateEl = document.getElementById("adp-def-rate").checked;
   const isCheckEl = document.getElementById("adp-def-checkbox").checked;
-  // Mutuamente esclusivi: se uno è attivo, gli altri vengono disattivati
+  // Mutuamente esclusivi
   if (isCont)    { document.getElementById("adp-def-rate").checked = false; document.getElementById("adp-def-checkbox").checked = false; }
   if (hasRateEl) { document.getElementById("adp-def-contabilita").checked = false; document.getElementById("adp-def-checkbox").checked = false; }
   if (isCheckEl) { document.getElementById("adp-def-contabilita").checked = false; document.getElementById("adp-def-rate").checked = false; }
@@ -137,7 +133,6 @@ function saveAdpDef() {
   const data = {
     codice, nome,
     descrizione:  document.getElementById("adp-def-desc").value.trim() || null,
-    categoria:    document.getElementById("adp-def-categoria").value,
     scadenza_tipo:document.getElementById("adp-def-scadenza").value,
     is_contabilita: document.getElementById("adp-def-contabilita").checked ? 1 : 0,
     has_rate:       document.getElementById("adp-def-rate").checked       ? 1 : 0,
@@ -184,15 +179,14 @@ function openAdpModal(r) {
     });
   }
 
-  const isCont     = isContabilita(r);
-  const isRate     = hasRate(r);
-  const isCbx      = isCheckbox(r);
+  const isCont = isContabilita(r);
+  const isRate = hasRate(r);
+  const isCbx  = isCheckbox(r);
 
-  // Mostra la sezione corretta
-  document.getElementById("sect-importo-normale").style.display    = (!isCont && !isRate && !isCbx) ? "" : "none";
-  document.getElementById("sect-importo-cont").style.display       = isCont  ? "" : "none";
-  document.getElementById("sect-importo-rate").style.display       = (!isCont && isRate) ? "" : "none";
-  document.getElementById("sect-importo-checkbox").style.display   = isCbx ? "" : "none";
+  document.getElementById("sect-importo-normale").style.display  = (!isCont && !isRate && !isCbx) ? "" : "none";
+  document.getElementById("sect-importo-cont").style.display     = (isCont && !isCbx)             ? "" : "none";
+  document.getElementById("sect-importo-rate").style.display     = (isRate && !isCont && !isCbx)  ? "" : "none";
+  document.getElementById("sect-importo-checkbox").style.display = isCbx                          ? "" : "none";
 
   document.getElementById("adp-importo").value    = r.importo    || "";
   document.getElementById("adp-imp-iva").value    = r.importo_iva          || "";
@@ -201,52 +195,20 @@ function openAdpModal(r) {
   document.getElementById("adp-imp-acc1").value   = r.importo_acconto1     || "";
   document.getElementById("adp-imp-acc2").value   = r.importo_acconto2     || "";
 
-  // Contabilità: aggiorna stato checkbox cont_completata
-  if (isCont) {
+  if (isCont && !isCbx) {
     const contCheck = document.getElementById("adp-cont-completata");
     if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
-    _aggiornaColoriContabilita(r);
   }
 
-  if (isRate) {
+  if (isRate && !isCont && !isCbx) {
     let lb = ["Saldo","1° Acconto","2° Acconto"];
     try { if (r.rate_labels) lb = JSON.parse(r.rate_labels); } catch(e) {}
     document.getElementById("rate-l0").textContent = `💰 ${lb[0]} (€)`;
     document.getElementById("rate-l1").textContent = `📥 ${lb[1]} (€)`;
     document.getElementById("rate-l2").textContent = `📥 ${lb[2]} (€)`;
   }
+
   openModal("modal-adempimento");
-}
-
-// ⭐ Aggiorna colori IVA/Cont in base a cosa è compilato
-function _aggiornaColoriContabilita(r) {
-  // Leggi anche stato checkbox cont_completata in tempo reale
-  const contCheck = document.getElementById("adp-cont-completata");
-  const contDone = contCheck ? contCheck.checked : parseInt(r.cont_completata) === 1;
-  const ivaVal = document.getElementById("adp-imp-iva")?.value;
-  const hasIva = ivaVal != null && ivaVal !== "";
-  
-  let vs = "none";
-  if (hasIva && contDone) vs = "both";
-  else if (hasIva) vs = "iva";
-
-  const ivaLabel  = document.getElementById("label-imp-iva");
-  const contLabel = document.getElementById("label-imp-cont");
-  const ivaInput  = document.getElementById("adp-imp-iva");
-  const contCbxLabel = document.getElementById("label-cont-completata");
-
-  if (ivaLabel)     ivaLabel.style.color      = (vs === "iva" || vs === "both") ? "var(--accent)" : "";
-  if (ivaInput)     ivaInput.style.borderColor = (vs === "iva" || vs === "both") ? "var(--accent)" : "";
-  if (contLabel)    contLabel.style.color      = vs === "both" ? "var(--green)" : "";
-  if (contCbxLabel) contCbxLabel.style.color   = vs === "both" ? "var(--green)" : vs === "iva" ? "var(--text2)" : "";
-}
-
-function onContabilitaImportoChange() {
-  const r = {
-    importo_iva:         document.getElementById("adp-imp-iva")?.value  || null,
-    cont_completata:     document.getElementById("adp-cont-completata")?.checked ? 1 : 0,
-  };
-  _aggiornaColoriContabilita(r);
 }
 
 function saveAdpStato() {
@@ -262,7 +224,10 @@ function saveAdpStato() {
     note:               document.getElementById("adp-note").value    || null,
     cont_completata:    0,
   };
-  if (isCont) {
+
+  if (isCbx) {
+    // Checkbox: nessun importo
+  } else if (isCont) {
     data.importo_iva         = parseFloat(document.getElementById("adp-imp-iva").value)  || null;
     data.importo_contabilita = parseFloat(document.getElementById("adp-imp-cont").value) || null;
     data.cont_completata     = document.getElementById("adp-cont-completata")?.checked ? 1 : 0;
@@ -270,11 +235,10 @@ function saveAdpStato() {
     data.importo_saldo    = parseFloat(document.getElementById("adp-imp-saldo").value) || null;
     data.importo_acconto1 = parseFloat(document.getElementById("adp-imp-acc1").value)  || null;
     data.importo_acconto2 = parseFloat(document.getElementById("adp-imp-acc2").value)  || null;
-  } else if (isCbx) {
-    // Checkbox: nessun importo
   } else {
     data.importo = parseFloat(document.getElementById("adp-importo").value) || null;
   }
+
   socket.emit("update:adempimento_stato", data);
 }
 

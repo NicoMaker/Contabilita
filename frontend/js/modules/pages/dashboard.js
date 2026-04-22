@@ -44,8 +44,6 @@ function onDashFiltroStatoAdp() {
 
 function resetDashFiltri() {
   state.dashSearch = "";
-  state.dashFiltroCategoria = "tutti";
-  state.dashFiltroClienteStato = "";
   state.dashFiltroStatoAdp = "";
   ["dash-adp-search","dash-filtro-stato-adp"].forEach(id => {
     const el = document.getElementById(id);
@@ -151,11 +149,6 @@ function updateDashboardContent(stats) {
 function renderDashboard(stats) {
   if (!state._dashRendered) buildDashboardShell(stats);
   updateDashboardContent(stats);
-}
-
-function setDashCat(c) {
-  state.dashFiltroCategoria = c;
-  if (state.dashStats) updateDashboardContent(state.dashStats);
 }
 
 function onDashAdpSearch(val) {

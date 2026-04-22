@@ -43,7 +43,6 @@ function createSchema(db) {
       iban TEXT,
       note TEXT,
       referente TEXT,
-      categorie_attive TEXT DEFAULT '["IVA","DICHIARAZIONI","PREVIDENZA","LAVORO","TRIBUTI","BILANCIO"]',
       attivo INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
@@ -58,10 +57,10 @@ function createSchema(db) {
       codice TEXT NOT NULL UNIQUE,
       nome TEXT NOT NULL,
       descrizione TEXT,
-      categoria TEXT,
       scadenza_tipo TEXT CHECK(scadenza_tipo IN ('annuale','semestrale','trimestrale','mensile')),
       is_contabilita INTEGER DEFAULT 0,
       has_rate INTEGER DEFAULT 0,
+      is_checkbox INTEGER DEFAULT 0,
       rate_labels TEXT,
       attivo INTEGER DEFAULT 1
     )
@@ -86,6 +85,7 @@ function createSchema(db) {
       importo_acconto2 REAL,
       importo_iva REAL,
       importo_contabilita REAL,
+      cont_completata INTEGER DEFAULT 0,
       UNIQUE(id_cliente, id_adempimento, anno, mese, trimestre, semestre),
       FOREIGN KEY (id_cliente) REFERENCES clienti(id),
       FOREIGN KEY (id_adempimento) REFERENCES adempimenti(id)
@@ -95,18 +95,19 @@ function createSchema(db) {
 }
 
 function seedData(db) {
-  // ⭐ SP → giallo (#fbbf24), ASS → rosa (#f472b6)
+  // Tipologie
   const tipologie = [
     { codice:"PF",  nome:"Persona Fisica",       descrizione:"Contribuente persona fisica",          colore:"#5b8df6" },
-    { codice:"SP",  nome:"Società di Persone",   descrizione:"SNC, SAS, SS",                         colore:"#fbbf24" }, // giallo
+    { codice:"SP",  nome:"Società di Persone",   descrizione:"SNC, SAS, SS",                         colore:"#fbbf24" },
     { codice:"SC",  nome:"Società di Capitali",  descrizione:"SRL, SPA, SAPA",                       colore:"#34d399" },
-    { codice:"ASS", nome:"Associazione",          descrizione:"Associazioni e enti non commerciali",  colore:"#f472b6" }, // rosa
+    { codice:"ASS", nome:"Associazione",          descrizione:"Associazioni e enti non commerciali",  colore:"#f472b6" },
   ];
   tipologie.forEach(t =>
     db.run(`INSERT INTO tipologie_cliente (codice,nome,descrizione,colore) VALUES (?,?,?,?)`,
       [t.codice, t.nome, t.descrizione, t.colore])
   );
 
+  // Sottotipologie
   const sottotipologie = [
     { it:1, c:"PF_PRIV",     n:"Privato",                   sep:0, ord:1  },
     { it:1, c:"PF_DITTA_SEP",n:"— Ditta Individuale —",     sep:1, ord:2  },
@@ -129,63 +130,60 @@ function seedData(db) {
       [s.it, s.c, s.n, s.sep, s.ord])
   );
 
+  // Adempimenti - SENZA categoria
   const adempimenti = [
-    { codice:"TASSA_NID",  nome:"Tassa NID",              cat:"TUTTI",         scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"INAIL",      nome:"INAIL",                  cat:"LAVORO",        scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"INPS_TRIM",  nome:"INPS Trimestrale",       cat:"PREVIDENZA",    scad:"trimestrale", ic:0, hr:0, rl:null },
-    { codice:"LIPE",       nome:"LIPE",                   cat:"IVA",           scad:"trimestrale", ic:0, hr:0, rl:null },
-    { codice:"ACCONTO_IVA",nome:"Acconto IVA",            cat:"IVA",           scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"CU",         nome:"Certificazione Unica",   cat:"DICHIARAZIONI", scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"770",        nome:"Modello 770",            cat:"DICHIARAZIONI", scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"DICH_IVA",   nome:"Dichiarazione IVA",     cat:"DICHIARAZIONI", scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"BILANCIO",   nome:"Bilancio",               cat:"BILANCIO",      scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"DIR_ANNUALE",nome:"Diritto Annuale CCIAA",  cat:"TRIBUTI",       scad:"annuale",     ic:0, hr:0, rl:null },
-    { codice:"IRAP",       nome:"IRAP",                   cat:"TRIBUTI",       scad:"annuale",     ic:0, hr:1, rl:'["Saldo","1° Acconto","2° Acconto"]' },
-    { codice:"DICH_REDDITI",nome:"Dichiarazione Redditi", cat:"DICHIARAZIONI", scad:"annuale",     ic:0, hr:1, rl:'["Saldo","1° Acconto","2° Acconto"]' },
-    { codice:"MOD730",     nome:"Modello 730",            cat:"DICHIARAZIONI", scad:"annuale",     ic:0, hr:1, rl:'["Saldo","1° Acconto","2° Acconto"]' },
-    { codice:"IMU",        nome:"IMU",                    cat:"TRIBUTI",       scad:"semestrale",  ic:0, hr:0, rl:null },
-    { codice:"CONTABILITA",nome:"Contabilità / F24",      cat:"TRIBUTI",       scad:"mensile",     ic:1, hr:0, rl:null },
+    { codice:"TASSA_NID",  nome:"Tassa NID",              scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"INAIL",      nome:"INAIL",                  scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"INPS_TRIM",  nome:"INPS Trimestrale",       scad:"trimestrale", ic:0, hr:0, cb:0, rl:null },
+    { codice:"LIPE",       nome:"LIPE",                   scad:"trimestrale", ic:0, hr:0, cb:0, rl:null },
+    { codice:"ACCONTO_IVA",nome:"Acconto IVA",            scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"CU",         nome:"Certificazione Unica",   scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"770",        nome:"Modello 770",            scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"DICH_IVA",   nome:"Dichiarazione IVA",      scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"BILANCIO",   nome:"Bilancio",               scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"DIR_ANNUALE",nome:"Diritto Annuale CCIAA",  scad:"annuale",     ic:0, hr:0, cb:0, rl:null },
+    { codice:"IRAP",       nome:"IRAP",                   scad:"annuale",     ic:0, hr:1, cb:0, rl:'["Saldo","1° Acconto","2° Acconto"]' },
+    { codice:"DICH_REDDITI",nome:"Dichiarazione Redditi", scad:"annuale",     ic:0, hr:1, cb:0, rl:'["Saldo","1° Acconto","2° Acconto"]' },
+    { codice:"MOD730",     nome:"Modello 730",            scad:"annuale",     ic:0, hr:1, cb:0, rl:'["Saldo","1° Acconto","2° Acconto"]' },
+    { codice:"IMU",        nome:"IMU",                    scad:"semestrale",  ic:0, hr:0, cb:0, rl:null },
+    { codice:"CONTABILITA",nome:"Contabilità / F24",      scad:"mensile",     ic:1, hr:0, cb:0, rl:null },
+    { codice:"CHECK_SIMPLE",nome:"Checklist Semplice",    scad:"annuale",     ic:0, hr:0, cb:1, rl:null },
   ];
   adempimenti.forEach(a =>
-    db.run(`INSERT INTO adempimenti (codice,nome,categoria,scadenza_tipo,is_contabilita,has_rate,rate_labels) VALUES (?,?,?,?,?,?,?)`,
-      [a.codice, a.nome, a.cat, a.scad, a.ic, a.hr, a.rl])
+    db.run(`INSERT INTO adempimenti (codice,nome,descrizione,scadenza_tipo,is_contabilita,has_rate,is_checkbox,rate_labels) VALUES (?,?,?,?,?,?,?,?)`,
+      [a.codice, a.nome, null, a.scad, a.ic, a.hr, a.cb, a.rl])
   );
 
-  // Clienti esempio
-  // ⭐ Forfettario → periodicita "annuale"
+  // Clienti - SENZA categorie_attive
   const clienti = [
     {
       nome:"Mario Rossi", it:1, ist:3, col2:"ditta", col3:"ordinario", per:"mensile",
       cf:"RSSMRA80A01L219K", piva:"12345678901", email:"mario.rossi@email.it", tel:"333 1234567",
       indirizzo:"Via Roma 1", citta:"Udine", cap:"33100", prov:"UD",
       pec:"mario.rossi@pec.it", sdi:"XXXXXXX", note:"Cliente storico", referente:"Mario Rossi",
-      cat:'["IVA","DICHIARAZIONI","TRIBUTI"]',
     },
     {
       nome:"Anna Bianchi", it:1, ist:1, col2:"privato", col3:"", per:"",
       cf:"BNCNNA85M41F205X", piva:null, email:"anna.bianchi@email.it", tel:"347 9876543",
       indirizzo:"Via Venezia 5", citta:"Trieste", cap:"34100", prov:"TS",
       pec:null, sdi:null, note:"", referente:"",
-      cat:'["DICHIARAZIONI"]',
     },
     {
       nome:"Studio Verdi SNC", it:2, ist:11, col2:"", col3:"ordinaria", per:"mensile",
       cf:null, piva:"01234567890", email:"info@studioverdi.it", tel:"0432 123456",
       indirizzo:"Corso Vittorio 10", citta:"Udine", cap:"33100", prov:"UD",
       pec:"studioverdi@pec.it", sdi:"KRRH6B9", note:"Ref: dott. Verdi", referente:"Dott. Verdi",
-      cat:'["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]',
     },
     {
       nome:"Alfa Srl", it:3, ist:13, col2:"", col3:"ordinaria", per:"trimestrale",
       cf:null, piva:"09876543210", email:"info@alfasrl.it", tel:"040 654321",
       indirizzo:"Zona Industriale", citta:"Trieste", cap:"34100", prov:"TS",
       pec:"alfa@pec.it", sdi:"M5UXCR1", note:"", referente:"Dott. Alfa",
-      cat:'["LAVORO","PREVIDENZA","IVA","DICHIARAZIONI","BILANCIO","TRIBUTI"]',
     },
   ];
   clienti.forEach(c =>
-    db.run(`INSERT INTO clienti (nome,id_tipologia,id_sottotipologia,col2_value,col3_value,periodicita,codice_fiscale,partita_iva,email,telefono,indirizzo,citta,cap,provincia,pec,sdi,note,referente,categorie_attive) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [c.nome, c.it, c.ist, c.col2, c.col3, c.per, c.cf, c.piva, c.email, c.tel, c.indirizzo, c.citta, c.cap, c.prov, c.pec, c.sdi, c.note, c.referente, c.cat])
+    db.run(`INSERT INTO clienti (nome,id_tipologia,id_sottotipologia,col2_value,col3_value,periodicita,codice_fiscale,partita_iva,email,telefono,indirizzo,citta,cap,provincia,pec,sdi,note,referente) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [c.nome, c.it, c.ist, c.col2, c.col3, c.per, c.cf, c.piva, c.email, c.tel, c.indirizzo, c.citta, c.cap, c.prov, c.pec, c.sdi, c.note, c.referente])
   );
 
   console.log("🌱 Dati seed inseriti");

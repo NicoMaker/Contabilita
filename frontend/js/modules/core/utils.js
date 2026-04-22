@@ -42,6 +42,33 @@ function toggleAdpCompletato(event, id) {
   showNotif(nuovoStato === "completato" ? "✅ Completato!" : "⭕ Ripristinato a Da fare", "success");
 }
 
+// ─── IMPOSTA STATO CHECKBOX (tre bottoni nella pill) ──────────
+function setCbxStato(event, id, nuovoStato) {
+  event.preventDefault();
+  event.stopPropagation();
+  const r = _rowStore[id];
+  if (!r) return;
+  if (r.stato === nuovoStato) return; // già in quello stato
+  const data = {
+    id,
+    stato: nuovoStato,
+    data_scadenza:     r.data_scadenza || null,
+    data_completamento: nuovoStato === "completato" ? new Date().toISOString().split("T")[0] : null,
+    note:              r.note || null,
+    importo:           null,
+    importo_saldo:     null,
+    importo_acconto1:  null,
+    importo_acconto2:  null,
+    importo_iva:       null,
+    importo_contabilita: null,
+    cont_completata:   0,
+  };
+  _rowStore[id] = { ...r, stato: nuovoStato, data_completamento: data.data_completamento };
+  socket.emit("update:adempimento_stato", data);
+  const icons = { completato:"✅ Fatto!", n_a:"➖ N/A", da_fare:"☐ Da fare" };
+  showNotif(icons[nuovoStato] || "Aggiornato", "success");
+}
+
 // ─── TOGGLE CHECKBOX ADEMPIMENTO (click sulla checkbox pill) ──
 function toggleCheckboxAdp(event, id) {
   event.preventDefault();

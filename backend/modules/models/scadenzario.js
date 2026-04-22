@@ -7,7 +7,6 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
       ac.*,
       a.codice as adempimento_codice,
       a.nome as adempimento_nome,
-      a.categoria,
       a.scadenza_tipo,
       a.is_contabilita,
       a.has_rate,
@@ -39,17 +38,13 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
     sql += ` AND ac.stato=?`;
     params.push(filtri.stato);
   }
-  if (filtri.categoria && filtri.categoria !== "tutti") {
-    sql += ` AND a.categoria=?`;
-    params.push(filtri.categoria);
-  }
   if (filtri.search?.trim()) {
     const s = `%${filtri.search.trim()}%`;
     sql += ` AND (a.nome LIKE ? OR a.codice LIKE ?)`;
     params.push(s, s);
   }
 
-  sql += ` ORDER BY a.categoria, a.nome, ac.mese, ac.trimestre, ac.semestre`;
+  sql += ` ORDER BY a.nome, ac.mese, ac.trimestre, ac.semestre`;
   return queryAll(sql, params);
 }
 
@@ -59,7 +54,6 @@ function getScadenzarioGlobale(anno, filtri = {}) {
       ac.*,
       a.codice as adempimento_codice,
       a.nome as adempimento_nome,
-      a.categoria,
       a.scadenza_tipo,
       a.is_contabilita,
       a.has_rate,
@@ -92,10 +86,6 @@ function getScadenzarioGlobale(anno, filtri = {}) {
     sql += ` AND ac.stato=?`;
     params.push(filtri.stato);
   }
-  if (filtri.categoria && filtri.categoria !== "tutti") {
-    sql += ` AND a.categoria=?`;
-    params.push(filtri.categoria);
-  }
   if (filtri.adempimento) {
     sql += ` AND a.nome=?`;
     params.push(filtri.adempimento);
@@ -110,13 +100,12 @@ function getScadenzarioGlobale(anno, filtri = {}) {
   return queryAll(sql, params);
 }
 
+// ⭐ NUOVA LOGICA: genera per TUTTI gli adempimenti (nessun filtro categoria)
 function generaScadenzarioInterno(id_cliente, anno) {
   const cliente = queryOne(`SELECT * FROM clienti WHERE id=?`, [id_cliente]);
   if (!cliente) throw new Error("Cliente non trovato");
-  const cat = JSON.parse(cliente.categorie_attive || "[]");
-  const adps = queryAll(`SELECT * FROM adempimenti WHERE attivo=1`).filter(
-    (a) => a.categoria === "TUTTI" || cat.includes(a.categoria),
-  );
+  // ⭐ TUTTI gli adempimenti attivi
+  const adps = queryAll(`SELECT * FROM adempimenti WHERE attivo=1`);
   let tot = 0;
   adps.forEach((a) => {
     tot += inserisciAdempimentoSeAssente(id_cliente, a, anno);
@@ -129,12 +118,9 @@ function generaTuttiClientiAnno(anno) {
   const adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo=1`);
   let tot = 0;
   clienti.forEach((c) => {
-    const cat = JSON.parse(c.categorie_attive || "[]");
-    adempimenti
-      .filter((a) => a.categoria === "TUTTI" || cat.includes(a.categoria))
-      .forEach((a) => {
-        tot += inserisciAdempimentoSeAssente(c.id, a, anno);
-      });
+    adempimenti.forEach((a) => {
+      tot += inserisciAdempimentoSeAssente(c.id, a, anno);
+    });
   });
   return tot;
 }

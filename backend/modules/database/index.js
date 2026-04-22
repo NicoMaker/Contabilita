@@ -63,6 +63,8 @@ function migrateDB() {
     `ALTER TABLE clienti ADD COLUMN periodicita TEXT`,
     `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
     `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
+    // ⭐ Rimuovi categorie_attive se esiste
+    `ALTER TABLE clienti DROP COLUMN categorie_attive`,
   ];
   migrations.forEach((sql) => {
     try {
