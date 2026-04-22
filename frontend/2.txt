@@ -1,3 +1,0 @@
-togliere categorie da ogni parte e poi mettimi se rate secondo valore ckechbox nel modale o attivo o no la parte di contabilità se attiva uno dei due li allora blu altrimenti verde 
-
-in scadenziario clienti ckeckbox puo avere anche pero n/a che selezioni accanto  e quando crei adempimenti da ogni parte senza categoria 

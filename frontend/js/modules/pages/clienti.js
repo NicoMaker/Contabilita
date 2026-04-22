@@ -1,6 +1,9 @@
 // ═══════════════════════════════════════════════════════════════
-// CLIENTI.JS — Gestione clienti: lista, CRUD, modal, filtri
+// CLIENTI.JS — Gestione clienti con configurazione annuale
 // ═══════════════════════════════════════════════════════════════
+
+let currentClienteAnno = new Date().getFullYear();
+let currentClienteId = null;
 
 // ─── FILTRI ───────────────────────────────────────────────────
 const applyClientiFiltriDB = debounce(() => {
@@ -9,7 +12,12 @@ const applyClientiFiltriDB = debounce(() => {
   const col2 = document.getElementById("filter-col2")?.value || "";
   const col3 = document.getElementById("filter-col3")?.value || "";
   const periodicita = document.getElementById("filter-periodicita")?.value || "";
-  socket.emit("get:clienti", { search, tipologia, col2, col3, periodicita });
+  const anno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:clienti", { search, tipologia, col2, col3, periodicita, anno });
+  } else {
+    console.error("Socket non disponibile");
+  }
 }, 300);
 
 function applyClientiFiltri() { applyClientiFiltriDB(); }
@@ -17,7 +25,51 @@ function applyClientiFiltri() { applyClientiFiltriDB(); }
 function resetClientiFiltri() {
   ["global-search-clienti", "filter-tipo", "filter-col2", "filter-col3", "filter-periodicita"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-  socket.emit("get:clienti", {});
+  const annoSelect = document.getElementById("filter-anno");
+  if (annoSelect) annoSelect.value = new Date().getFullYear();
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:clienti", { anno: new Date().getFullYear() });
+  }
+}
+
+// ⭐ Genera automaticamente la configurazione per l'anno successivo se manca
+function ensureNextYearConfig(clienteId, currentAnno) {
+  const nextAnno = currentAnno + 1;
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:cliente", { id: clienteId, anno: nextAnno });
+    socket.once("res:cliente", ({ success, data }) => {
+      if (success && !data.id_tipologia) {
+        // Se non esiste configurazione per l'anno successivo, copia quella corrente
+        const currentConfig = state.clienti.find(c => c.id === clienteId);
+        if (currentConfig && currentConfig.id_tipologia) {
+          socket.emit("update:cliente", {
+            id: clienteId,
+            anno: nextAnno,
+            nome: currentConfig.nome,
+            id_tipologia: currentConfig.id_tipologia,
+            id_sottotipologia: currentConfig.id_sottotipologia,
+            col2_value: currentConfig.col2_value,
+            col3_value: currentConfig.col3_value,
+            periodicita: currentConfig.periodicita,
+            codice_fiscale: currentConfig.codice_fiscale,
+            partita_iva: currentConfig.partita_iva,
+            email: currentConfig.email,
+            telefono: currentConfig.telefono,
+            indirizzo: currentConfig.indirizzo,
+            citta: currentConfig.citta,
+            cap: currentConfig.cap,
+            provincia: currentConfig.provincia,
+            pec: currentConfig.pec,
+            sdi: currentConfig.sdi,
+            iban: currentConfig.iban,
+            referente: currentConfig.referente,
+            note: currentConfig.note,
+          });
+          console.log(`✅ Configurazione automatica copiata per ${currentConfig.nome} anno ${nextAnno}`);
+        }
+      }
+    });
+  }
 }
 
 // ─── RENDER LISTA ─────────────────────────────────────────────
@@ -32,64 +84,72 @@ function renderClientiTabella(clienti) {
   const curCol2 = document.getElementById("filter-col2")?.value || "";
   const curCol3 = document.getElementById("filter-col3")?.value || "";
   const curPeriodicita = document.getElementById("filter-periodicita")?.value || "";
+  const currentAnno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
 
-  // ⭐ HEADER FILTRI
+  // Anni per il filtro (da 2020 a 2030)
+  const anniOptions = [];
+  for (let y = 2020; y <= 2030; y++) {
+    anniOptions.push(`<option value="${y}" ${y === currentAnno ? "selected" : ""}>${y}</option>`);
+  }
+
   const filterBar = `
     <div class="filtri-avanzati no-print" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:var(--r-sm);">
       <span style="font-size:11px;color:var(--text3);font-weight:700;">🔍 Filtri:</span>
+      <select id="filter-anno" class="select" style="width:100px" onchange="applyClientiFiltri()" title="Filtra per anno">
+        ${anniOptions.join("")}
+      </select>
       <select id="filter-tipo" class="select" style="width:160px" onchange="applyClientiFiltri()" title="Filtra per tipologia cliente">
         <option value="" ${!curTipo ? "selected" : ""}>📋 Tutti i tipi</option>
-        <option value="PF" ${curTipo === "PF" ? "selected" : ""}>👤 PF – Persona Fisica</option>
-        <option value="SP" ${curTipo === "SP" ? "selected" : ""}>🤝 SP – Soc. Persone</option>
-        <option value="SC" ${curTipo === "SC" ? "selected" : ""}>🏢 SC – Soc. Capitali</option>
-        <option value="ASS" ${curTipo === "ASS" ? "selected" : ""}>🏛️ ASS – Associazione</option>
+        <option value="PF" ${curTipo === "PF" ? "selected" : ""}>👤 PF</option>
+        <option value="SP" ${curTipo === "SP" ? "selected" : ""}>🤝 SP</option>
+        <option value="SC" ${curTipo === "SC" ? "selected" : ""}>🏢 SC</option>
+        <option value="ASS" ${curTipo === "ASS" ? "selected" : ""}>🏛️ ASS</option>
       </select>
       <select id="filter-col2" class="select" style="width:190px" onchange="applyClientiFiltri()" title="Filtra per sottocategoria">
-        <option value="" ${!curCol2 ? "selected" : ""}>📋 Tutte le sottocategorie</option>
+        <option value="" ${!curCol2 ? "selected" : ""}>📋 Tutte</option>
         <option value="privato" ${curCol2 === "privato" ? "selected" : ""}>👤 Privato</option>
-        <option value="ditta" ${curCol2 === "ditta" ? "selected" : ""}>🏢 Ditta Individuale</option>
+        <option value="ditta" ${curCol2 === "ditta" ? "selected" : ""}>🏢 Ditta</option>
         <option value="socio" ${curCol2 === "socio" ? "selected" : ""}>🤝 Socio</option>
         <option value="professionista" ${curCol2 === "professionista" ? "selected" : ""}>⚕️ Professionista</option>
       </select>
-      <select id="filter-col3" class="select" style="width:180px" onchange="applyClientiFiltri()" title="Filtra per regime fiscale">
-        <option value="" ${!curCol3 ? "selected" : ""}>📋 Tutti i regimi</option>
+      <select id="filter-col3" class="select" style="width:180px" onchange="applyClientiFiltri()" title="Filtra per regime">
+        <option value="" ${!curCol3 ? "selected" : ""}>📋 Tutti</option>
         <option value="ordinario" ${curCol3 === "ordinario" ? "selected" : ""}>📊 Ordinario</option>
         <option value="semplificato" ${curCol3 === "semplificato" ? "selected" : ""}>📄 Semplificato</option>
         <option value="forfettario" ${curCol3 === "forfettario" ? "selected" : ""}>💰 Forfettario</option>
         <option value="ordinaria" ${curCol3 === "ordinaria" ? "selected" : ""}>📊 Ordinaria</option>
         <option value="semplificata" ${curCol3 === "semplificata" ? "selected" : ""}>📄 Semplificata</option>
       </select>
-      <select id="filter-periodicita" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per periodicità contabile">
-        <option value="" ${!curPeriodicita ? "selected" : ""}>📋 Tutte le periodicità</option>
+      <select id="filter-periodicita" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per periodicità">
+        <option value="" ${!curPeriodicita ? "selected" : ""}>📋 Tutte</option>
         <option value="mensile" ${curPeriodicita === "mensile" ? "selected" : ""}>📅 Mensile</option>
         <option value="trimestrale" ${curPeriodicita === "trimestrale" ? "selected" : ""}>📆 Trimestrale</option>
         <option value="annuale" ${curPeriodicita === "annuale" ? "selected" : ""}>📅 Annuale</option>
       </select>
-      <button class="btn btn-sm btn-primary" onclick="resetClientiFiltri()" style="margin-left:auto" title="Azzera tutti i filtri">⟳ Tutti</button>
+      <button class="btn btn-sm btn-primary" onclick="resetClientiFiltri()" style="margin-left:auto">⟳ Tutti</button>
     </div>
   `;
 
-  // ⭐ TABELLA CLIENTI (una riga per cliente, chiara)
+  // ⭐ TABELLA CLIENTI
   let tableRows = "";
-  if (clienti.length === 0) {
-    tableRows = `<tr><td colspan="4"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
+  if (!clienti || clienti.length === 0) {
+    tableRows = `<tr><td colspan="4"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato per l'anno ${currentAnno}</p></div></td></tr>`;
   } else {
     tableRows = clienti.map(c => {
-      const tipColor = getTipologiaColor(c.tipologia_codice);
+      const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
       const avatar = getAvatar(c.nome);
-      const sottotipoLabel = getLabelSottotipologia(c);
+      const sottotipoLabel = c.sottotipologia_nome || "";
 
-      // Badge tipologia
-      const tipBadge = `<span class="badge b-${(c.tipologia_codice || "").toLowerCase()}" style="background:${tipColor}22;color:${tipColor};border-color:${tipColor}44" title="${TIPOLOGIE_INFO[c.tipologia_codice]?.desc || ""}">${c.tipologia_codice || "-"}</span>`;
+      const tipBadge = `<span class="badge b-${(c.tipologia_codice || "").toLowerCase()}" style="background:${tipColor}22;color:${tipColor};border-color:${tipColor}44">${c.tipologia_codice || "-"}</span>`;
 
-      // Badge colonne
       let colBadges = "";
-      if (c.col2_value) colBadges += `<span class="badge-info" title="Sottocategoria">📁 ${col2Map[c.col2_value] || c.col2_value}</span>`;
-      if (c.col3_value) colBadges += `<span class="badge-info" title="Regime">⚙️ ${col3Map[c.col3_value] || c.col3_value}</span>`;
-      if (c.periodicita) colBadges += `<span class="badge-per" title="Periodicità">📅 ${periodicitaMap[c.periodicita] || c.periodicita}</span>`;
+      if (c.col2_value) colBadges += `<span class="badge-info">📁 ${col2Map[c.col2_value] || c.col2_value}</span>`;
+      if (c.col3_value) colBadges += `<span class="badge-info">⚙️ ${col3Map[c.col3_value] || c.col3_value}</span>`;
+      if (c.periodicita) colBadges += `<span class="badge-per">📅 ${periodicitaMap[c.periodicita] || c.periodicita}</span>`;
 
-      // Sottotipologia completa (se presente)
-      const subHtml = sottotipoLabel ? `<div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--mono)">🏷️ ${sottotipoLabel}</div>` : "";
+      const configInfo = c.config_anno && c.config_anno !== currentAnno
+        ? `<div style="font-size:9px;color:var(--yellow);margin-top:3px" title="Configurazione ereditata dal ${c.config_anno}">📌 eredita ${c.config_anno}</div>`
+        : "";
 
       return `<tr class="clickable" onclick="showClienteDettaglio(${c.id})" style="cursor:pointer">
         <td style="padding:12px 16px">
@@ -98,12 +158,13 @@ function renderClientiTabella(clienti) {
             <div>
               <div style="font-weight:700;font-size:15px">${escAttr(c.nome)}</div>
               <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px">${c.codice_fiscale || c.partita_iva || "—"}</div>
+              ${configInfo}
             </div>
           </div>
         </td>
         <td style="padding:12px 16px">
           <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${tipBadge} ${colBadges}</div>
-          ${subHtml}
+          ${sottotipoLabel ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">🏷️ ${sottotipoLabel}</div>` : ""}
         </td>
         <td style="padding:12px 16px;color:var(--text2);font-size:13px">${c.email || "—"}</td>
         <td class="no-print" style="padding:12px 16px;white-space:nowrap">
@@ -113,67 +174,105 @@ function renderClientiTabella(clienti) {
             <button class="btn btn-xs btn-danger" onclick="deleteCliente(${c.id})" title="Elimina">🗑️</button>
           </div>
         </td>
-      </tr>`;
+       </tr>`;
     }).join("");
   }
 
-  const html = `
-    ${filterBar}
+  const html = `${filterBar}
     <div class="table-wrap">
       <div class="table-header no-print">
-        <h3>Clienti <span style="font-size:13px;color:var(--text3);margin-left:8px">(${clienti.length})</span></h3>
+        <h3>Clienti <span style="font-size:13px;color:var(--text3);margin-left:8px">(${clienti ? clienti.length : 0})</span></h3>
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead>
           <tr style="background:var(--surface2);border-bottom:1px solid var(--border)">
             <th style="text-align:left;padding:12px 16px;font-size:12px;color:var(--text2)">Cliente</th>
-            <th style="text-align:left;padding:12px 16px;font-size:12px;color:var(--text2)">Classificazione</th>
+            <th style="text-align:left;padding:12px 16px;font-size:12px;color:var(--text2)">Classificazione ${currentAnno}</th>
             <th style="text-align:left;padding:12px 16px;font-size:12px;color:var(--text2)">Email</th>
             <th style="text-align:left;padding:12px 16px;font-size:12px;color:var(--text2)" class="no-print">Azioni</th>
-          </tr>
+           </tr>
         </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
+        <tbody>${tableRows}</tbody>
       </table>
-    </div>
-  `;
+    </div>`;
 
   document.getElementById("content").innerHTML = html;
 }
 
-// ─── DETTAGLIO CLIENTE ────────────────────────────────────────
+// ─── DETTAGLIO CLIENTE CON STORICO ────────────────────────────
 function showClienteDettaglio(id) {
-  const c = state.clienti.find(x => x.id === id);
-  if (!c) return;
-  state._currentClienteDettaglio = c;
-  const tipColor = getTipologiaColor(c.tipologia_codice);
-  const sottotipoLabel = getLabelSottotipologia(c);
+  currentClienteId = id;
+  currentClienteAnno = new Date().getFullYear();
+  loadClienteDettaglio(id, currentClienteAnno);
+}
+
+function loadClienteDettaglio(id, anno) {
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:cliente", { id, anno });
+    socket.emit("get:cliente_storico", { id });
+  } else {
+    console.error("Socket non disponibile");
+  }
+}
+
+// Questi listener devono essere registrati una volta sola
+if (typeof socket !== 'undefined') {
+  socket.on("res:cliente", ({ success, data, anno }) => {
+    if (!success || !data) return;
+    currentClienteAnno = anno;
+    renderClienteDettaglio(data, anno);
+  });
+
+  socket.on("res:cliente_storico", ({ success, data }) => {
+    if (!success) return;
+    renderStoricoConfig(data);
+  });
+}
+
+function renderClienteDettaglio(c, anno) {
+  const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
   const avatar = getAvatar(c.nome);
+  const sottotipoLabel = c.sottotipologia_nome || "";
 
   const col2LMap = { privato: "Privato", ditta: "Ditta Individuale", socio: "Socio", professionista: "Professionista" };
   const col3LMap = { ordinario: "Ordinario", semplificato: "Semplificato", forfettario: "Forfettario", ordinaria: "Ordinaria", semplificata: "Semplificata" };
   const periodicitaMap = { mensile: "📅 Mensile", trimestrale: "📆 Trimestrale", annuale: "📅 Annuale" };
 
+  // Anni per il selettore (da 2020 a 2030)
+  const anniOptions = [];
+  for (let y = 2020; y <= 2030; y++) {
+    anniOptions.push(`<option value="${y}" ${y === anno ? "selected" : ""}>${y}</option>`);
+  }
+
   const classificazioneHtml = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:13px;color:var(--text2)">📅 Configurazione per anno:</span>
+        <select id="det-anno-select" class="select" style="width:100px" onchange="onDettaglioAnnoChange()">
+          ${anniOptions.join("")}
+        </select>
+        ${c.config_anno && c.config_anno !== anno ? `<span class="badge-info" style="background:var(--yellow)18;color:var(--yellow)">⚠️ Ereditata dal ${c.config_anno}</span>` : ""}
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="editClienteConfig(${c.id}, ${anno})" title="Modifica configurazione per quest'anno">✏️ Modifica per ${anno}</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px">
       <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px;border-left:3px solid ${tipColor}">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em">Tipologia</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase">Tipologia</div>
         <div style="font-size:16px;font-weight:700;margin-top:4px">${c.tipologia_codice || "-"} — ${c.tipologia_nome || ""}</div>
       </div>
       ${c.col2_value ? `
       <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px;border-left:3px solid #fb923c">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em">Sottocategoria</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase">Sottocategoria</div>
         <div style="font-size:16px;font-weight:700;margin-top:4px">${col2LMap[c.col2_value] || c.col2_value}</div>
       </div>` : ""}
       ${c.col3_value ? `
       <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px;border-left:3px solid #5b8df6">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em">Regime</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase">Regime</div>
         <div style="font-size:16px;font-weight:700;margin-top:4px">${col3LMap[c.col3_value] || c.col3_value}</div>
       </div>` : ""}
       ${c.periodicita ? `
       <div style="background:var(--surface2);border-radius:var(--r-sm);padding:14px;border-left:3px solid #22d3ee">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em">Periodicità</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase">Periodicità</div>
         <div style="font-size:16px;font-weight:700;margin-top:4px">${periodicitaMap[c.periodicita] || c.periodicita}</div>
       </div>` : ""}
     </div>
@@ -185,47 +284,252 @@ function showClienteDettaglio(id) {
       <div class="det-avatar" style="width:48px;height:48px;background:${tipColor}22;border:2px solid ${tipColor};color:${tipColor};display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:18px;font-weight:800">${avatar}</div>
       <div>
         <div style="font-size:20px;font-weight:800">${escAttr(c.nome)}</div>
-        <div style="font-size:13px;color:var(--text2);margin-top:4px">${getClassificazioneCompleta(c)}</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:4px">${c.codice_fiscale || c.partita_iva || ""}</div>
       </div>
     </div>
-    <div style="margin-bottom:12px;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em">📊 Classificazione dettagliata</div>
+    <div style="margin-bottom:12px;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase">📊 Classificazione per ${anno}</div>
     ${classificazioneHtml}
+    <div id="storico-config-container" style="margin-top:20px"></div>
     ${renderClienteDatiRiferimento(c)}`;
 
   const actions = document.getElementById("modal-cliente-det-actions");
   if (actions) {
     actions.innerHTML = `
-      <button class="btn btn-danger btn-sm" onclick="deleteClienteFromDettaglio()" title="Elimina il cliente">🗑️ Elimina</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteClienteFromDettaglio()">🗑️ Elimina</button>
       <div style="flex:1"></div>
       <button class="btn btn-secondary" onclick="closeModal('modal-cliente-dettaglio')">Chiudi</button>
-      <button class="btn btn-secondary" onclick="editClienteFromDettaglio()" title="Modifica">✏️ Modifica</button>
       <button class="btn btn-primary" onclick="goToClienteScadenzario()">📅 Vai a Scadenzario</button>`;
   }
   openModal("modal-cliente-dettaglio");
 }
 
-function editClienteFromDettaglio() {
-  const c = state._currentClienteDettaglio;
-  if (!c) return;
-  closeModal("modal-cliente-dettaglio");
-  editCliente(c.id);
+function renderStoricoConfig(storico) {
+  const container = document.getElementById("storico-config-container");
+  if (!container) return;
+
+  if (!storico || storico.length === 0) {
+    container.innerHTML = `<div class="infobox" style="font-size:12px">📋 Nessuna configurazione storica. Modifica altri anni per vedere lo storico.</div>`;
+    return;
+  }
+
+  const col3Map = { ordinario: "Ord.", semplificato: "Sempl.", forfettario: "Forf.", ordinaria: "Ord.", semplificata: "Sempl." };
+  const periodicitaMap = { mensile: "Mensile", trimestrale: "Trimestrale", annuale: "Annuale" };
+
+  let rows = "";
+  storico.forEach(cfg => {
+    rows += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 12px;font-weight:700;color:var(--accent)">${cfg.anno}</td>
+      <td style="padding:8px 12px"><span class="badge b-${(cfg.tipologia_codice || "").toLowerCase()}">${cfg.tipologia_codice || "-"}</span></td>
+      <td style="padding:8px 12px">${cfg.col2_value || "-"}</td>
+      <td style="padding:8px 12px">${cfg.col3_value ? (col3Map[cfg.col3_value] || cfg.col3_value) : "-"}</td>
+      <td style="padding:8px 12px">${cfg.periodicita ? (periodicitaMap[cfg.periodicita] || cfg.periodicita) : "-"}</td>
+      <td style="padding:8px 12px"><button class="btn btn-xs btn-secondary" onclick="editClienteConfig(${cfg.id_cliente}, ${cfg.anno})">✏️</button></td>
+     </tr>`;
+  });
+
+  container.innerHTML = `
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📜 Storico configurazioni per anno</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;font-size:12px">
+          <thead><tr style="background:var(--surface2)">
+            <th style="padding:8px 12px;text-align:left">Anno</th><th style="padding:8px 12px;text-align:left">Tipo</th><th style="padding:8px 12px;text-align:left">Col2</th><th style="padding:8px 12px;text-align:left">Col3</th><th style="padding:8px 12px;text-align:left">Periodicità</th><th style="padding:8px 12px;text-align:left"></th>
+           </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="infobox" style="margin-top:12px;font-size:11px">
+        💡 <strong>Suggerimento:</strong> Se un cliente cambia regime (es. da Forfettario a Ordinario) in un nuovo anno, puoi modificare la configurazione per quell'anno specifico. 
+        Gli adempimenti degli anni precedenti rimarranno invariati.
+      </div>
+    </div>`;
 }
 
-function deleteClienteFromDettaglio() {
-  const c = state._currentClienteDettaglio;
-  if (!c) return;
-  closeModal("modal-cliente-dettaglio");
-  deleteCliente(c.id);
-}
-
-function goToClienteScadenzario() {
-  if (state._currentClienteDettaglio) {
-    closeModal("modal-cliente-dettaglio");
-    goScadenzario(state._currentClienteDettaglio.id);
+function onDettaglioAnnoChange() {
+  const anno = parseInt(document.getElementById("det-anno-select").value);
+  if (currentClienteId) {
+    loadClienteDettaglio(currentClienteId, anno);
   }
 }
 
-// ─── MODAL 4 COLONNE ──────────────────────────────────────────
+function editClienteConfig(id, anno) {
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:cliente", { id, anno });
+    socket.once("res:cliente", ({ success, data }) => {
+      if (!success || !data) return;
+      openEditClienteModal(data, anno);
+    });
+  }
+}
+
+function editClienteFromDettaglio() {
+  const anno = parseInt(document.getElementById("det-anno-select")?.value || new Date().getFullYear());
+  if (currentClienteId) {
+    editClienteConfig(currentClienteId, anno);
+  }
+}
+
+function deleteClienteFromDettaglio() {
+  if (currentClienteId && confirm("Eliminare questo cliente? L'operazione è irreversibile.")) {
+    closeModal("modal-cliente-dettaglio");
+    deleteCliente(currentClienteId);
+  }
+}
+
+function goToClienteScadenzario() {
+  if (currentClienteId) {
+    closeModal("modal-cliente-dettaglio");
+    goScadenzario(currentClienteId);
+  }
+}
+
+// ⭐ EDIT CLIENTE (funzione principale chiamata dal bottone ✏️)
+function editCliente(id) {
+  const anno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
+  editClienteConfig(id, anno);
+}
+
+// ─── MODALE MODIFICA CLIENTE (con supporto anno) ──────────────
+function openEditClienteModal(cliente, anno) {
+  document.getElementById("modal-cliente-title").textContent = `Modifica Cliente - Configurazione ${anno}`;
+  document.getElementById("cliente-id").value = cliente.id;
+  document.getElementById("cliente-edit-anno").value = anno;
+  
+  // Mostra info anno
+  const annoInfo = document.getElementById("cliente-anno-info");
+  if (annoInfo) {
+    annoInfo.innerHTML = `<div class="infobox" style="margin-bottom:16px;background:var(--accent-d);border-color:var(--accent)">📅 Stai modificando la configurazione per l'anno <strong>${anno}</strong>. Le modifiche non influenzeranno gli anni precedenti.</div>`;
+  }
+
+  // Campi anagrafici
+  const fields = {
+    "c-nome": cliente.nome, "c-cf": cliente.codice_fiscale, "c-piva": cliente.partita_iva,
+    "c-email": cliente.email, "c-tel": cliente.telefono, "c-indirizzo": cliente.indirizzo,
+    "c-note": cliente.note, "c-pec": cliente.pec, "c-sdi": cliente.sdi, "c-citta": cliente.citta,
+    "c-cap": cliente.cap, "c-prov": cliente.provincia, "c-referente": cliente.referente, "c-iban": cliente.iban,
+  };
+  Object.entries(fields).forEach(([elId, val]) => { const el = document.getElementById(elId); if (el) el.value = val || ""; });
+
+  populateTipologiaSelect(cliente.id_tipologia);
+  const col2Val = cliente.col2_value || "", col3Val = cliente.col3_value || "", col4Val = cliente.periodicita || "";
+  const badge = document.getElementById("col4-forfettario-badge");
+  if (badge) badge.style.display = "none";
+
+  setTimeout(() => {
+    if (document.getElementById("c-col2")) document.getElementById("c-col2").value = col2Val;
+    if (document.getElementById("c-col3")) document.getElementById("c-col3").value = col3Val;
+    aggiornaColonneCliente();
+    setTimeout(() => {
+      const tipCodice = _getTipologiaCodice();
+      if (REGIMI_ANNUALI.includes(col3Val)) {
+        _aggiornCol4BasedOnCol3(tipCodice, col3Val);
+      } else {
+        if (document.getElementById("c-col4")) document.getElementById("c-col4").value = col4Val;
+      }
+      aggiornaRiepilogoClassificazione();
+    }, 50);
+  }, 60);
+
+  openModal("modal-cliente");
+}
+
+function openNuovoCliente() {
+  document.getElementById("modal-cliente-title").textContent = "Nuovo Cliente";
+  document.getElementById("cliente-id").value = "";
+  document.getElementById("cliente-edit-anno").value = new Date().getFullYear();
+  const annoInfo = document.getElementById("cliente-anno-info");
+  if (annoInfo) annoInfo.innerHTML = "";
+
+  ["c-nome", "c-cf", "c-piva", "c-email", "c-tel", "c-indirizzo", "c-note", "c-pec", "c-sdi", "c-citta", "c-cap", "c-prov", "c-referente", "c-iban"]
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  if (document.getElementById("c-col2")) document.getElementById("c-col2").value = "";
+  if (document.getElementById("c-col3")) document.getElementById("c-col3").value = "";
+  if (document.getElementById("c-col4")) document.getElementById("c-col4").value = "";
+  const badge = document.getElementById("col4-forfettario-badge");
+  if (badge) badge.style.display = "none";
+  populateTipologiaSelect(state.tipologie[0]?.id);
+  aggiornaColonneCliente();
+  openModal("modal-cliente");
+}
+
+function saveCliente() {
+  const id = document.getElementById("cliente-id").value;
+  const anno = parseInt(document.getElementById("cliente-edit-anno")?.value || new Date().getFullYear());
+  const nome = document.getElementById("c-nome").value.trim();
+  if (!nome) { showNotif("Il nome è obbligatorio", "error"); return; }
+  if (!validaClassificazioneCliente()) return;
+
+  const col2Val = document.getElementById("c-col2")?.value || "";
+  const col3Val = document.getElementById("c-col3")?.value || "";
+  const col4Val = REGIMI_ANNUALI.includes(col3Val) ? "annuale" : (document.getElementById("c-col4")?.value || "");
+
+  const data = {
+    id: id ? parseInt(id) : undefined,
+    anno: anno,
+    nome,
+    id_tipologia: parseInt(document.getElementById("c-tipologia").value),
+    id_sottotipologia: _calcolaSottotipologiaId() || null,
+    col2_value: col2Val || null,
+    col3_value: col3Val || null,
+    periodicita: col4Val || null,
+    codice_fiscale: document.getElementById("c-cf")?.value.trim().toUpperCase() || null,
+    partita_iva: document.getElementById("c-piva")?.value.trim() || null,
+    email: document.getElementById("c-email")?.value.trim() || null,
+    telefono: document.getElementById("c-tel")?.value.trim() || null,
+    indirizzo: document.getElementById("c-indirizzo")?.value.trim() || null,
+    citta: document.getElementById("c-citta")?.value.trim() || null,
+    cap: document.getElementById("c-cap")?.value.trim() || null,
+    provincia: document.getElementById("c-prov")?.value.trim().toUpperCase() || null,
+    pec: document.getElementById("c-pec")?.value.trim() || null,
+    sdi: document.getElementById("c-sdi")?.value.trim().toUpperCase() || null,
+    iban: document.getElementById("c-iban")?.value.trim().toUpperCase() || null,
+    referente: document.getElementById("c-referente")?.value.trim() || null,
+    note: document.getElementById("c-note")?.value.trim() || null,
+  };
+
+  if (id) {
+    if (typeof socket !== 'undefined') {
+      socket.emit("update:cliente", data);
+    }
+  } else {
+    if (typeof socket !== 'undefined') {
+      socket.emit("create:cliente", data);
+    }
+  }
+  
+  closeModal("modal-cliente");
+  setTimeout(() => {
+    if (typeof socket !== 'undefined') {
+      socket.emit("get:clienti", { anno: new Date().getFullYear() });
+    }
+  }, 500);
+}
+
+function deleteCliente(id) {
+  if (confirm("Eliminare questo cliente? L'operazione è irreversibile.")) {
+    if (typeof socket !== 'undefined') {
+      socket.emit("delete:cliente", { id });
+    }
+  }
+}
+
+function goScadenzario(id) {
+  const c = state.clienti.find(x => x.id === id);
+  if (c) {
+    state.selectedCliente = c;
+    document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
+    document.querySelector('[data-page="scadenzario"]').classList.add("active");
+    renderPage("scadenzario");
+  } else {
+    state._gotoClienteId = id;
+    state._pending = "scadenzario";
+    if (typeof socket !== 'undefined') {
+      socket.emit("get:clienti");
+    }
+  }
+}
+
+// ─── FUNZIONI ORIGINALI PER LE 4 COLONNE ──────────────────────
 function aggiornaColonneCliente() {
   const tipCodice = _getTipologiaCodice();
   const col2Wrap = document.getElementById("wrap-col2");
@@ -273,7 +577,7 @@ function _aggiornCol4BasedOnCol3(tipCodice, col3Val) {
       badge = document.createElement("div");
       badge.id = "col4-forfettario-badge";
       badge.style.cssText = "font-size:12px;color:var(--yellow);background:var(--yellow)18;border:1px solid var(--yellow)33;border-radius:var(--r-sm);padding:7px 12px;margin-top:8px;grid-column:1/-1";
-      badge.innerHTML = `<span style="font-size:14px">📅</span> Regime <strong>Forfettario</strong> — periodicità impostata automaticamente su <strong>Annuale</strong>`;
+      badge.innerHTML = `<span style="font-size:14px">📅</span> Regime <strong>Forfettario</strong> — periodicità automatica: <strong>Annuale</strong>`;
       document.querySelector(".quattro-colonne-grid")?.appendChild(badge);
     }
     badge.style.display = "";
@@ -382,113 +686,6 @@ function onCol3Change() {
   aggiornaRiepilogoClassificazione();
 }
 
-// ─── OPEN/EDIT/SAVE/DELETE ────────────────────────────────────
-function openNuovoCliente() {
-  document.getElementById("modal-cliente-title").textContent = "Nuovo Cliente";
-  document.getElementById("cliente-id").value = "";
-  ["c-nome", "c-cf", "c-piva", "c-email", "c-tel", "c-indirizzo", "c-note", "c-pec", "c-sdi", "c-citta", "c-cap", "c-prov", "c-referente", "c-iban"]
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-  if (document.getElementById("c-col2")) document.getElementById("c-col2").value = "";
-  if (document.getElementById("c-col3")) document.getElementById("c-col3").value = "";
-  if (document.getElementById("c-col4")) document.getElementById("c-col4").value = "";
-  const badge = document.getElementById("col4-forfettario-badge");
-  if (badge) badge.style.display = "none";
-  populateTipologiaSelect(state.tipologie[0]?.id);
-  aggiornaColonneCliente();
-  openModal("modal-cliente");
-}
-
-function editCliente(id) {
-  socket.once("res:cliente", ({ success, data }) => {
-    if (!success || !data) return;
-    document.getElementById("modal-cliente-title").textContent = "Modifica Cliente";
-    document.getElementById("cliente-id").value = data.id;
-    const fields = {
-      "c-nome": data.nome, "c-cf": data.codice_fiscale, "c-piva": data.partita_iva,
-      "c-email": data.email, "c-tel": data.telefono, "c-indirizzo": data.indirizzo,
-      "c-note": data.note, "c-pec": data.pec, "c-sdi": data.sdi, "c-citta": data.citta,
-      "c-cap": data.cap, "c-prov": data.provincia, "c-referente": data.referente, "c-iban": data.iban,
-    };
-    Object.entries(fields).forEach(([elId, val]) => { const el = document.getElementById(elId); if (el) el.value = val || ""; });
-    populateTipologiaSelect(data.id_tipologia);
-    const col2Val = data.col2_value || "", col3Val = data.col3_value || "", col4Val = data.periodicita || "";
-    const badge = document.getElementById("col4-forfettario-badge");
-    if (badge) badge.style.display = "none";
-    setTimeout(() => {
-      if (document.getElementById("c-col2")) document.getElementById("c-col2").value = col2Val;
-      if (document.getElementById("c-col3")) document.getElementById("c-col3").value = col3Val;
-      aggiornaColonneCliente();
-      setTimeout(() => {
-        const tipCodice = _getTipologiaCodice();
-        if (REGIMI_ANNUALI.includes(col3Val)) {
-          _aggiornCol4BasedOnCol3(tipCodice, col3Val);
-        } else {
-          if (document.getElementById("c-col4")) document.getElementById("c-col4").value = col4Val;
-        }
-        aggiornaRiepilogoClassificazione();
-      }, 50);
-    }, 60);
-    openModal("modal-cliente");
-  });
-  socket.emit("get:cliente", { id });
-}
-
-function saveCliente() {
-  const id = document.getElementById("cliente-id").value;
-  const nome = document.getElementById("c-nome").value.trim();
-  if (!nome) { showNotif("Il nome è obbligatorio", "error"); return; }
-  if (!validaClassificazioneCliente()) return;
-
-  const col2Val = document.getElementById("c-col2")?.value || "";
-  const col3Val = document.getElementById("c-col3")?.value || "";
-  const col4Val = REGIMI_ANNUALI.includes(col3Val) ? "annuale" : (document.getElementById("c-col4")?.value || "");
-
-  const data = {
-    nome,
-    id_tipologia: parseInt(document.getElementById("c-tipologia").value),
-    id_sottotipologia: _calcolaSottotipologiaId() || null,
-    col2_value: col2Val || null,
-    col3_value: col3Val || null,
-    periodicita: col4Val || null,
-    codice_fiscale: document.getElementById("c-cf")?.value.trim().toUpperCase() || null,
-    partita_iva: document.getElementById("c-piva")?.value.trim() || null,
-    email: document.getElementById("c-email")?.value.trim() || null,
-    telefono: document.getElementById("c-tel")?.value.trim() || null,
-    indirizzo: document.getElementById("c-indirizzo")?.value.trim() || null,
-    citta: document.getElementById("c-citta")?.value.trim() || null,
-    cap: document.getElementById("c-cap")?.value.trim() || null,
-    provincia: document.getElementById("c-prov")?.value.trim().toUpperCase() || null,
-    pec: document.getElementById("c-pec")?.value.trim() || null,
-    sdi: document.getElementById("c-sdi")?.value.trim().toUpperCase() || null,
-    iban: document.getElementById("c-iban")?.value.trim().toUpperCase() || null,
-    referente: document.getElementById("c-referente")?.value.trim() || null,
-    note: document.getElementById("c-note")?.value.trim() || null,
-  };
-
-  if (id) { data.id = parseInt(id); socket.emit("update:cliente", data); }
-  else socket.emit("create:cliente", data);
-}
-
-function deleteCliente(id) {
-  if (confirm("Eliminare questo cliente? L'operazione è irreversibile."))
-    socket.emit("delete:cliente", { id });
-}
-
-function goScadenzario(id) {
-  const c = state.clienti.find(x => x.id === id);
-  if (c) {
-    state.selectedCliente = c;
-    document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
-    document.querySelector('[data-page="scadenzario"]').classList.add("active");
-    renderPage("scadenzario");
-  } else {
-    state._gotoClienteId = id;
-    state._pending = "scadenzario";
-    socket.emit("get:clienti");
-  }
-}
-
-// ─── VALIDAZIONE ──────────────────────────────────────────────
 function validaClassificazioneCliente() {
   const tipologia = document.getElementById("c-tipologia").value;
   if (!tipologia) { showNotif("La Tipologia è obbligatoria", "error"); document.getElementById("c-tipologia").focus(); return false; }
@@ -496,10 +693,10 @@ function validaClassificazioneCliente() {
   const col3Wrap = document.getElementById("wrap-col3");
   const col4Wrap = document.getElementById("wrap-col4");
   if (col2Wrap && col2Wrap.style.display !== "none") {
-    if (!document.getElementById("c-col2").value) { showNotif("La Sottocategoria è obbligatoria per questa tipologia", "error"); document.getElementById("c-col2").focus(); return false; }
+    if (!document.getElementById("c-col2").value) { showNotif("La Sottocategoria è obbligatoria", "error"); document.getElementById("c-col2").focus(); return false; }
   }
   if (col3Wrap && col3Wrap.style.display !== "none") {
-    if (!document.getElementById("c-col3").value) { showNotif("Il Regime è obbligatorio per questa configurazione", "error"); document.getElementById("c-col3").focus(); return false; }
+    if (!document.getElementById("c-col3").value) { showNotif("Il Regime è obbligatorio", "error"); document.getElementById("c-col3").focus(); return false; }
   }
   const col3Val = document.getElementById("c-col3")?.value || "";
   if (!REGIMI_ANNUALI.includes(col3Val) && col4Wrap && col4Wrap.style.display !== "none") {
@@ -507,3 +704,21 @@ function validaClassificazioneCliente() {
   }
   return true;
 }
+
+// Esponi funzioni globali
+window.editCliente = editCliente;
+window.editClienteConfig = editClienteConfig;
+window.deleteCliente = deleteCliente;
+window.goScadenzario = goScadenzario;
+window.showClienteDettaglio = showClienteDettaglio;
+window.onDettaglioAnnoChange = onDettaglioAnnoChange;
+window.editClienteFromDettaglio = editClienteFromDettaglio;
+window.deleteClienteFromDettaglio = deleteClienteFromDettaglio;
+window.goToClienteScadenzario = goToClienteScadenzario;
+window.openNuovoCliente = openNuovoCliente;
+window.saveCliente = saveCliente;
+window.applyClientiFiltri = applyClientiFiltri;
+window.resetClientiFiltri = resetClientiFiltri;
+window.onTipologiaChange = onTipologiaChange;
+window.onCol2Change = onCol2Change;
+window.onCol3Change = onCol3Change;

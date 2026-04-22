@@ -1,10 +1,9 @@
 // ═══════════════════════════════════════════════════════════════
-// SCADENZARIO.JS — Scadenzario singolo cliente
+// SCADENZARIO.JS — Scadenzario singolo cliente con configurazione annuale
 // ═══════════════════════════════════════════════════════════════
 
 function getAdempimentiMancanti() {
   if (!state.selectedCliente) return [];
-  // ⭐ TUTTI gli adempimenti (nessun filtro categoria)
   return state.adempimenti.filter((a) => !state.adpInseriti.includes(a.id));
 }
 
@@ -60,10 +59,26 @@ function aggiornaFiltroAdpScad(data) {
 }
 
 function renderScadenzarioPage() {
-  const opts = state.clienti
+  // Carica i clienti con la configurazione per l'anno corrente
+  const annoCorrente = state.anno;
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:clienti", { anno: annoCorrente });
+    socket.once("res:clienti", ({ success, data }) => {
+      if (success && data) {
+        state.clienti = data;
+        renderScadenzarioSelect(data);
+      }
+    });
+  } else {
+    renderScadenzarioSelect(state.clienti);
+  }
+}
+
+function renderScadenzarioSelect(clienti) {
+  const opts = (clienti || [])
     .map(
       (c) =>
-        `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice}] ${c.nome}</option>`,
+        `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice || "?"}] ${c.nome}</option>`,
     )
     .join("");
 
@@ -101,14 +116,31 @@ function renderScadenzarioPage() {
 
 function onClienteChange() {
   const id = parseInt(document.getElementById("sel-cliente").value);
-  state.selectedCliente = state.clienti.find((c) => c.id === id) || null;
-  state.adpInseriti = [];
-  const adpSel = document.getElementById("scad-filtro-adp");
-  if (adpSel) {
-    adpSel.innerHTML = `<option value="">📋 Tutti adempimenti</option>`;
-    if (adpSel._ssRefresh) adpSel._ssRefresh();
+  // Ricarica il cliente con la configurazione per l'anno corrente
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:cliente", { id, anno: state.anno });
+    socket.once("res:cliente", ({ success, data }) => {
+      if (success && data) {
+        state.selectedCliente = data;
+        state.adpInseriti = [];
+        const adpSel = document.getElementById("scad-filtro-adp");
+        if (adpSel) {
+          adpSel.innerHTML = `<option value="">📋 Tutti adempimenti</option>`;
+          if (adpSel._ssRefresh) adpSel._ssRefresh();
+        }
+        loadScadenzario();
+      }
+    });
+  } else {
+    state.selectedCliente = state.clienti.find((c) => c.id === id) || null;
+    state.adpInseriti = [];
+    const adpSel = document.getElementById("scad-filtro-adp");
+    if (adpSel) {
+      adpSel.innerHTML = `<option value="">📋 Tutti adempimenti</option>`;
+      if (adpSel._ssRefresh) adpSel._ssRefresh();
+    }
+    if (state.selectedCliente) loadScadenzario();
   }
-  if (state.selectedCliente) loadScadenzario();
 }
 
 function changeAnnoScad(d) {
@@ -116,17 +148,32 @@ function changeAnnoScad(d) {
   document
     .querySelectorAll(".year-num")
     .forEach((el) => (el.textContent = state.anno));
-  if (state.selectedCliente) loadScadenzario();
+  if (state.selectedCliente) {
+    // Ricarica il cliente con la nuova configurazione per l'anno selezionato
+    if (typeof socket !== 'undefined') {
+      socket.emit("get:cliente", { id: state.selectedCliente.id, anno: state.anno });
+      socket.once("res:cliente", ({ success, data }) => {
+        if (success && data) {
+          state.selectedCliente = data;
+          loadScadenzario();
+        }
+      });
+    } else {
+      loadScadenzario();
+    }
+  }
 }
 
 function loadScadenzario() {
   const sv = document.getElementById("scad-search")?.value || "";
   const st = document.getElementById("scad-filtro-stato")?.value || "";
-  socket.emit("get:scadenzario", {
-    id_cliente: state.selectedCliente.id,
-    anno: state.anno,
-    filtri: { search: sv, stato: st },
-  });
+  if (typeof socket !== 'undefined') {
+    socket.emit("get:scadenzario", {
+      id_cliente: state.selectedCliente.id,
+      anno: state.anno,
+      filtri: { search: sv, stato: st },
+    });
+  }
 }
 
 function applyScadFiltriAdp() {
@@ -176,7 +223,7 @@ function renderScadenzarioTabella(data) {
   const perc = totale > 0 ? Math.round((comp / totale) * 100) : 0;
   const avatar = getAvatar(c.nome);
   const tipColor = c.tipologia_colore || getTipologiaColor(c.tipologia_codice);
-  const sottotipoLabel = getLabelSottotipologia(c);
+  const sottotipoLabel = c.sottotipologia_nome || getLabelSottotipologia(c);
 
   const col2Map = {
     privato: "Privato",
@@ -223,18 +270,26 @@ function renderScadenzarioTabella(data) {
       </span>`
     : "";
 
+  // ⭐ Mostra l'anno corrente della configurazione
+  const configAnnoInfo = c.config_anno && c.config_anno !== state.anno
+    ? `<div class="infobox" style="margin-bottom:12px;font-size:12px;background:var(--yellow)18;color:var(--yellow)">
+        ⚠️ Configurazione ereditata dall'anno ${c.config_anno} (nessuna configurazione specifica per il ${state.anno})
+       </div>`
+    : "";
+
   const clienteCard = `<div class="cliente-preview-card" style="border-left-color:${tipColor}">
     <div class="cpc-inner">
       <div class="cpc-avatar" style="border-color:${tipColor};color:${tipColor};background:${tipColor}22">${avatar}</div>
       <div class="cpc-info">
         <div class="cpc-nome">${escAttr(c.nome)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Configurazione per l'anno <strong>${state.anno}</strong></div>
         ${filtroBadge ? `<div style="margin-top:6px">${filtroBadge}</div>` : ""}
         <div class="cpc-badges">
           <span class="badge b-${(c.tipologia_codice || "").toLowerCase()}" title="${TIPOLOGIE_INFO[c.tipologia_codice]?.desc || ""}">${c.tipologia_codice || "-"}</span>
           ${sottotipoLabel ? `<span class="badge b-categoria">${sottotipoLabel}</span>` : ""}
           ${c.col2_value ? `<span class="badge-info">${col2Map[c.col2_value] || c.col2_value}</span>` : ""}
           ${c.col3_value ? `<span class="badge-info">${col3Map[c.col3_value] || c.col3_value}</span>` : ""}
-          ${c.periodicita ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : "📆 Trimestrale"}</span>` : ""}
+          ${c.periodicita ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : c.periodicita === "annuale" ? "📅 Annuale" : "📆 Trimestrale"}</span>` : ""}
         </div>
         <div class="cpc-meta-row">
           ${c.codice_fiscale ? `<span class="cpc-meta-chip">CF: <strong>${c.codice_fiscale}</strong></span>` : ""}
@@ -264,7 +319,7 @@ function renderScadenzarioTabella(data) {
     ${renderClienteDatiRiferimento(c)}
   </div>`;
 
-  // Raggruppa per adempimento (non per categoria)
+  // Raggruppa per adempimento
   const grouped = {};
   dataFiltrata.forEach((r) => {
     storeRow(r);
@@ -310,7 +365,7 @@ function renderScadenzarioTabella(data) {
     </div>`;
 
   document.getElementById("content").innerHTML =
-    `${clienteCard}<div id="scad-content">${content}</div>`;
+    configAnnoInfo + clienteCard + `<div id="scad-content">${content}</div>`;
 }
 
 // ─── AZIONI ───────────────────────────────────────────────────
@@ -327,10 +382,12 @@ function generaScadenzario() {
     );
     return;
   }
-  socket.emit("genera:scadenzario", {
-    id_cliente: state.selectedCliente.id,
-    anno: state.anno,
-  });
+  if (typeof socket !== 'undefined') {
+    socket.emit("genera:scadenzario", {
+      id_cliente: state.selectedCliente.id,
+      anno: state.anno,
+    });
+  }
 }
 
 function openCopia() {
@@ -360,12 +417,18 @@ function eseguiCopia() {
   const a = parseInt(document.getElementById("copia-a").value);
   if (modalita === "singolo") {
     const id = parseInt(document.getElementById("copia-cliente-id").value);
-    socket.emit("copia:scadenzario", {
-      id_cliente: id,
-      anno_da: da,
-      anno_a: a,
-    });
-  } else socket.emit("copia:tutti", { anno_da: da, anno_a: a });
+    if (typeof socket !== 'undefined') {
+      socket.emit("copia:scadenzario", {
+        id_cliente: id,
+        anno_da: da,
+        anno_a: a,
+      });
+    }
+  } else {
+    if (typeof socket !== 'undefined') {
+      socket.emit("copia:tutti", { anno_da: da, anno_a: a });
+    }
+  }
 }
 
 function openGeneraTutti() {
@@ -375,7 +438,9 @@ function openGeneraTutti() {
 
 function eseguiGeneraTutti() {
   const anno = parseInt(document.getElementById("genera-tutti-anno").value);
-  socket.emit("genera:tutti", { anno });
+  if (typeof socket !== 'undefined') {
+    socket.emit("genera:tutti", { anno });
+  }
 }
 
 function openAddAdp(id_cliente) {
@@ -450,5 +515,24 @@ function eseguiAddAdp() {
     data.trimestre = parseInt(periodo.split(":")[1]);
   else if (periodo.startsWith("sem:"))
     data.semestre = parseInt(periodo.split(":")[1]);
-  socket.emit("add:adempimento_cliente", data);
+  if (typeof socket !== 'undefined') {
+    socket.emit("add:adempimento_cliente", data);
+  }
 }
+
+// Esponi funzioni globali
+window.onClienteChange = onClienteChange;
+window.changeAnnoScad = changeAnnoScad;
+window.applyScadFiltriAdp = applyScadFiltriAdp;
+window.applyScadFiltri = applyScadFiltri;
+window.resetScadFiltri = resetScadFiltri;
+window.generaScadenzario = generaScadenzario;
+window.openCopia = openCopia;
+window.openCopiaTutti = openCopiaTutti;
+window.eseguiCopia = eseguiCopia;
+window.openGeneraTutti = openGeneraTutti;
+window.eseguiGeneraTutti = eseguiGeneraTutti;
+window.openAddAdp = openAddAdp;
+window.eseguiAddAdp = eseguiAddAdp;
+window.refreshAddAdpSelect = refreshAddAdpSelect;
+window.updatePeriodoOptions = updatePeriodoOptions;

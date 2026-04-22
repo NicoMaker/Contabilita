@@ -41,13 +41,15 @@
     <!-- ═══ NOTIFICHE ────────────────────────────────────── -->
     <div class="notif-container" id="notif-container"></div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL CLIENTE                                       -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL CLIENTE (con supporto anno)                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-cliente">
       <div class="modal modal-lg">
         <div class="modal-title">👤 <span id="modal-cliente-title">Nuovo Cliente</span></div>
         <input type="hidden" id="cliente-id" />
+        <input type="hidden" id="cliente-edit-anno" value="" />
+        <div id="cliente-anno-info"></div>
 
         <div class="form-group">
           <label>Nome / Ragione Sociale *</label>
@@ -165,9 +167,9 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL ADEMPIMENTO STATO                             -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL ADEMPIMENTO STATO                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-adempimento">
       <div class="modal modal-sm">
         <div class="modal-title">✏️ <span id="adp-nome-label" style="color:var(--accent);font-size:15px"></span></div>
@@ -199,7 +201,6 @@
           </div>
         </div>
 
-        <!-- Importo normale -->
         <div id="sect-importo-normale">
           <div class="form-group">
             <label>Importo (€)</label>
@@ -207,7 +208,6 @@
           </div>
         </div>
 
-        <!-- ⭐ Contabilità: IVA (importo) + Contabilità (checkbox) -->
         <div id="sect-importo-cont" style="display:none">
           <div class="infobox" style="margin-bottom:12px;font-size:12px">
             💡 <strong style="color:var(--accent)">IVA</strong> compilata → pill <span style="color:var(--accent)">blu</span> · 
@@ -228,14 +228,12 @@
               </label>
             </div>
           </div>
-          <!-- Importo contabilità opzionale -->
           <div class="form-group">
             <label style="font-size:11px;color:var(--text3)">Importo contabilità (€) — opzionale</label>
             <input class="input" id="adp-imp-cont" type="number" step="0.01" placeholder="0.00" style="opacity:0.7" />
           </div>
         </div>
 
-        <!-- Rate -->
         <div id="sect-importo-rate" style="display:none">
           <div class="rate-grid">
             <div class="form-group">
@@ -253,7 +251,6 @@
           </div>
         </div>
 
-        <!-- ⭐ Checkbox: nessun importo, solo note/date -->
         <div id="sect-importo-checkbox" style="display:none">
           <div class="infobox" style="font-size:12px;margin-bottom:4px">
             ☑️ Adempimento semplice — usa Stato e Note per tracciare il completamento.
@@ -273,15 +270,15 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL ADEMPIMENTO DEF                               -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL ADEMPIMENTO DEF                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-adp-def">
       <div class="modal">
         <div class="modal-title">📋 <span id="modal-adp-def-title">Nuovo Adempimento</span></div>
         <input type="hidden" id="adp-def-id" />
         <div class="infobox" style="margin-bottom:18px">
-          ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i clienti con la categoria corrispondente.
+          ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i clienti.
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -306,7 +303,6 @@
           <label>Descrizione</label>
           <input class="input" id="adp-def-desc" placeholder="Descrizione breve" />
         </div>
-        <!-- ⭐ Tre tipi mutuamente esclusivi -->
         <div class="infobox" style="margin-bottom:12px;font-size:12px">
           🔧 Scegli il tipo di adempimento (uno solo):
         </div>
@@ -339,9 +335,9 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL COPIA SCADENZARIO                             -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL COPIA SCADENZARIO                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-copia">
       <div class="modal modal-sm">
         <div class="modal-title">📋 Copia Scadenzario</div>
@@ -359,9 +355,9 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL GENERA TUTTI                                  -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL GENERA TUTTI                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-genera-tutti">
       <div class="modal modal-sm">
         <div class="modal-title">⚡ Genera Scadenzario per Tutti</div>
@@ -376,9 +372,9 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL AGGIUNGI ADEMPIMENTO                          -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL AGGIUNGI ADEMPIMENTO                              -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-add-adp">
       <div class="modal modal-sm">
         <div class="modal-title">➕ Aggiungi Adempimento</div>
@@ -397,9 +393,9 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL DETTAGLIO CLIENTE                             -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL DETTAGLIO CLIENTE                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-cliente-dettaglio">
       <div class="modal">
         <div class="modal-title">👤 <span id="modal-cliente-det-title">Dettaglio Cliente</span></div>
@@ -411,57 +407,13 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- STILI AGGIUNTIVI                                    -->
-    <!-- ═══════════════════════════════════════════════════ -->
-    <style>
-      /* ⭐ SP → giallo corretto */
-      .b-sp { background:rgba(251,191,36,0.18); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
-      /* ⭐ ASS → rosa corretto */
-      .b-ass { background:rgba(244,114,182,0.18); color:#f472b6; border:1px solid rgba(244,114,182,0.3); }
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STILI AGGIUNTIVI                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
 
-      /* Griglia piatta adempimenti (senza raggruppamenti categoria) */
-      .adp-def-grid-flat {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 14px;
-      }
-
-      /* Checkbox pill compatta */
-      .checkbox-pill {
-        cursor: pointer;
-        transition: all 0.14s;
-        justify-content: center;
-        align-items: center;
-      }
-      .checkbox-pill:hover {
-        transform: scale(1.04);
-        box-shadow: 0 4px 18px rgba(0,0,0,0.3);
-      }
-
-      /* Tooltip hint sulla pill */
-      .periodo-pill { position: relative; }
-      .periodo-pill:hover::after {
-        content: "🖱️ Tasto DX = toggle";
-        position: absolute;
-        bottom: -24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--surface3);
-        border: 1px solid var(--border2);
-        border-radius: 5px;
-        padding: 2px 7px;
-        font-size: 10px;
-        white-space: nowrap;
-        color: var(--text2);
-        pointer-events: none;
-        z-index: 10;
-      }
-    </style>
-
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- SCRIPT (ordine di dipendenza)                       -->
-    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- SCRIPT (ordine di dipendenza)                           -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <script src="js/modules/core/constants.js"></script>
     <script src="js/modules/core/state.js"></script>
     <script src="js/modules/core/utils.js"></script>

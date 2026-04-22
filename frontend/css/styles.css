@@ -2570,9 +2570,9 @@ select {
 /* Il label ha un'altezza minima fissa: così anche se va su 2 righe
    (es. "SOTTOCATEGORIA PF *") tutte le colonne hanno la stessa baseline */
 .col-classificazione label {
-  min-height: 36px;          /* abbastanza per 2 righe di label a 12px */
+  min-height: 36px; /* abbastanza per 2 righe di label a 12px */
   display: flex;
-  align-items: flex-end;     /* testo del label allineato in basso */
+  align-items: flex-end; /* testo del label allineato in basso */
   gap: 4px;
   flex-wrap: wrap;
   margin-bottom: 6px;
@@ -2637,8 +2637,8 @@ select {
 
 /* Stato attivo: verde */
 .cbx-btn.cbx-green {
-  background: rgba(52,211,153,0.18);
-  border-color: rgba(52,211,153,0.5);
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.5);
   color: var(--green);
 }
 /* Stato attivo: grigio (N/A) */
@@ -2649,7 +2649,127 @@ select {
 }
 /* Stato attivo: rosso (da fare) */
 .cbx-btn.cbx-red {
-  background: rgba(248,113,113,0.18);
-  border-color: rgba(248,113,113,0.5);
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: var(--red);
+}
+
+.b-sp {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.b-ass {
+  background: rgba(244, 114, 182, 0.18);
+  color: #f472b6;
+  border: 1px solid rgba(244, 114, 182, 0.3);
+}
+.adp-def-grid-flat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+.checkbox-pill {
+  cursor: pointer;
+  transition: all 0.14s;
+  justify-content: center;
+  align-items: center;
+}
+.checkbox-pill:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+.periodo-pill {
+  position: relative;
+}
+.periodo-pill:hover::after {
+  content: "🖱️ Tasto DX = toggle";
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--text2);
+  pointer-events: none;
+  z-index: 10;
+}
+.quattro-colonne-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+  align-items: stretch;
+}
+.col-classificazione {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.col-classificazione .select,
+.col-classificazione .input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+}
+.col-hint {
+  min-height: 18px;
+  font-size: 10px;
+  white-space: normal;
+  word-break: break-word;
+  margin-top: 5px;
+}
+@media (max-width: 1000px) {
+  .quattro-colonne-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .quattro-colonne-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.cbx-btn-row {
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+.cbx-btn {
+  flex: 1;
+  padding: 4px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--surface3);
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  transition: all 0.12s;
+}
+.cbx-btn:hover {
+  background: var(--surface2);
+  border-color: var(--accent);
+  transform: scale(1.08);
+}
+.cbx-btn.cbx-green {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.5);
+  color: var(--green);
+}
+.cbx-btn.cbx-gray {
+  background: var(--surface3);
+  border-color: var(--border2);
+  color: var(--text2);
+}
+.cbx-btn.cbx-red {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.5);
   color: var(--red);
 }

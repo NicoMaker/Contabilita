@@ -82,6 +82,7 @@ function openNuovoAdpDef() {
   document.getElementById("adp-def-codice").value = "";
   document.getElementById("adp-def-nome").value = "";
   document.getElementById("adp-def-desc").value = "";
+  document.getElementById("adp-def-categoria").value = "TUTTI";
   document.getElementById("adp-def-scadenza").value = "annuale";
   document.getElementById("adp-def-contabilita").checked = false;
   document.getElementById("adp-def-rate").checked = false;
@@ -101,6 +102,7 @@ function editAdpDef(id) {
   document.getElementById("adp-def-codice").value = a.codice;
   document.getElementById("adp-def-nome").value = a.nome;
   document.getElementById("adp-def-desc").value = a.descrizione || "";
+  document.getElementById("adp-def-categoria").value = a.categoria || "TUTTI";
   document.getElementById("adp-def-scadenza").value = a.scadenza_tipo || "annuale";
   document.getElementById("adp-def-contabilita").checked = !!a.is_contabilita;
   document.getElementById("adp-def-rate").checked = !!a.has_rate;
@@ -133,6 +135,7 @@ function saveAdpDef() {
   const data = {
     codice, nome,
     descrizione:  document.getElementById("adp-def-desc").value.trim() || null,
+    categoria:    document.getElementById("adp-def-categoria").value,
     scadenza_tipo:document.getElementById("adp-def-scadenza").value,
     is_contabilita: document.getElementById("adp-def-contabilita").checked ? 1 : 0,
     has_rate:       document.getElementById("adp-def-rate").checked       ? 1 : 0,
@@ -183,6 +186,8 @@ function openAdpModal(r) {
   const isRate = hasRate(r);
   const isCbx  = isCheckbox(r);
 
+  // ── Mostra SOLO la sezione corretta ──────────────────────────
+  // Priorità: checkbox > contabilità > rate > normale
   document.getElementById("sect-importo-normale").style.display  = (!isCont && !isRate && !isCbx) ? "" : "none";
   document.getElementById("sect-importo-cont").style.display     = (isCont && !isCbx)             ? "" : "none";
   document.getElementById("sect-importo-rate").style.display     = (isRate && !isCont && !isCbx)  ? "" : "none";
@@ -195,11 +200,14 @@ function openAdpModal(r) {
   document.getElementById("adp-imp-acc1").value   = r.importo_acconto1     || "";
   document.getElementById("adp-imp-acc2").value   = r.importo_acconto2     || "";
 
+  // Contabilità: aggiorna checkbox cont_completata e colori
   if (isCont && !isCbx) {
     const contCheck = document.getElementById("adp-cont-completata");
     if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
+    _aggiornaColoriContabilita(r);
   }
 
+  // Rate: personalizza label
   if (isRate && !isCont && !isCbx) {
     let lb = ["Saldo","1° Acconto","2° Acconto"];
     try { if (r.rate_labels) lb = JSON.parse(r.rate_labels); } catch(e) {}
@@ -209,6 +217,36 @@ function openAdpModal(r) {
   }
 
   openModal("modal-adempimento");
+}
+
+// ─── COLORI CONTABILITÀ (blu=solo IVA, verde=IVA+cont) ────────
+function _aggiornaColoriContabilita(r) {
+  const contCheck = document.getElementById("adp-cont-completata");
+  const contDone  = contCheck ? contCheck.checked : parseInt(r?.cont_completata) === 1;
+  const ivaVal    = document.getElementById("adp-imp-iva")?.value;
+  const hasIva    = ivaVal != null && ivaVal !== "";
+
+  // blu se solo IVA compilata, verde se IVA + cont completata
+  let vs = "none";
+  if (hasIva && contDone) vs = "both";
+  else if (hasIva)        vs = "iva";
+
+  const colorIva  = vs === "both" ? "var(--green)" : vs === "iva" ? "var(--accent)" : "";
+  const colorCont = vs === "both" ? "var(--green)" : "";
+
+  const ivaLabel     = document.getElementById("label-imp-iva");
+  const ivaInput     = document.getElementById("adp-imp-iva");
+  const contLabel    = document.getElementById("label-imp-cont");
+  const contCbxLabel = document.getElementById("label-cont-completata");
+
+  if (ivaLabel)     ivaLabel.style.color       = colorIva;
+  if (ivaInput)     ivaInput.style.borderColor  = vs !== "none" ? (vs === "both" ? "var(--green)" : "var(--accent)") : "";
+  if (contLabel)    contLabel.style.color       = colorCont;
+  if (contCbxLabel) contCbxLabel.style.color    = vs === "both" ? "var(--green)" : vs === "iva" ? "var(--text2)" : "";
+}
+
+function onContabilitaImportoChange() {
+  _aggiornaColoriContabilita(null);
 }
 
 function saveAdpStato() {
