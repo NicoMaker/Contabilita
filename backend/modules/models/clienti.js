@@ -1,4 +1,4 @@
-const { runQuery, queryAll, queryOne } = require("./database");
+const { runQuery, queryAll, queryOne } = require("../database");
 
 function getClientiConDettagli(filtri = {}) {
   let sql = `
@@ -124,7 +124,6 @@ function updateCliente(data) {
 }
 
 function deleteCliente(id) {
-  // Verifica se il cliente ha adempimenti associati
   const count = queryOne(
     `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
     [id],

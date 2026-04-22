@@ -630,7 +630,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
-    <!-- MODAL DETTAGLIO CLIENTE  ← FIX: aggiunto id actions -->
+    <!-- MODAL DETTAGLIO CLIENTE                             -->
     <!-- ═══════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-cliente-dettaglio">
       <div class="modal">
@@ -638,7 +638,6 @@
           👤 <span id="modal-cliente-det-title">Dettaglio Cliente</span>
         </div>
         <div id="cliente-dettaglio-content"></div>
-        <!-- Le azioni vengono iniettate dinamicamente da showClienteDettaglio() -->
         <div class="modal-actions" id="modal-cliente-det-actions">
           <button
             class="btn btn-secondary"
@@ -654,20 +653,30 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
-    <!-- SCRIPT MODULES (ordine di dipendenza)               -->
+    <!-- SCRIPT (ordine di dipendenza)                       -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <script src="js/modules/constants.js"></script>
-    <script src="js/modules/state.js"></script>
-    <script src="js/modules/utils.js"></script>
-    <script src="js/modules/renderers.js"></script>
-    <script src="js/modules/dashboard.js"></script>
-    <script src="js/modules/clienti.js"></script>
-    <script src="js/modules/scadenzario.js"></script>
-    <script src="js/modules/globale.js"></script>
-    <script src="js/modules/adempimenti.js"></script>
-    <script src="js/modules/tipologie.js"></script>
-    <script src="js/modules/socket.js"></script>
-    <script src="js/modules/nav.js"></script>
+    
+    <!-- CORE -->
+    <script src="js/modules/core/constants.js"></script>
+    <script src="js/modules/core/state.js"></script>
+    <script src="js/modules/core/utils.js"></script>
+    
+    <!-- COMPONENTS -->
+    <script src="js/modules/components/renderers.js"></script>
+    
+    <!-- PAGES -->
+    <script src="js/modules/pages/dashboard.js"></script>
+    <script src="js/modules/pages/clienti.js"></script>
+    <script src="js/modules/pages/scadenzario.js"></script>
+    <script src="js/modules/pages/globale.js"></script>
+    <script src="js/modules/pages/adempimenti.js"></script>
+    <script src="js/modules/pages/tipologie.js"></script>
+    
+    <!-- NETWORK -->
+    <script src="js/modules/network/socket.js"></script>
+    <script src="js/modules/network/nav.js"></script>
+    
+    <!-- ENTRY -->
     <script src="js/script.js"></script>
   </body>
 </html>

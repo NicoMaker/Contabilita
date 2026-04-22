@@ -319,7 +319,7 @@ function renderScadenzarioTabella(data) {
   Object.entries(grouped).forEach(([catCode, adpMap]) => {
     const catInfo = CATEGORIE.find((x) => x.codice === catCode);
     const catColor = catInfo?.color || "var(--accent)";
-    const adpCount = Object.keys(adpMap).length; // ← NUMERO ADEMPIMENTI PER CATEGORIA
+    const adpCount = Object.keys(adpMap).length;
 
     let adpHtml = "";
     Object.values(adpMap).forEach((g) => {
@@ -344,7 +344,6 @@ function renderScadenzarioTabella(data) {
       </div>`;
     });
 
-    // HEADER CON NUMERO ACCANTO AL NOME DELLA CATEGORIA
     content += `<div class="cat-section">
       <div class="cat-section-header" style="border-left:3px solid ${catColor}">
         <div style="display:flex;align-items:center;gap:8px">

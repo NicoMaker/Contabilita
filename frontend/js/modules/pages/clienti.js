@@ -102,7 +102,7 @@ function renderClientiTabella(clienti) {
         </tr>`;
         })
         .join("")
-    : `<tr><td colspan="5"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
+    : `<td><td colspan="5"><div class="empty"><div class="empty-icon">👥</div><p>Nessun cliente trovato</p></div></td></tr>`;
 
   document.getElementById("content").innerHTML = `
     <div class="filtri-avanzati no-print" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:var(--r-sm);">

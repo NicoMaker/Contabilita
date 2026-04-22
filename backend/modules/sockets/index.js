@@ -1,33 +1,8 @@
-const {
-  getClientiConDettagli,
-  getClienteConDettagli,
-  createCliente,
-  updateCliente,
-  deleteCliente,
-} = require("./clientiQueries");
-
-const {
-  getAdempimenti,
-  createAdempimento,
-  updateAdempimento,
-  deleteAdempimento,
-  generaAdempimentoPerTutti,
-} = require("./adempimentiQueries");
-
-const {
-  getScadenzarioConDettagliCliente,
-  getScadenzarioGlobale,
-  generaScadenzarioInterno,
-  generaTuttiClientiAnno,
-  copiaScadenzarioCliente,
-  copiaTuttiClienti,
-  updateAdempimentoStato,
-  deleteAdempimentoCliente,
-  addAdempimentoCliente,
-} = require("./scadenzarioQueries");
-
-const { getStats } = require("./statsQueries");
-const { queryAll, queryOne } = require("./database");
+const clientiModel = require("../models/clienti");
+const adempimentiModel = require("../models/adempimenti");
+const scadenzarioModel = require("../models/scadenzario");
+const statsModel = require("../models/stats");
+const { queryAll, queryOne } = require("../database");
 
 module.exports = function setupSocketHandlers(io) {
   io.on("connection", (socket) => {
@@ -52,7 +27,7 @@ module.exports = function setupSocketHandlers(io) {
     // ── CLIENTI (con filtri avanzati) ──
     socket.on("get:clienti", (filtri = {}) => {
       try {
-        const data = getClientiConDettagli(filtri);
+        const data = clientiModel.getClientiConDettagli(filtri);
         socket.emit("res:clienti", { success: true, data });
       } catch (e) {
         socket.emit("res:clienti", { success: false, error: e.message });
@@ -61,7 +36,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("get:cliente", ({ id }) => {
       try {
-        const c = getClienteConDettagli(id);
+        const c = clientiModel.getClienteConDettagli(id);
         socket.emit("res:cliente", { success: true, data: c });
       } catch (e) {
         socket.emit("res:cliente", { success: false, error: e.message });
@@ -70,7 +45,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("create:cliente", (data) => {
       try {
-        const newId = createCliente(data);
+        const newId = clientiModel.createCliente(data);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:create:cliente", { success: true, id: newId });
         socket.emit("notify", {
@@ -84,7 +59,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("update:cliente", (data) => {
       try {
-        updateCliente(data);
+        clientiModel.updateCliente(data);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:update:cliente", { success: true });
         socket.emit("notify", { type: "success", msg: "Cliente aggiornato" });
@@ -95,7 +70,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("delete:cliente", ({ id }) => {
       try {
-        deleteCliente(id);
+        clientiModel.deleteCliente(id);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:delete:cliente", { success: true });
         socket.emit("notify", {
@@ -114,7 +89,7 @@ module.exports = function setupSocketHandlers(io) {
     // ── ADEMPIMENTI ──
     socket.on("get:adempimenti", () => {
       try {
-        const data = getAdempimenti();
+        const data = adempimentiModel.getAdempimenti();
         socket.emit("res:adempimenti", { success: true, data });
       } catch (e) {
         socket.emit("res:adempimenti", { success: false, error: e.message });
@@ -123,9 +98,9 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("create:adempimento", (data) => {
       try {
-        const newId = createAdempimento(data);
+        const newId = adempimentiModel.createAdempimento(data);
         const anno = new Date().getFullYear();
-        const tot = generaAdempimentoPerTutti(newId, anno);
+        const tot = adempimentiModel.generaAdempimentoPerTutti(newId, anno);
         io.emit("broadcast:adempimenti_updated");
         io.emit("broadcast:scadenzario_updated", { anno });
         socket.emit("res:create:adempimento", {
@@ -143,7 +118,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("update:adempimento", (data) => {
       try {
-        updateAdempimento(data);
+        adempimentiModel.updateAdempimento(data);
         io.emit("broadcast:adempimenti_updated");
         socket.emit("res:update:adempimento", { success: true });
       } catch (e) {
@@ -156,7 +131,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("delete:adempimento", ({ id }) => {
       try {
-        deleteAdempimento(id);
+        adempimentiModel.deleteAdempimento(id);
         io.emit("broadcast:adempimenti_updated");
         socket.emit("res:delete:adempimento", { success: true });
         socket.emit("notify", {
@@ -178,7 +153,11 @@ module.exports = function setupSocketHandlers(io) {
     // ── SCADENZARIO ──
     socket.on("get:scadenzario", ({ id_cliente, anno, filtri = {} }) => {
       try {
-        const data = getScadenzarioConDettagliCliente(id_cliente, anno, filtri);
+        const data = scadenzarioModel.getScadenzarioConDettagliCliente(
+          id_cliente,
+          anno,
+          filtri,
+        );
         socket.emit("res:scadenzario", { success: true, data });
       } catch (e) {
         socket.emit("res:scadenzario", { success: false, error: e.message });
@@ -187,7 +166,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("genera:scadenzario", ({ id_cliente, anno }) => {
       try {
-        const tot = generaScadenzarioInterno(id_cliente, anno);
+        const tot = scadenzarioModel.generaScadenzarioInterno(id_cliente, anno);
         io.emit("broadcast:scadenzario_updated", { id_cliente, anno });
         io.emit("broadcast:stats_updated", { anno });
         socket.emit("res:genera:scadenzario", { success: true, inseriti: tot });
@@ -201,7 +180,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("genera:tutti", ({ anno }) => {
       try {
-        const tot = generaTuttiClientiAnno(anno);
+        const tot = scadenzarioModel.generaTuttiClientiAnno(anno);
         io.emit("broadcast:scadenzario_updated", { anno });
         io.emit("broadcast:globale_updated", { anno });
         io.emit("broadcast:stats_updated", { anno });
@@ -213,7 +192,11 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("copia:scadenzario", ({ id_cliente, anno_da, anno_a }) => {
       try {
-        const tot = copiaScadenzarioCliente(id_cliente, anno_da, anno_a);
+        const tot = scadenzarioModel.copiaScadenzarioCliente(
+          id_cliente,
+          anno_da,
+          anno_a,
+        );
         io.emit("broadcast:scadenzario_updated", { id_cliente, anno: anno_a });
         socket.emit("res:copia:scadenzario", { success: true, copiati: tot });
       } catch (e) {
@@ -226,7 +209,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("copia:tutti", ({ anno_da, anno_a }) => {
       try {
-        const tot = copiaTuttiClienti(anno_da, anno_a);
+        const tot = scadenzarioModel.copiaTuttiClienti(anno_da, anno_a);
         io.emit("broadcast:scadenzario_updated", { anno: anno_a });
         io.emit("broadcast:globale_updated", { anno: anno_a });
         socket.emit("res:copia:tutti", { success: true, copiati: tot });
@@ -237,7 +220,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("update:adempimento_stato", (data) => {
       try {
-        const result = updateAdempimentoStato(data);
+        const result = scadenzarioModel.updateAdempimentoStato(data);
         io.emit("broadcast:scadenzario_updated", {
           id_cliente: result.id_cliente,
           anno: result.anno,
@@ -255,7 +238,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("delete:adempimento_cliente", ({ id }) => {
       try {
-        const result = deleteAdempimentoCliente(id);
+        const result = scadenzarioModel.deleteAdempimentoCliente(id);
         io.emit("broadcast:scadenzario_updated", {
           id_cliente: result.id_cliente,
           anno: result.anno,
@@ -272,7 +255,7 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("add:adempimento_cliente", (data) => {
       try {
-        addAdempimentoCliente(data);
+        scadenzarioModel.addAdempimentoCliente(data);
         io.emit("broadcast:scadenzario_updated", {
           id_cliente: data.id_cliente,
           anno: data.anno,
@@ -289,7 +272,7 @@ module.exports = function setupSocketHandlers(io) {
     // ── SCADENZARIO GLOBALE ──
     socket.on("get:scadenzario_globale", ({ anno, filtri = {} }) => {
       try {
-        const data = getScadenzarioGlobale(anno, filtri);
+        const data = scadenzarioModel.getScadenzarioGlobale(anno, filtri);
         socket.emit("res:scadenzario_globale", { success: true, data });
       } catch (e) {
         socket.emit("res:scadenzario_globale", {
@@ -302,7 +285,7 @@ module.exports = function setupSocketHandlers(io) {
     // ── STATISTICHE ──
     socket.on("get:stats", ({ anno }) => {
       try {
-        const data = getStats(anno);
+        const data = statsModel.getStats(anno);
         socket.emit("res:stats", { success: true, data });
       } catch (e) {
         socket.emit("res:stats", { success: false, error: e.message });

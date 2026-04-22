@@ -1,4 +1,4 @@
-const { queryAll, queryOne } = require("./database");
+const { queryAll, queryOne } = require("../database");
 
 function getStats(anno) {
   const totClienti = queryOne(

@@ -61,7 +61,6 @@ socket.on("res:clienti", ({ success, data }) => {
     renderClientiPage();
   } else if (state._pending === "scadenzario") {
     state._pending = null;
-    // Se avevamo un gotoClienteId, impostalo come selectedCliente
     if (state._gotoClienteId) {
       state.selectedCliente =
         state.clienti.find((c) => c.id === state._gotoClienteId) || null;

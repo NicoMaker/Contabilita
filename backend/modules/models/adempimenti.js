@@ -1,4 +1,4 @@
-const { runQuery, queryAll, queryOne } = require("./database");
+const { runQuery, queryAll, queryOne } = require("../database");
 
 function getAdempimenti() {
   return queryAll(
@@ -43,7 +43,6 @@ function updateAdempimento(data) {
 }
 
 function deleteAdempimento(id) {
-  // Verifica se l'adempimento è stato assegnato a qualche cliente
   const count = queryOne(
     `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_adempimento = ?`,
     [id],

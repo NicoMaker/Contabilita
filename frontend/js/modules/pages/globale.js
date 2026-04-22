@@ -55,8 +55,6 @@ function renderGlobalePage() {
     <button class="btn btn-sm btn-primary" onclick="resetGlobaleFiltri()" title="Azzera tutti i filtri e mostra tutto" style="font-size:13px">⟳ Tutti</button>
     <button class="btn btn-print btn-sm" onclick="window.print()" title="Stampa la vista globale" style="font-size:13px">🖨️ Stampa</button>`;
 
-  // FIX: Inizializza subito la searchable select per il filtro adempimenti
-  // (verrà popolata in renderGlobaleHeader quando arrivano i dati)
   setTimeout(() => initSearchableSelect("glob-filtro-adp"), 50);
 
   loadGlobale();
@@ -92,7 +90,6 @@ function applyGlobaleFiltri() {
   loadGlobale();
 }
 
-// Filtri applicati solo lato client (non richiedono reload dal server)
 function applyGlobaleFiltriLocali() {
   if (state.scadGlobale) renderGlobaleTabella(state.scadGlobale);
 }
@@ -122,7 +119,6 @@ function renderGlobaleHeader() {
   const adpSel = document.getElementById("glob-filtro-adp");
   if (adpSel) {
     const current = state.globalePreFiltroAdp || adpSel.value;
-    // Ricostruisce le opzioni native
     adpSel.innerHTML =
       `<option value="">📋 Tutti adempimenti</option>` +
       Array.from(st.adempimenti)
@@ -133,7 +129,6 @@ function renderGlobaleHeader() {
         )
         .join("");
 
-    // FIX: inizializza o aggiorna la searchable select
     if (!adpSel.dataset.ssinit) {
       initSearchableSelect("glob-filtro-adp");
     } else if (adpSel._ssRefresh) {
@@ -158,7 +153,6 @@ function navigaAdempimento(direzione) {
     newIdx = idx >= lista.length - 1 || idx === -1 ? 0 : idx + 1;
   }
   adpSel.value = lista[newIdx];
-  // Aggiorna anche il trigger della searchable select
   if (adpSel._ssRefresh) adpSel._ssRefresh();
   applyGlobaleFiltri();
 }

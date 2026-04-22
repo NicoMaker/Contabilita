@@ -1,5 +1,5 @@
-const { runQuery, queryAll, queryOne } = require("./database");
-const { inserisciAdempimentoSeAssente } = require("./adempimentiQueries");
+const { runQuery, queryAll, queryOne } = require("../database");
+const { inserisciAdempimentoSeAssente } = require("./adempimenti");
 
 function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
   let sql = `

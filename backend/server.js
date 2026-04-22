@@ -3,9 +3,10 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const cors = require("cors");
-const { initDB, getLocalIP, getPublicIP } = require("./modules/database"); // Importata getPublicIP
-const setupSocketHandlers = require("./modules/socketHandlers");
-const downloadDbRouter = require("./modules/downloadDb");
+const { initDB } = require("./modules/database");
+const { getLocalIP, getPublicIP } = require("./modules/utils/network");
+const setupSocketHandlers = require("./modules/sockets");
+const downloadDbRouter = require("./modules/routes/downloadDb");
 
 const app = express();
 const server = http.createServer(app);
@@ -37,7 +38,6 @@ setupSocketHandlers(io);
 
 const PORT = process.env.PORT || 3001;
 
-// Logica di avvio con recupero IP
 initDB().then(async () => {
   const localIP = getLocalIP();
   const publicIP = await getPublicIP();

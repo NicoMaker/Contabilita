@@ -1,32 +1,10 @@
 const initSqlJs = require("sql.js");
 const path = require("path");
 const fs = require("fs");
-const os = require("os");
 const { createSchema, seedData } = require("./seedData");
 
-const DB_PATH = path.join(__dirname, "../db", "gestionale.db");
+const DB_PATH = path.join(__dirname, "../../db", "gestionale.db");
 let db;
-
-// Recupera l'IP della rete locale (LAN)
-function getLocalIP() {
-  const ifaces = os.networkInterfaces();
-  for (const n of Object.keys(ifaces))
-    for (const i of ifaces[n])
-      if (i.family === "IPv4" && !i.internal) return i.address;
-  return "localhost";
-}
-
-// Recupera l'IP pubblico tramite un servizio esterno
-async function getPublicIP() {
-  try {
-    // Utilizziamo l'API di ipify per ottenere l'indirizzo pubblico
-    const response = await fetch("https://api.ipify.org?format=json");
-    const data = await response.json();
-    return data.ip;
-  } catch (e) {
-    return "Non rilevato";
-  }
-}
 
 function saveDB() {
   const data = db.export();
@@ -101,6 +79,4 @@ module.exports = {
   runQuery,
   queryAll,
   queryOne,
-  getLocalIP,
-  getPublicIP, // Aggiunto alle esportazioni
 };

@@ -39,9 +39,6 @@ function escAttr(s) {
 }
 
 // ─── AVATAR ADATTIVO ──────────────────────────────────────────
-// 1 parola  → prime 2 lettere:        "Anna"             → "AN"
-// 2 parole  → iniziali:               "Studio Verdi"     → "SV"
-// 3+ parole → iniziali di tutte:      "Pinco Pallo Rosa" → "PPR"
 function getAvatar(nome) {
   if (!nome) return "??";
   const words = nome
@@ -51,13 +48,10 @@ function getAvatar(nome) {
   if (words.length === 1) {
     return words[0].substring(0, 2).toUpperCase();
   }
-  // Tutte le iniziali, nessun limite di parole
   return words.map((w) => w[0]).join("").toUpperCase();
 }
 
 // ─── FONT SIZE AVATAR ─────────────────────────────────────────
-// Restituisce il font-size inline da usare nell'avatar in base
-// al numero di caratteri: 2→normale, 3→ridotto, 4+→molto ridotto
 function avatarFontSize(avatar, base) {
   const b = base || 13;
   const len = (avatar || "").length;
@@ -217,47 +211,4 @@ function scaricaDatabase() {
       showNotif("✅ Database scaricato!", "success");
     })
     .catch((error) => showNotif(`❌ Errore: ${error.message}`, "error"));
-}
-
-// ─── SEARCHABLE SELECT ────────────────────────────────────────
-// Inizializza una select con ricerca integrata
-function makeSearchableSelect(selectId, placeholder) {
-  const sel = document.getElementById(selectId);
-  if (!sel || sel.dataset.searchable) return;
-  sel.dataset.searchable = "1";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "searchable-select-wrap";
-  sel.parentNode.insertBefore(wrapper, sel);
-  wrapper.appendChild(sel);
-
-  const searchInput = document.createElement("input");
-  searchInput.className = "select-search-input";
-  searchInput.placeholder = placeholder || "🔍 Cerca...";
-  wrapper.insertBefore(searchInput, sel);
-
-  // Salva tutte le opzioni originali
-  const allOptions = Array.from(sel.options).map((o) => ({
-    value: o.value,
-    text: o.text,
-  }));
-
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase();
-    const cur = sel.value;
-    sel.innerHTML = "";
-    allOptions.forEach((o) => {
-      if (
-        !q ||
-        o.text.toLowerCase().includes(q) ||
-        o.value.toLowerCase().includes(q)
-      ) {
-        const opt = document.createElement("option");
-        opt.value = o.value;
-        opt.textContent = o.text;
-        if (o.value === cur) opt.selected = true;
-        sel.appendChild(opt);
-      }
-    });
-  });
 }
