@@ -1,5 +1,5 @@
 erDiagram
-    TIPOLOGIE_CLIENTE {
+    tipologie_cliente {
         int id PK
         text codice UK
         text nome
@@ -7,7 +7,7 @@ erDiagram
         text colore
     }
 
-    SOTTOTIPOLOGIE {
+    sottotipologie {
         int id PK
         int id_tipologia FK
         text codice
@@ -16,21 +16,7 @@ erDiagram
         int ordine
     }
 
-    REGIMI_CONTABILI {
-        int id PK
-        text codice UK
-        text nome
-        text descrizione
-    }
-
-    PERIODICITA {
-        int id PK
-        text codice UK
-        text nome
-        text descrizione
-    }
-
-    CLIENTI {
+    clienti {
         int id PK
         text nome
         int id_tipologia FK
@@ -57,7 +43,7 @@ erDiagram
         text updated_at
     }
 
-    ADEMPIMENTI {
+    adempimenti {
         int id PK
         text codice UK
         text nome
@@ -70,7 +56,7 @@ erDiagram
         int attivo
     }
 
-    ADEMPIMENTI_CLIENTE {
+    adempimenti_cliente {
         int id PK
         int id_cliente FK
         int id_adempimento FK
@@ -90,8 +76,8 @@ erDiagram
         real importo_contabilita
     }
 
-    TIPOLOGIE_CLIENTE ||--o{ SOTTOTIPOLOGIE : "contiene"
-    TIPOLOGIE_CLIENTE ||--o{ CLIENTI : "definisce"
-    SOTTOTIPOLOGIE ||--o{ CLIENTI : "specifica"
-    CLIENTI ||--o{ ADEMPIMENTI_CLIENTE : "possiede"
-    ADEMPIMENTI ||--o{ ADEMPIMENTI_CLIENTE : "genera"
+    tipologie_cliente ||--o{ sottotipologie : "contiene"
+    tipologie_cliente ||--o{ clienti : "definisce"
+    sottotipologie ||--o{ clienti : "specifica"
+    clienti ||--o{ adempimenti_cliente : "possiede"
+    adempimenti ||--o{ adempimenti_cliente : "genera"
