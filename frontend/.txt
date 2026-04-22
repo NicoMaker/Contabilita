@@ -3,4 +3,4 @@ mettere campo 2 acconto in cifra corretto nome -> come label con ckeckbox se com
 se completati label da fare e il flag di contabilità 2 acocnto) allora verde se uno dei due blu negli altri casi basta solo da fare
 
 
-poi non vedo in vista globale il tipo di classificazione del cliente
+poi non vedo in vista globale il tipo di classificazione del cliente e se creo un cliente nell'anno 2026 non dev3e esserci negli anni prima
