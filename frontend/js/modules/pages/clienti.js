@@ -5,6 +5,13 @@
 let currentClienteAnno = new Date().getFullYear();
 let currentClienteId   = null;
 
+// Variabili globali per mantenere i valori dei campi di classificazione tra le aperture del form
+let lastClienteFormValues = {
+  col2: "",
+  col3: "",
+  col4: ""
+};
+
 // ─── ANNO MIN/MAX ─────────────────────────────────────────────
 // ⭐ Anni disponibili: dal 2000 al 2200
 const ANNO_MIN = 2000;
@@ -400,21 +407,89 @@ function openEditClienteModal(cliente, anno) {
 }
 
 function openNuovoCliente() {
+  console.log("=== APERTURA NUOVO CLIENTE ===");
+  console.log("Valori iniziali delle variabili globali:", lastClienteFormValues);
+  console.log("Valori nel localStorage:", {
+    tipologia: localStorage.getItem('clienteForm_tipologia'),
+    col2: localStorage.getItem('clienteForm_col2'),
+    col3: localStorage.getItem('clienteForm_col3'),
+    col4: localStorage.getItem('clienteForm_col4')
+  });
+  
   document.getElementById("modal-cliente-title").textContent = "Nuovo Cliente";
   document.getElementById("cliente-id").value        = "";
   document.getElementById("cliente-edit-anno").value = new Date().getFullYear();
   const annoInfo = document.getElementById("cliente-anno-info");
   if (annoInfo) annoInfo.innerHTML = "";
 
+  // NON salvare i valori attuali perché potrebbero essere vuoti o non esistere ancora
+  // Invece, usa solo i valori già salvati nel localStorage
+  
+  // Resetta solo i campi anagrafici
   ["c-nome","c-cf","c-piva","c-email","c-tel","c-indirizzo","c-note","c-pec","c-sdi","c-citta","c-cap","c-prov","c-referente","c-iban"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-  if (document.getElementById("c-col2")) document.getElementById("c-col2").value = "";
-  if (document.getElementById("c-col3")) document.getElementById("c-col3").value = "";
-  if (document.getElementById("c-col4")) document.getElementById("c-col4").value = "";
+  
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
-  populateTipologiaSelect(state.tipologie[0]?.id);
-  aggiornaColonneCliente();
+  
+  // Popola la tipologia con il valore salvato dal localStorage
+  const savedTipologia = localStorage.getItem('clienteForm_tipologia') || state.tipologie[0]?.id;
+  populateTipologiaSelect(savedTipologia);
+  
+  // Attendi che il DOM sia pronto e poi ripristina i valori dal localStorage
+  setTimeout(() => {
+    // Ripristina tipologia
+    if (document.getElementById("c-tipologia")) {
+      document.getElementById("c-tipologia").value = savedTipologia;
+      console.log("Impostata tipologia:", savedTipologia);
+    }
+    
+    // Aggiorna le colonne per caricare le opzioni dipendenti
+    aggiornaColonneCliente();
+    
+    // Attendi un po' e ripristina gli altri campi dal localStorage
+    setTimeout(() => {
+      // Prima aggiorna le colonne per caricare tutte le opzioni
+      aggiornaColonneCliente();
+      
+      // Poi attendi ancora un po' per assicurarti che le opzioni siano caricate
+      setTimeout(() => {
+        // Ripristina campo 2 solo se esiste nel localStorage
+        const savedCol2 = localStorage.getItem('clienteForm_col2');
+        if (document.getElementById("c-col2") && savedCol2 && savedCol2 !== "") {
+          document.getElementById("c-col2").value = savedCol2;
+          lastClienteFormValues.col2 = savedCol2; // Aggiorna variabile globale
+          console.log("Ripristinato col2:", savedCol2);
+        }
+        
+        // Ripristina campo 3 solo se esiste nel localStorage
+        const savedCol3 = localStorage.getItem('clienteForm_col3');
+        if (document.getElementById("c-col3") && savedCol3 && savedCol3 !== "") {
+          document.getElementById("c-col3").value = savedCol3;
+          lastClienteFormValues.col3 = savedCol3; // Aggiorna variabile globale
+          console.log("Ripristinato col3:", savedCol3);
+        }
+        
+        // Ripristina campo 4 solo se esiste nel localStorage
+        const savedCol4 = localStorage.getItem('clienteForm_col4');
+        if (document.getElementById("c-col4") && savedCol4 && savedCol4 !== "") {
+          document.getElementById("c-col4").value = savedCol4;
+          lastClienteFormValues.col4 = savedCol4; // Aggiorna variabile globale
+          console.log("Ripristinato col4:", savedCol4);
+        }
+        
+        console.log("Variabili globali dopo ripristino:", lastClienteFormValues);
+        
+        // Aggiorna tutto alla fine solo se ci sono valori da ripristinare
+        if ((savedCol2 && savedCol2 !== "") || (savedCol3 && savedCol3 !== "") || (savedCol4 && savedCol4 !== "")) {
+          aggiornaColonneCliente();
+          aggiornaRiepilogoClassificazione();
+          console.log("Aggiornate colonne e riepilogo finale");
+        }
+      }, 150);
+    }, 100);
+  }, 50);
+  
   openModal("modal-cliente");
 }
 
@@ -425,15 +500,76 @@ function saveCliente() {
   if (!nome) { showNotif("Il nome è obbligatorio", "error"); return; }
   if (!validaClassificazioneCliente()) return;
 
-  const col2Val = document.getElementById("c-col2")?.value || "";
-  const col3Val = document.getElementById("c-col3")?.value || "";
-  const col4Val = REGIMI_ANNUALI.includes(col3Val) ? "annuale" : (document.getElementById("c-col4")?.value || "");
+  // Debug: verifica quali campi sono visibili e accessibili
+  console.log("Stato dei campi prima della lettura:");
+  console.log("c-col2 element:", document.getElementById("c-col2"));
+  console.log("c-col3 element:", document.getElementById("c-col3"));
+  console.log("c-col4 element:", document.getElementById("c-col4"));
+  console.log("c-col2 visibility:", document.getElementById("wrap-col2")?.style.display);
+  console.log("c-col3 visibility:", document.getElementById("wrap-col3")?.style.display);
+  console.log("c-col4 visibility:", document.getElementById("wrap-col4")?.style.display);
+
+  // Usa le variabili globali per mantenere i valori dei campi
+  let col2Val = lastClienteFormValues.col2 || null;
+  let col3Val = lastClienteFormValues.col3 || null;
+  let col4Val = lastClienteFormValues.col4 || null;
+  
+  // Se i campi sono visibili, aggiorna i valori globali
+  if (document.getElementById("wrap-col2")?.style.display !== "none") {
+    const val = document.getElementById("c-col2")?.value || "";
+    col2Val = val === "" ? null : val;
+    lastClienteFormValues.col2 = col2Val;
+    console.log("Campo col2 visibile, valore letto e salvato:", col2Val);
+  } else {
+    // Se col2 è nascosto, deve essere null (per SP/SC/ASS)
+    col2Val = null;
+    lastClienteFormValues.col2 = null;
+    console.log("Campo col2 nascosto, impostato a null");
+  }
+  
+  if (document.getElementById("wrap-col3")?.style.display !== "none") {
+    const val = document.getElementById("c-col3")?.value || "";
+    col3Val = val === "" ? null : val;
+    lastClienteFormValues.col3 = col3Val;
+    console.log("Campo col3 visibile, valore letto e salvato:", col3Val);
+  }
+  
+  if (document.getElementById("wrap-col4")?.style.display !== "none") {
+    const val = document.getElementById("c-col4")?.value || "";
+    col4Val = val === "" ? null : val;
+    lastClienteFormValues.col4 = col4Val;
+    console.log("Campo col4 visibile, valore letto e salvato:", col4Val);
+  }
+  
+  // Logica per forfettario
+  if (REGIMI_ANNUALI.includes(col3Val)) {
+    col4Val = "annuale";
+    lastClienteFormValues.col4 = col4Val;
+    console.log("Regime forfettario rilevato, col4 impostato a 'annuale'");
+  }
+  
+  console.log("Valori finali usati:", { col2Val, col3Val, col4Val });
+  
+  const tipologiaVal = document.getElementById("c-tipologia")?.value || "";
+
+  console.log("Valori letti dal form:", {
+    tipologiaVal,
+    col2Val,
+    col3Val,
+    col4Val
+  });
+
+  // Salva i criteri nel localStorage per persistenza futura
+  localStorage.setItem('clienteForm_tipologia', tipologiaVal);
+  localStorage.setItem('clienteForm_col2', col2Val);
+  localStorage.setItem('clienteForm_col3', col3Val);
+  localStorage.setItem('clienteForm_col4', col4Val);
 
   const data = {
     id: id ? parseInt(id) : undefined,
     anno,
     nome,
-    id_tipologia:       parseInt(document.getElementById("c-tipologia").value),
+    id_tipologia:       parseInt(tipologiaVal),
     id_sottotipologia:  _calcolaSottotipologiaId() || null,
     col2_value:         col2Val || null,
     col3_value:         col3Val || null,
@@ -452,6 +588,15 @@ function saveCliente() {
     referente:          document.getElementById("c-referente")?.value.trim() || null,
     note:               document.getElementById("c-note")?.value.trim() || null,
   };
+
+  // Debug: mostra i dati che vengono inviati al backend
+  console.log("Dati cliente inviati al backend:", data);
+  console.log("Valori dei campi:", {
+    tipologiaVal,
+    col2Val,
+    col3Val,
+    col4Val
+  });
 
   if (typeof socket !== "undefined") {
     if (id) socket.emit("update:cliente", data);
@@ -675,6 +820,10 @@ function onTipologiaChange() {
 }
 
 function onCol2Change() {
+  const col2Val = document.getElementById("c-col2")?.value || "";
+  lastClienteFormValues.col2 = col2Val; // Aggiorna variabile globale
+  console.log("Campo 2 cambiato, salvato in variabile globale:", col2Val);
+  
   const col3Sel = document.getElementById("c-col3"); if (col3Sel) col3Sel.value = "";
   _nascondiCol4();
   const badge = document.getElementById("col4-forfettario-badge");
@@ -686,6 +835,12 @@ function onCol3Change() {
   const tipCodice = _getTipologiaCodice();
   const col2Val   = document.getElementById("c-col2")?.value || "";
   const col3Val   = document.getElementById("c-col3")?.value || "";
+  
+  // Aggiorna le variabili globali
+  lastClienteFormValues.col2 = col2Val;
+  lastClienteFormValues.col3 = col3Val;
+  console.log("Campo 3 cambiato, salvato in variabili globali:", { col2Val, col3Val });
+  
   _aggiornaCol3(tipCodice, col2Val);
   _aggiornCol4BasedOnCol3(tipCodice, col3Val);
   aggiornaRiepilogoClassificazione();
