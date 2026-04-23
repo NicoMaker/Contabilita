@@ -9,4 +9,6 @@ poi non vedo in vista globale il tipo di classificazione del cliente e se creo u
 e Menu a tendina anni funzionante per tanti anni fino al 2200 se cerco di andare indietro in tutte le parti per un cliente che non e stato creato per anni precedenti non mi deve lasciare 
 
 
-sistemare graficamente selezione tipo cliente 
+sistemare graficamente selezione tipo cliente
+
+apertura tutti i form sempre all'inizio del form non alla fine  
