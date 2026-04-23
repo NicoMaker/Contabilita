@@ -1,4 +1,4 @@
 problema dicharazione quando crei adempimenti rata -> no ho due chebox con il da fare/completato se attivato uno allora blu altiriemnti entrambi verde in parte bilancio
-
+verde se compilato campo primo da fare in questo caso e ckeckbox della contabilitàù per questo caso 
 
 se crei cliente per un anno per l'anno nuovo non li vedi nell'anno nuovo e fai copia anno copia tutti i dati e puoi anche eliminare il cliente in caso per un'altro anno se serve  dammi tutti i file compelti da sisemare con tuttto 
