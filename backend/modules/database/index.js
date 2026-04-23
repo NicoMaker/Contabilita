@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const { createSchema, seedData } = require("./seedData");
 
-const DB_PATH = path.join(__dirname, "../../../db", "gestionale.db");
+const DB_PATH = path.join(__dirname, "../../db", "gestionale.db");
 let db;
 
 function saveDB() {
