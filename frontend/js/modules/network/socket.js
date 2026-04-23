@@ -40,12 +40,11 @@ socket.on("broadcast:stats_updated", ({ anno }) => {
 });
 
 socket.on("broadcast:clienti_updated", () => {
-  if (state.page === "clienti") socket.emit("get:clienti");
-});
-
-socket.on("broadcast:adempimenti_updated", () => {
-  if (state.page === "adempimenti") socket.emit("get:adempimenti");
-  socket.emit("get:adempimenti");
+  if (state.page === "clienti") {
+    // ⭐ Usa l'anno del filtro attivo, non sempre l'anno corrente
+    const annoFiltro = parseInt(document.getElementById("filter-anno")?.value) || state.anno;
+    socket.emit("get:clienti", { anno: annoFiltro });
+  }
 });
 
 // ─── RISPOSTA DATI ────────────────────────────────────────────
@@ -120,8 +119,10 @@ socket.on("res:scadenzario_globale", ({ success, data }) => {
 socket.on("res:create:cliente", ({ success }) => {
   if (success) {
     closeModal("modal-cliente");
+    // ⭐ Dopo creazione ricarica con l'anno del filtro attivo (non solo l'anno corrente)
+    const annoFiltro = parseInt(document.getElementById("filter-anno")?.value) || state.anno;
     state._pending = "clienti";
-    socket.emit("get:clienti");
+    socket.emit("get:clienti", { anno: annoFiltro });
   }
 });
 
@@ -160,7 +161,7 @@ socket.on("res:delete:adempimento", ({ success }) => {
   }
 });
 
-// ─── RISPOSTA SCADENZARIO ────────────────────────────────────
+// ─── RISPOSTA SCADENZARIO ─────────────────────────────────────
 socket.on("res:genera:scadenzario", ({ success }) => {
   if (success && state.selectedCliente) loadScadenzario();
 });

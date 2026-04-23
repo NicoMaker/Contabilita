@@ -1,7 +1,13 @@
 const { runQuery, queryAll, queryOne } = require("../database");
 const { inserisciAdempimentoSeAssente } = require("./adempimenti");
 
+// ─── HELPER: anno dalla data_scadenza o anno corrente ─────────
+function _annoFromRow(anno) {
+  return anno || new Date().getFullYear();
+}
+
 function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
+  // ⭐ JOIN con clienti_config_annuale per avere tipologia/col2/col3/periodicita
   let sql = `
     SELECT 
       ac.*,
@@ -17,13 +23,35 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
       c.codice_fiscale as cliente_cf,
       c.partita_iva as cliente_piva,
       c.email as cliente_email,
-      c.telefono as cliente_tel
+      c.telefono as cliente_tel,
+      COALESCE(cfg.id_tipologia, cfg_last.id_tipologia) as cliente_id_tipologia,
+      COALESCE(t.codice, t_last.codice)   as cliente_tipologia_codice,
+      COALESCE(t.colore, t_last.colore)   as cliente_tipologia_colore,
+      COALESCE(s.codice, s_last.codice)   as cliente_sottotipologia_codice,
+      COALESCE(s.nome,   s_last.nome)     as cliente_sottotipologia_nome,
+      COALESCE(cfg.periodicita,   cfg_last.periodicita)   as cliente_periodicita,
+      COALESCE(cfg.col2_value,    cfg_last.col2_value)    as cliente_col2,
+      COALESCE(cfg.col3_value,    cfg_last.col3_value)    as cliente_col3
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
+    -- Config per l'anno richiesto
+    LEFT JOIN clienti_config_annuale cfg 
+      ON cfg.id_cliente = c.id AND cfg.anno = ?
+    -- Config più recente come fallback
+    LEFT JOIN clienti_config_annuale cfg_last 
+      ON cfg_last.id = (
+        SELECT id FROM clienti_config_annuale 
+        WHERE id_cliente = c.id AND anno <= ?
+        ORDER BY anno DESC LIMIT 1
+      )
+    LEFT JOIN tipologie_cliente t      ON t.id      = cfg.id_tipologia
+    LEFT JOIN sottotipologie   s      ON s.id      = cfg.id_sottotipologia
+    LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
+    LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
     WHERE ac.id_cliente = ? AND ac.anno = ?
   `;
-  const params = [id_cliente, anno];
+  const params = [anno, anno, id_cliente, anno];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -40,6 +68,7 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
 }
 
 function getScadenzarioGlobale(anno, filtri = {}) {
+  // ⭐ JOIN con clienti_config_annuale per avere tipologia/col2/col3/periodicita
   let sql = `
     SELECT 
       ac.*,
@@ -55,13 +84,35 @@ function getScadenzarioGlobale(anno, filtri = {}) {
       c.codice_fiscale as cliente_cf,
       c.partita_iva as cliente_piva,
       c.email as cliente_email,
-      c.telefono as cliente_tel
+      c.telefono as cliente_tel,
+      COALESCE(cfg.id_tipologia, cfg_last.id_tipologia) as cliente_id_tipologia,
+      COALESCE(t.codice, t_last.codice)   as cliente_tipologia_codice,
+      COALESCE(t.colore, t_last.colore)   as cliente_tipologia_colore,
+      COALESCE(s.codice, s_last.codice)   as cliente_sottotipologia_codice,
+      COALESCE(s.nome,   s_last.nome)     as cliente_sottotipologia_nome,
+      COALESCE(cfg.periodicita,   cfg_last.periodicita)   as cliente_periodicita,
+      COALESCE(cfg.col2_value,    cfg_last.col2_value)    as cliente_col2,
+      COALESCE(cfg.col3_value,    cfg_last.col3_value)    as cliente_col3
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
+    -- Config per l'anno richiesto
+    LEFT JOIN clienti_config_annuale cfg 
+      ON cfg.id_cliente = c.id AND cfg.anno = ?
+    -- Config più recente come fallback
+    LEFT JOIN clienti_config_annuale cfg_last 
+      ON cfg_last.id = (
+        SELECT id FROM clienti_config_annuale 
+        WHERE id_cliente = c.id AND anno <= ?
+        ORDER BY anno DESC LIMIT 1
+      )
+    LEFT JOIN tipologie_cliente t      ON t.id      = cfg.id_tipologia
+    LEFT JOIN sottotipologie   s      ON s.id      = cfg.id_sottotipologia
+    LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
+    LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
     WHERE ac.anno = ? AND c.attivo = 1
   `;
-  const params = [anno];
+  const params = [anno, anno, anno];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -120,7 +171,7 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
           [r.id_cliente, r.id_adempimento, anno_a, r.mese, r.trimestre, r.semestre, "da_fare"]
         );
         tot++;
-      } catch (e) { }
+      } catch (e) {}
     }
   });
   return tot;

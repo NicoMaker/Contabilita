@@ -12,3 +12,7 @@ e Menu a tendina anni funzionante per tanti anni fino al 2200 se cerco di andare
 sistemare graficamente selezione tipo cliente
 
 apertura tutti i form sempre all'inizio del form non alla fine  
+
+
+Cliente se creo in anno -> anno precedente non devo vedere il dato 
+se creo adempimenti con rate -> anche da fare e tutti i casi (2 da fare completato ecc) se compelto uno diveta blu se incece 2 colorati diventa verde invece 
