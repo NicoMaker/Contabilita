@@ -19,11 +19,6 @@ erDiagram
     clienti {
         int id PK
         text nome
-        int id_tipologia FK
-        int id_sottotipologia FK
-        text col2_value
-        text col3_value
-        text periodicita
         text codice_fiscale
         text partita_iva
         text email
@@ -37,10 +32,20 @@ erDiagram
         text iban
         text note
         text referente
-        text categorie_attive
         int attivo
         text created_at
         text updated_at
+    }
+
+    clienti_config_annuale {
+        int id PK
+        int id_cliente FK
+        int anno
+        int id_tipologia FK
+        int id_sottotipologia FK
+        text col2_value
+        text col3_value
+        text periodicita
     }
 
     adempimenti {
@@ -48,10 +53,10 @@ erDiagram
         text codice UK
         text nome
         text descrizione
-        text categoria
         text scadenza_tipo
         int is_contabilita
         int has_rate
+        int is_checkbox
         text rate_labels
         int attivo
     }
@@ -74,10 +79,13 @@ erDiagram
         real importo_acconto2
         real importo_iva
         real importo_contabilita
+        int cont_completata
     }
 
+    %% Relazioni
     tipologie_cliente ||--o{ sottotipologie : "contiene"
-    tipologie_cliente ||--o{ clienti : "definisce"
-    sottotipologie ||--o{ clienti : "specifica"
+    tipologie_cliente ||--o{ clienti_config_annuale : "definisce"
+    sottotipologie ||--o{ clienti_config_annuale : "specifica"
+    clienti ||--o{ clienti_config_annuale : "ha_configurazione"
     clienti ||--o{ adempimenti_cliente : "possiede"
     adempimenti ||--o{ adempimenti_cliente : "genera"
