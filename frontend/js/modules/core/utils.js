@@ -268,7 +268,14 @@ function getPeriodoShort(r) {
 
 // ─── MODAL HELPERS ────────────────────────────────────────────
 function openModal(id) {
-  document.getElementById(id)?.classList.add("open");
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add("open");
+    // Scroll all'inizio del modal
+    setTimeout(() => {
+      modal.scrollTop = 0;
+    }, 50);
+  }
 }
 function closeModal(id) {
   document.getElementById(id)?.classList.remove("open");

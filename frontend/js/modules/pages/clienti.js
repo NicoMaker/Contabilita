@@ -512,11 +512,6 @@ function openEditClienteModal(cliente, anno) {
     lastClienteFormValues.col3 = col3Val;
     lastClienteFormValues.col4 = col4Val;
 
-    localStorage.setItem("clienteForm_tipologia", cliente.id_tipologia);
-    localStorage.setItem("clienteForm_col2", col2Val);
-    localStorage.setItem("clienteForm_col3", col3Val);
-    localStorage.setItem("clienteForm_col4", col4Val);
-
     aggiornaColonneCliente();
     setTimeout(() => {
       const tipCodice = _getTipologiaCodice();
@@ -578,15 +573,8 @@ function openNuovoCliente() {
     col4: "",
   };
 
-  // Carica la tipologia salvata o la prima disponibile
-  const savedTipologia = localStorage.getItem("clienteForm_tipologia");
-  if (
-    savedTipologia &&
-    state.tipologie &&
-    state.tipologie.some((t) => String(t.id) === String(savedTipologia))
-  ) {
-    populateTipologiaSelect(savedTipologia);
-  } else if (state.tipologie && state.tipologie.length > 0) {
+  // Usa sempre la prima tipologia disponibile
+  if (state.tipologie && state.tipologie.length > 0) {
     populateTipologiaSelect(state.tipologie[0].id);
   } else {
     populateTipologiaSelect("");
@@ -595,75 +583,7 @@ function openNuovoCliente() {
   // Attendi il rendering del DOM
   setTimeout(() => {
     aggiornaColonneCliente();
-
-    setTimeout(() => {
-      // Ripristina col2
-      const savedCol2 = localStorage.getItem("clienteForm_col2");
-      const col2Element = document.getElementById("c-col2");
-      const col2Wrap = document.getElementById("wrap-col2");
-
-      if (
-        savedCol2 &&
-        savedCol2 !== "" &&
-        col2Element &&
-        col2Wrap &&
-        col2Wrap.style.display !== "none"
-      ) {
-        col2Element.value = savedCol2;
-        lastClienteFormValues.col2 = savedCol2;
-        console.log("Ripristinato col2:", savedCol2);
-
-        const tipCodice = _getTipologiaCodice();
-        _aggiornaCol3(tipCodice, savedCol2);
-      }
-
-      setTimeout(() => {
-        // Ripristina col3
-        const savedCol3 = localStorage.getItem("clienteForm_col3");
-        const col3Element = document.getElementById("c-col3");
-        const col3Wrap = document.getElementById("wrap-col3");
-
-        if (
-          savedCol3 &&
-          savedCol3 !== "" &&
-          col3Element &&
-          col3Wrap &&
-          col3Wrap.style.display !== "none"
-        ) {
-          col3Element.value = savedCol3;
-          lastClienteFormValues.col3 = savedCol3;
-          console.log("Ripristinato col3:", savedCol3);
-
-          const tipCodice = _getTipologiaCodice();
-          const col2Val = document.getElementById("c-col2")?.value || "";
-          _aggiornaCol3(tipCodice, col2Val);
-          _aggiornCol4BasedOnCol3(tipCodice, savedCol3);
-        }
-
-        // Ripristina col4
-        const savedCol4 = localStorage.getItem("clienteForm_col4");
-        const col4Element = document.getElementById("c-col4");
-        const col4Wrap = document.getElementById("wrap-col4");
-
-        if (
-          savedCol4 &&
-          savedCol4 !== "" &&
-          col4Element &&
-          col4Wrap &&
-          col4Wrap.style.display !== "none"
-        ) {
-          col4Element.value = savedCol4;
-          lastClienteFormValues.col4 = savedCol4;
-          console.log("Ripristinato col4:", savedCol4);
-        }
-
-        aggiornaRiepilogoClassificazione();
-        console.log(
-          "Variabili globali dopo ripristino:",
-          lastClienteFormValues,
-        );
-      }, 80);
-    }, 80);
+    aggiornaRiepilogoClassificazione();
   }, 50);
 
   openModal("modal-cliente");
@@ -723,17 +643,7 @@ function saveCliente() {
     col4Val,
   });
 
-  // Salva nel localStorage
-  localStorage.setItem("clienteForm_tipologia", tipologiaVal);
-  if (col2Val) localStorage.setItem("clienteForm_col2", col2Val);
-  else localStorage.removeItem("clienteForm_col2");
-
-  if (col3Val) localStorage.setItem("clienteForm_col3", col3Val);
-  else localStorage.removeItem("clienteForm_col3");
-
-  if (col4Val) localStorage.setItem("clienteForm_col4", col4Val);
-  else localStorage.removeItem("clienteForm_col4");
-
+  
   lastClienteFormValues.col2 = col2Val;
   lastClienteFormValues.col3 = col3Val;
   lastClienteFormValues.col4 = col4Val;
