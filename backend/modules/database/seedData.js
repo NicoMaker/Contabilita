@@ -1,4 +1,11 @@
 function createSchema(db) {
+  // Migration: aggiungi campo contabilita se non esiste
+  try {
+    db.run(`ALTER TABLE clienti ADD COLUMN contabilita INTEGER DEFAULT 0`);
+  } catch (e) {
+    // La colonna esiste già
+  }
+  
   db.run(`
     CREATE TABLE IF NOT EXISTS tipologie_cliente (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,6 +46,7 @@ function createSchema(db) {
       note TEXT,
       referente TEXT,
       attivo INTEGER DEFAULT 1,
+      contabilita INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )

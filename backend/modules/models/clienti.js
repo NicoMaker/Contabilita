@@ -50,6 +50,7 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
       c.note,
       c.referente,
       c.attivo,
+      c.contabilita,
       c.created_at,
       c.updated_at,
       cfg.anno as config_anno,
@@ -123,7 +124,7 @@ function getClienteConDettagli(id, anno = new Date().getFullYear()) {
     SELECT 
       c.id, c.nome, c.codice_fiscale, c.partita_iva, c.email, c.telefono,
       c.indirizzo, c.citta, c.cap, c.provincia, c.pec, c.sdi, c.iban,
-      c.note, c.referente, c.attivo, c.created_at, c.updated_at,
+      c.note, c.referente, c.attivo, c.contabilita, c.created_at, c.updated_at,
       cfg.anno as config_anno,
       cfg.id_tipologia, cfg.id_sottotipologia,
       cfg.col2_value, cfg.col3_value, cfg.periodicita,
@@ -234,8 +235,8 @@ function createCliente(data) {
   runQuery(
     `INSERT INTO clienti (
       nome, codice_fiscale, partita_iva, email, telefono, 
-      indirizzo, citta, cap, provincia, pec, sdi, iban, note, referente
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      indirizzo, citta, cap, provincia, pec, sdi, iban, note, referente, contabilita
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       data.nome,
       data.codice_fiscale || null,
@@ -251,6 +252,7 @@ function createCliente(data) {
       data.iban || null,
       data.note || null,
       data.referente || null,
+      data.contabilita || 0,
     ],
   );
 
@@ -324,7 +326,7 @@ function updateClienteAnagrafica(data) {
     `UPDATE clienti SET 
       nome = ?, codice_fiscale = ?, partita_iva = ?, email = ?, telefono = ?,
       indirizzo = ?, citta = ?, cap = ?, provincia = ?, pec = ?, sdi = ?,
-      iban = ?, note = ?, referente = ?, updated_at = datetime('now')
+      iban = ?, note = ?, referente = ?, contabilita = ?, updated_at = datetime('now')
     WHERE id = ?`,
     [
       data.nome,
@@ -341,6 +343,7 @@ function updateClienteAnagrafica(data) {
       data.iban || null,
       data.note || null,
       data.referente || null,
+      data.contabilita || 0,
       data.id,
     ],
   );

@@ -493,6 +493,12 @@ function openEditClienteModal(cliente, anno) {
     if (el) el.value = val || "";
   });
 
+  // Imposta il checkbox contabilita
+  const contabilitaCheckbox = document.getElementById("c-contabilita");
+  if (contabilitaCheckbox) {
+    contabilitaCheckbox.checked = cliente.contabilita === 1;
+  }
+
   populateTipologiaSelect(cliente.id_tipologia);
   const col2Val = cliente.col2_value || "",
     col3Val = cliente.col3_value || "",
@@ -745,6 +751,7 @@ function saveCliente() {
     col2_value: col2Val || null,
     col3_value: col3Val || null,
     periodicita: col4Val || null,
+    contabilita: document.getElementById("c-contabilita")?.checked ? 1 : 0,
     codice_fiscale:
       document.getElementById("c-cf")?.value.trim().toUpperCase() || null,
     partita_iva: document.getElementById("c-piva")?.value.trim() || null,
@@ -1009,41 +1016,65 @@ function aggiornaRiepilogoClassificazione() {
 }
 
 function validaClassificazioneCliente() {
+  console.log("=== INIZIO VALIDAZIONE CLASSIFICAZIONE ===");
+  
   const tipologia = document.getElementById("c-tipologia").value;
+  console.log("Tipologia:", tipologia);
+  
   if (!tipologia) {
     showNotif("La Tipologia è obbligatoria", "error");
     document.getElementById("c-tipologia").focus();
     return false;
   }
+  
   const col2Wrap = document.getElementById("wrap-col2");
   const col3Wrap = document.getElementById("wrap-col3");
   const col4Wrap = document.getElementById("wrap-col4");
+  
+  console.log("Stato wrap:", {
+    col2Wrap: col2Wrap?.style.display,
+    col3Wrap: col3Wrap?.style.display,
+    col4Wrap: col4Wrap?.style.display
+  });
+  
   if (col2Wrap && col2Wrap.style.display !== "none") {
-    if (!document.getElementById("c-col2").value) {
+    const col2Val = document.getElementById("c-col2").value;
+    console.log("Controllo col2 (visibile):", col2Val);
+    if (!col2Val) {
       showNotif("La Sottocategoria è obbligatoria", "error");
       document.getElementById("c-col2").focus();
       return false;
     }
   }
+  
   if (col3Wrap && col3Wrap.style.display !== "none") {
-    if (!document.getElementById("c-col3").value) {
+    const col3Val = document.getElementById("c-col3").value;
+    console.log("Controllo col3 (visibile):", col3Val);
+    if (!col3Val) {
       showNotif("Il Regime è obbligatorio", "error");
       document.getElementById("c-col3").focus();
       return false;
     }
   }
+  
   const col3Val = document.getElementById("c-col3")?.value || "";
+  console.log("Controllo periodicità - col3Val:", col3Val, "REGIMI_ANNUALI:", REGIMI_ANNUALI);
+  
   if (
     !REGIMI_ANNUALI.includes(col3Val) &&
     col4Wrap &&
     col4Wrap.style.display !== "none"
   ) {
-    if (!document.getElementById("c-col4").value) {
+    const col4Val = document.getElementById("c-col4").value;
+    console.log("Controllo col4 (visibile):", col4Val);
+    if (!col4Val) {
       showNotif("La Periodicità è obbligatoria", "error");
       document.getElementById("c-col4").focus();
       return false;
     }
   }
+  
+  console.log("=== VALIDAZIONE SUPERATA ===");
   return true;
 }
 

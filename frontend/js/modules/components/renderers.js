@@ -125,7 +125,7 @@ function renderCheckboxPill(r) {
 
   // Logica colori specifica per checkbox:
   // - Se uno dei due checkbox è attivo -> blu
-  // - Se entrambi non attivi -> verde
+  // - Se da fare -> rosso
   // - Se compilato campo primo da fare -> checkbox contabilità verde
   let color;
   if (isDaFare && r.note && r.note.includes("primo da fare")) {
@@ -133,10 +133,10 @@ function renderCheckboxPill(r) {
   } else if (isDone || isNA) {
     color = "var(--accent)"; // blu quando almeno un checkbox attivo
   } else {
-    color = "var(--green)"; // verde quando entrambi non attivi
+    color = "var(--red)"; // rosso quando da fare
   }
 
-  const icon = isDone ? "✅" : isNA ? "➖" : "☐";
+  const icon = isDone ? "✅" : isNA ? "➖" : "✗";
 
   const btnDone = `<button class="cbx-btn${isDone ? " cbx-active cbx-blue" : ""}" onclick="setCbxStato(event,${r.id},'completato')" title="Segna completato">✅</button>`;
   const btnNA = `<button class="cbx-btn${isNA ? " cbx-active cbx-gray" : ""}" onclick="setCbxStato(event,${r.id},'n_a')"        title="Segna N/A">➖</button>`;
@@ -248,6 +248,27 @@ function _buildContabilitaLabel(r, pillColor) {
   const hasIva = !!r.importo_iva;
   const contDone = parseInt(r.cont_completata) === 1;
 
+  // Se il cliente ha contabilità attiva, non mostrare il flag contabilità
+  if (state.selectedCliente && state.selectedCliente.contabilita === 1) {
+    // Mostra solo IVA, nascondi il flag contabilità
+    const cIva = hasIva
+      ? contDone
+        ? "var(--green)"
+        : "var(--accent)"
+      : "var(--red)";
+
+    const ivaVal = hasIva ? `€${parseFloat(r.importo_iva).toFixed(2)}` : "—";
+
+    return `<div class="pp-cont-labels">
+      <div class="pp-cont-row">
+        <span class="pp-cont-check" style="color:${cIva}">${hasIva ? "✓" : "✗"}</span>
+        <span class="pp-cont-lbl" style="color:${cIva}">💰 IVA</span>
+        <span class="pp-cont-val" style="color:${cIva}">${ivaVal}</span>
+      </div>
+    </div>`;
+  }
+
+  // Se il cliente non ha contabilità attiva, mostra tutto (IVA + Contabilità)
   const cIva = hasIva
     ? contDone
       ? "var(--green)"
@@ -300,12 +321,25 @@ function _buildRateLabel(r, pillColor) {
 
   // Colori combinati rate+contabilità
   let cRate, cCont;
-  if (hasAnyRate && contDone) {
-    cRate = cCont = "var(--green)"; // entrambi → verde
-  } else if (hasAnyRate || contDone) {
-    cRate = cCont = "var(--accent)"; // uno solo → blu
+  
+  // Se il cliente ha contabilità attiva, non considerare contDone per i colori
+  if (state.selectedCliente && state.selectedCliente.contabilita === 1) {
+    // Logica semplificata: solo le rate contano per il colore
+    // Se tutte le rate sono compilate → verde, altrimenti → rosso
+    if (allDone) {
+      cRate = cCont = "var(--green)"; // tutte le rate compilate → verde
+    } else {
+      cRate = cCont = "var(--red)"; // rate non complete → rosso
+    }
   } else {
-    cRate = cCont = "var(--red)"; // nessuno → rosso
+    // Logica normale per clienti senza contabilità attiva
+    if (hasAnyRate && contDone) {
+      cRate = cCont = "var(--green)"; // entrambi → verde
+    } else if (hasAnyRate || contDone) {
+      cRate = cCont = "var(--accent)"; // uno solo → blu
+    } else {
+      cRate = cCont = "var(--red)"; // nessuno → rosso
+    }
   }
 
   const rows = vals
