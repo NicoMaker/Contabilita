@@ -86,9 +86,8 @@ function getPillColor(r, stato) {
 
   if (isContabilita(r)) {
     const hasIva = !!r.importo_iva;
-    const contDone = parseInt(r.cont_completata) === 1;
-    if (hasIva && contDone) return "var(--green)";
-    if (hasIva) return "var(--accent)";
+    // Per adempimenti di contabilità: se IVA compilata, bottone esterno diventa verde
+    if (hasIva) return "var(--green)";
     return "var(--red)";
   }
 
@@ -226,13 +225,16 @@ function renderPeriodoPill(r) {
 
   const tooltipText = `${getPeriodoLabel(r)} — ${statoLabel}${r.data_scadenza ? ` | Scad: ${r.data_scadenza}` : ""}${r.data_completamento ? ` | Compl: ${r.data_completamento}` : ""}\nClick sinistro: modifica | Click destro: toggle completato`;
 
+  // Per adempimenti di contabilità: se IVA compilata, anche la scritta diventa verde
+  const tagColor = isContabilita(r) && r.importo_iva ? "var(--green)" : pillColor;
+
   return `<div class="periodo-pill s-${stato}"
     onclick="openAdpById(${r.id})"
     oncontextmenu="toggleAdpCompletato(event,${r.id})"
     title="${escAttr(tooltipText)}"
     style="border-color:${pillColor}">
     <div class="pp-top">
-      <span class="pp-tag" style="border-color:${pillColor};color:${pillColor}">${ps}</span>
+      <span class="pp-tag" style="border-color:${tagColor};color:${tagColor}">${ps}</span>
       <span class="pp-stato-icon" title="${escAttr(statoLabel)}">${statoIcon}</span>
     </div>
     ${importiInline}
@@ -246,39 +248,9 @@ function renderPeriodoPill(r) {
 // Verde = IVA + Cont✓  |  Blu = solo IVA  |  Rosso = niente
 function _buildContabilitaLabel(r, pillColor) {
   const hasIva = !!r.importo_iva;
-  const contDone = parseInt(r.cont_completata) === 1;
 
-  // Se il cliente ha contabilità attiva, non mostrare il flag contabilità
-  if (state.selectedCliente && state.selectedCliente.contabilita === 1) {
-    // Mostra solo IVA, nascondi il flag contabilità
-    const cIva = hasIva
-      ? contDone
-        ? "var(--green)"
-        : "var(--accent)"
-      : "var(--red)";
-
-    const ivaVal = hasIva ? `€${parseFloat(r.importo_iva).toFixed(2)}` : "—";
-
-    return `<div class="pp-cont-labels">
-      <div class="pp-cont-row">
-        <span class="pp-cont-check" style="color:${cIva}">${hasIva ? "✓" : "✗"}</span>
-        <span class="pp-cont-lbl" style="color:${cIva}">💰 IVA</span>
-        <span class="pp-cont-val" style="color:${cIva}">${ivaVal}</span>
-      </div>
-    </div>`;
-  }
-
-  // Se il cliente non ha contabilità attiva, mostra tutto (IVA + Contabilità)
-  const cIva = hasIva
-    ? contDone
-      ? "var(--green)"
-      : "var(--accent)"
-    : "var(--red)";
-  const cCont = contDone
-    ? hasIva
-      ? "var(--green)"
-      : "var(--accent)"
-    : "var(--red)";
+  // Per adempimenti di contabilità: IVA compilata = sempre verde
+  const cIva = hasIva ? "var(--green)" : "var(--red)";
 
   const ivaVal = hasIva ? `€${parseFloat(r.importo_iva).toFixed(2)}` : "—";
 
@@ -287,11 +259,6 @@ function _buildContabilitaLabel(r, pillColor) {
       <span class="pp-cont-check" style="color:${cIva}">${hasIva ? "✓" : "✗"}</span>
       <span class="pp-cont-lbl" style="color:${cIva}">💰 IVA</span>
       <span class="pp-cont-val" style="color:${cIva}">${ivaVal}</span>
-    </div>
-    <div class="pp-cont-row">
-      <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
-      <span class="pp-cont-lbl" style="color:${cCont}">📊 Cont.</span>
-      <span class="pp-cont-val" style="color:${cCont}">${contDone ? "fatto" : "—"}</span>
     </div>
   </div>`;
 }
@@ -322,24 +289,16 @@ function _buildRateLabel(r, pillColor) {
   // Colori combinati rate+contabilità
   let cRate, cCont;
   
-  // Se il cliente ha contabilità attiva, non considerare contDone per i colori
-  if (state.selectedCliente && state.selectedCliente.contabilita === 1) {
-    // Logica semplificata: solo le rate contano per il colore
-    // Se tutte le rate sono compilate → verde, altrimenti → rosso
-    if (allDone) {
-      cRate = cCont = "var(--green)"; // tutte le rate compilate → verde
-    } else {
-      cRate = cCont = "var(--red)"; // rate non complete → rosso
-    }
+  // Logica unificata per tutti i clienti:
+  // Se tutte le rate compilate E contabilità completata → verde
+  // Se almeno uno dei due è fatto → blu
+  // Se nessuno è fatto → rosso
+  if (allDone && contDone) {
+    cRate = cCont = "var(--green)"; // entrambi completati → verde
+  } else if (hasAnyRate || contDone) {
+    cRate = cCont = "var(--accent)"; // almeno uno fatto → blu
   } else {
-    // Logica normale per clienti senza contabilità attiva
-    if (hasAnyRate && contDone) {
-      cRate = cCont = "var(--green)"; // entrambi → verde
-    } else if (hasAnyRate || contDone) {
-      cRate = cCont = "var(--accent)"; // uno solo → blu
-    } else {
-      cRate = cCont = "var(--red)"; // nessuno → rosso
-    }
+    cRate = cCont = "var(--red)"; // nessuno fatto → rosso
   }
 
   const rows = vals
@@ -354,7 +313,7 @@ function _buildRateLabel(r, pillColor) {
     })
     .join("");
 
-  // Aggiungi riga per la contabilità
+  // Aggiungi riga per la contabilità (sempre visibile per le rate)
   const contRow = `<div class="pp-cont-row">
     <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
     <span class="pp-cont-lbl" style="color:${cCont}">📊 Cont.</span>

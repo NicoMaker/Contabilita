@@ -304,15 +304,27 @@ function openAdpModal(r) {
   setVal("adp-imp-acc1", r.importo_acconto1 || "");
   setVal("adp-imp-acc2", r.importo_acconto2 || "");
 
-  // Contabilità: checkbox cont_completata + colori
-  if (isCont && !isCbx) {
+  // Nascondi checkbox contabilità se il cliente ha contabilità attiva
+  const clienteHaContabilita = state.selectedCliente && state.selectedCliente.contabilita === 1;
+  const contCheckboxWrapper = document.getElementById("contabilita-checkbox-wrapper");
+  const rateCheckboxWrapper = document.getElementById("rate-contabilita-checkbox-wrapper");
+  
+  if (contCheckboxWrapper) {
+    contCheckboxWrapper.style.display = clienteHaContabilita ? "none" : "";
+  }
+  if (rateCheckboxWrapper) {
+    rateCheckboxWrapper.style.display = clienteHaContabilita ? "none" : "";
+  }
+
+  // Contabilità: checkbox cont_completata + colori (solo se cliente non ha contabilità attiva)
+  if (isCont && !isCbx && !clienteHaContabilita) {
     const contCheck = document.getElementById("adp-cont-completata");
     if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriContabilita(r);
   }
 
-  // Rate con contabilità: checkbox cont_completata + colori
-  if (isRate && !isCbx) {
+  // Rate con contabilità: checkbox cont_completata + colori (solo se cliente non ha contabilità attiva)
+  if (isRate && !isCbx && !clienteHaContabilita) {
     const rateContCheck = document.getElementById("adp-rate-cont-completata");
     if (rateContCheck)
       rateContCheck.checked = parseInt(r.cont_completata) === 1;
@@ -342,12 +354,15 @@ function _aggiornaColoriContabilita(r) {
   const ivaVal = document.getElementById("adp-imp-iva")?.value;
   const hasIva = ivaVal != null && ivaVal !== "";
 
+  // Se il cliente ha contabilità attiva, l'IVA compilata diventa verde
+  const clienteHaContabilita = state.selectedCliente && state.selectedCliente.contabilita === 1;
+  
   let vs = "none";
-  if (hasIva && contDone) vs = "both";
+  if (hasIva && contDone && !clienteHaContabilita) vs = "both";
   else if (hasIva) vs = "iva";
 
   const colorIva =
-    vs === "both" ? "var(--green)" : vs === "iva" ? "var(--accent)" : "";
+    vs === "both" ? "var(--green)" : vs === "iva" ? (clienteHaContabilita ? "var(--green)" : "var(--accent)") : "";
   const colorCont = vs === "both" ? "var(--green)" : "";
 
   const ivaLabel = document.getElementById("label-imp-iva");
@@ -358,7 +373,7 @@ function _aggiornaColoriContabilita(r) {
   if (ivaLabel) ivaLabel.style.color = colorIva;
   if (ivaInput)
     ivaInput.style.borderColor =
-      vs !== "none" ? (vs === "both" ? "var(--green)" : "var(--accent)") : "";
+      vs !== "none" ? (vs === "both" ? "var(--green)" : (clienteHaContabilita ? "var(--green)" : "var(--accent)")) : "";
   if (contLabel) contLabel.style.color = colorCont;
   if (contCbxLabel)
     contCbxLabel.style.color =
