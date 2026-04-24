@@ -232,11 +232,12 @@ function renderPeriodoPill(r) {
     onclick="openAdpById(${r.id})"
     oncontextmenu="toggleAdpCompletato(event,${r.id})"
     title="${escAttr(tooltipText)}"
-    style="border-color:${pillColor}">
+    style="border-color:${pillColor};color:${pillColor}">
     <div class="pp-top">
       <span class="pp-tag" style="border-color:${tagColor};color:${tagColor}">${ps}</span>
       <span class="pp-stato-icon" title="${escAttr(statoLabel)}">${statoIcon}</span>
     </div>
+    <div class="pp-nome" style="color:${pillColor}">${r.adempimento_nome || ''}</div>
     ${importiInline}
     ${dateLine}
     ${!importiInline && hasImp ? `<div class="pp-imp">${impHtml}</div>` : ""}
