@@ -646,7 +646,6 @@ function saveCliente() {
     col4Val,
   });
 
-  
   lastClienteFormValues.col2 = col2Val;
   lastClienteFormValues.col3 = col3Val;
   lastClienteFormValues.col4 = col4Val;
@@ -926,26 +925,26 @@ function aggiornaRiepilogoClassificazione() {
 
 function validaClassificazioneCliente() {
   console.log("=== INIZIO VALIDAZIONE CLASSIFICAZIONE ===");
-  
+
   const tipologia = document.getElementById("c-tipologia").value;
   console.log("Tipologia:", tipologia);
-  
+
   if (!tipologia) {
     showNotif("La Tipologia è obbligatoria", "error");
     document.getElementById("c-tipologia").focus();
     return false;
   }
-  
+
   const col2Wrap = document.getElementById("wrap-col2");
   const col3Wrap = document.getElementById("wrap-col3");
   const col4Wrap = document.getElementById("wrap-col4");
-  
+
   console.log("Stato wrap:", {
     col2Wrap: col2Wrap?.style.display,
     col3Wrap: col3Wrap?.style.display,
-    col4Wrap: col4Wrap?.style.display
+    col4Wrap: col4Wrap?.style.display,
   });
-  
+
   if (col2Wrap && col2Wrap.style.display !== "none") {
     const col2Val = document.getElementById("c-col2").value;
     console.log("Controllo col2 (visibile):", col2Val);
@@ -955,7 +954,7 @@ function validaClassificazioneCliente() {
       return false;
     }
   }
-  
+
   if (col3Wrap && col3Wrap.style.display !== "none") {
     const col3Val = document.getElementById("c-col3").value;
     console.log("Controllo col3 (visibile):", col3Val);
@@ -965,10 +964,15 @@ function validaClassificazioneCliente() {
       return false;
     }
   }
-  
+
   const col3Val = document.getElementById("c-col3")?.value || "";
-  console.log("Controllo periodicità - col3Val:", col3Val, "REGIMI_ANNUALI:", REGIMI_ANNUALI);
-  
+  console.log(
+    "Controllo periodicità - col3Val:",
+    col3Val,
+    "REGIMI_ANNUALI:",
+    REGIMI_ANNUALI,
+  );
+
   if (
     !REGIMI_ANNUALI.includes(col3Val) &&
     col4Wrap &&
@@ -982,7 +986,7 @@ function validaClassificazioneCliente() {
       return false;
     }
   }
-  
+
   console.log("=== VALIDAZIONE SUPERATA ===");
   return true;
 }

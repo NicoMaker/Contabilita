@@ -275,7 +275,7 @@ function openModal(id) {
     setTimeout(() => {
       modal.scrollTop = 0;
       // Prova anche a fare scroll sul modal interno
-      const modalInner = modal.querySelector('.modal');
+      const modalInner = modal.querySelector(".modal");
       if (modalInner) {
         modalInner.scrollTop = 0;
       }
