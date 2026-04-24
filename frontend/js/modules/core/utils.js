@@ -271,10 +271,17 @@ function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.add("open");
-    // Scroll all'inizio del modal
+    // Scroll all'inizio del modal - prova sia l'overlay che il modal interno
     setTimeout(() => {
       modal.scrollTop = 0;
-    }, 50);
+      // Prova anche a fare scroll sul modal interno
+      const modalInner = modal.querySelector('.modal');
+      if (modalInner) {
+        modalInner.scrollTop = 0;
+      }
+      // Prova anche a fare scroll sulla finestra
+      window.scrollTo(0, 0);
+    }, 100);
   }
 }
 function closeModal(id) {

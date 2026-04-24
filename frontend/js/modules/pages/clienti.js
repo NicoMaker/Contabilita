@@ -529,12 +529,6 @@ function openEditClienteModal(cliente, anno) {
 // ⭐ FUNZIONE PRINCIPALE PER NUOVO CLIENTE
 function openNuovoCliente() {
   console.log("=== APERTURA NUOVO CLIENTE ===");
-  console.log("Valori nel localStorage:", {
-    tipologia: localStorage.getItem("clienteForm_tipologia"),
-    col2: localStorage.getItem("clienteForm_col2"),
-    col3: localStorage.getItem("clienteForm_col3"),
-    col4: localStorage.getItem("clienteForm_col4"),
-  });
 
   document.getElementById("modal-cliente-title").textContent = "Nuovo Cliente";
   document.getElementById("cliente-id").value = "";
@@ -542,7 +536,7 @@ function openNuovoCliente() {
   const annoInfo = document.getElementById("cliente-anno-info");
   if (annoInfo) annoInfo.innerHTML = "";
 
-  // Resetta solo i campi anagrafici
+  // Resetta tutti i campi del form
   [
     "c-nome",
     "c-cf",
@@ -558,10 +552,19 @@ function openNuovoCliente() {
     "c-prov",
     "c-referente",
     "c-iban",
+    "c-col2",
+    "c-col3",
+    "c-col4",
   ].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
+
+  // Resetta anche il checkbox
+  const contabilitaCheckbox = document.getElementById("c-contabilita");
+  if (contabilitaCheckbox) {
+    contabilitaCheckbox.checked = false;
+  }
 
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
