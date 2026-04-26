@@ -1,155 +1,21 @@
 // ═══════════════════════════════════════════════════════════════
-// TIPOLOGIE.JS — Pagina tipologie con logica Forfettario Annuale
+// TIPOLOGIE.JS — Logica pura, tutti i dati in tipologie-data.json
 // ═══════════════════════════════════════════════════════════════
 
-function renderTipologiePage() {
-  // ─── CONFIGURAZIONE PERCORSI ──────────────────────────────────
-  const PERCORSI = {
-    PF: [
-      {
-        sepLabel: "PRIVATO",
-        col2Label: "Privato",
-        col3Label: null,
-        codice: "PF_PRIV",
-        hasPer: false,
-      },
-      {
-        sepLabel: "SOCIO",
-        col2Label: "Socio",
-        col3Label: null,
-        codice: "PF_SOCIO",
-        hasPer: false,
-      },
-      {
-        sepLabel: "DITTA INDIVIDUALE",
-        col2Label: "Ditta Individuale",
-        col3Label: "Ordinario",
-        codice: "PF_DITTA_ORD",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: "Ditta Individuale",
-        col3Label: "Semplificato",
-        codice: "PF_DITTA_SEM",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: "Ditta Individuale",
-        col3Label: "Forfettario",
-        codice: "PF_DITTA_FOR",
-        hasPer: false,
-        isForfettario: true,
-      },
-      {
-        sepLabel: "PROFESSIONISTA",
-        col2Label: "Professionista",
-        col3Label: "Ordinario",
-        codice: "PF_PROF_ORD",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: "Professionista",
-        col3Label: "Semplificato",
-        codice: "PF_PROF_SEM",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: "Professionista",
-        col3Label: "Forfettario",
-        codice: "PF_PROF_FOR",
-        hasPer: false,
-        isForfettario: true,
-      },
-    ],
-    SP: [
-      {
-        sepLabel: null,
-        col2Label: null,
-        col3Label: "Ordinaria",
-        codice: "SP_ORD",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: null,
-        col3Label: "Semplificata",
-        codice: "SP_SEMP",
-        hasPer: true,
-      },
-    ],
-    SC: [
-      {
-        sepLabel: null,
-        col2Label: null,
-        col3Label: "Ordinaria",
-        codice: "SC_ORD",
-        hasPer: true,
-      },
-    ],
-    ASS: [
-      {
-        sepLabel: null,
-        col2Label: null,
-        col3Label: "Ordinaria",
-        codice: "ASS_ORD",
-        hasPer: true,
-      },
-      {
-        sepLabel: null,
-        col2Label: null,
-        col3Label: "Semplificata",
-        codice: "ASS_SEMP",
-        hasPer: true,
-      },
-    ],
-  };
+async function renderTipologiePage() {
+  // ─── CARICAMENTO DATI ─────────────────────────────────────────
+  const res = await fetch("json/tipologie-data.json");
+  const DATA = await res.json();
 
-  const PERIODICITA_IVA = [
-    { value: "mensile", label: "📅 Mensile", color: "#22d3ee" },
-    { value: "trimestrale", label: "📆 Trimestrale", color: "#a78bfa" },
-  ];
-
-  const PERIODICITA_ANNUALE = [
-    { value: "annuale", label: "🗓️ Annuale", color: "#94a3b8" },
-  ];
-
-  const tipColors = {
-    PF: "#5b8df6",
-    SP: "#a78bfa",
-    SC: "#34d399",
-    ASS: "#fbbf24",
-  };
-  const tipDesc = {
-    PF: "Persona Fisica",
-    SP: "Società di Persone",
-    SC: "Società di Capitali",
-    ASS: "Associazione",
-  };
-  const tipIcons = { PF: "👤", SP: "🤝", SC: "🏢", ASS: "🏛️" };
-
-  const col2Colors = {
-    Privato: "#5b8df6",
-    Socio: "#a78bfa",
-    "Ditta Individuale": "#fb923c",
-    Professionista: "#34d399",
-  };
-  const col3Colors = {
-    Ordinario: "#5b8df6",
-    Ordinaria: "#5b8df6",
-    Semplificato: "#22d3ee",
-    Semplificata: "#22d3ee",
-    Forfettario: "#fbbf24",
-  };
-  const sepColors = {
-    PRIVATO: "#5b8df6",
-    SOCIO: "#a78bfa",
-    "DITTA INDIVIDUALE": "#fb923c",
-    PROFESSIONISTA: "#34d399",
-  };
+  const {
+    percorsi: PERCORSI,
+    periodicitaIva: PERIODICITA_IVA,
+    periodicitaAnnuale: PERIODICITA_ANNUALE,
+    tipologie,
+    col2Colors,
+    col3Colors,
+    sepColors,
+  } = DATA;
 
   // ─── HELPER RENDERING ─────────────────────────────────────────
   function step(num, label, color) {
@@ -169,9 +35,9 @@ function renderTipologiePage() {
     let html = "";
 
     // Scelta della periodicità:
-    // 1. Se è forfettario -> Solo Annuale
-    // 2. Se hasPer è true -> Mensile + Trimestrale
-    // 3. Altrimenti -> Nessuna (es. Privato/Socio)
+    // 1. Se è forfettario → Solo Annuale
+    // 2. Se hasPer è true  → Mensile + Trimestrale
+    // 3. Altrimenti        → Nessuna (es. Privato/Socio)
     let perRows = [null];
     if (p.isForfettario) {
       perRows = PERIODICITA_ANNUALE;
@@ -209,11 +75,12 @@ function renderTipologiePage() {
 
       // Codice univoco finale
       parts.push(
-        `<span class="tp-codice" style="background:${tipColor}12;color:${tipColor};border:1px solid ${tipColor}30">${p.codice}</span>`,
+        `<span class="tp-codice" style="background:${tipColor}12;color:${tipColor};border:1px solid ${tipColor}30">${p.codice}</span>`
       );
 
       html += `<div class="tp-row">${parts.join("")}</div>`;
     });
+
     return html;
   }
 
@@ -226,12 +93,13 @@ function renderTipologiePage() {
     <div class="tp-grid">`;
 
   Object.entries(PERCORSI).forEach(([tipCodice, percorsi]) => {
-    const tipColor = tipColors[tipCodice];
+    const tip      = tipologie[tipCodice];
+    const tipColor = tip.color;
 
     // Conteggio totale righe generate
-    const totalLines = percorsi.reduce((acc, curr) => {
-      if (curr.isForfettario) return acc + 1;
-      if (curr.hasPer) return acc + 2;
+    const totalLines = percorsi.reduce((acc, p) => {
+      if (p.isForfettario) return acc + 1;
+      if (p.hasPer)        return acc + 2;
       return acc + 1;
     }, 0);
 
@@ -239,10 +107,10 @@ function renderTipologiePage() {
       <div class="tp-card">
         <div class="tp-card-header" style="border-left:4px solid ${tipColor}">
           <div class="tp-badge" style="background:${tipColor}18;border:1px solid ${tipColor}44;color:${tipColor}">
-            ${tipIcons[tipCodice]} ${tipCodice}
+            ${tip.icon} ${tipCodice}
           </div>
           <div>
-            <div class="tp-card-title">${tipDesc[tipCodice]}</div>
+            <div class="tp-card-title">${tip.desc}</div>
             <div class="tp-card-sub">${totalLines} percorsi configurati</div>
           </div>
         </div>
@@ -271,7 +139,7 @@ function renderTipologiePage() {
     .tp-percorsi { padding:12px 16px; display:flex; flex-direction:column; gap:6px; }
     .tp-sep-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:10px 0 4px; border-bottom:1px solid var(--border); margin:6px 0 2px; opacity:0.8; }
     .tp-row { display:flex; align-items:center; flex-wrap:wrap; gap:4px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; transition:all .15s ease; }
-    .tp-row:hover { border-color:var(--accent); background:var(--surface3); transform: translateX(5px); }
+    .tp-row:hover { border-color:var(--accent); background:var(--surface3); transform:translateX(5px); }
     .tp-step { display:flex; align-items:center; gap:6px; }
     .tp-num { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; border:1px solid; flex-shrink:0; font-family:var(--mono); }
     .tp-val { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; }
