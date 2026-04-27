@@ -70,21 +70,23 @@
         <input type="hidden" id="cliente-edit-anno" value="" />
         <div id="cliente-anno-info"></div>
 
-        <div class="form-group">
+        <div class="form-group priority-field">
           <label>Nome / Ragione Sociale *</label>
           <input
-            class="input"
+            class="input highlight"
             id="c-nome"
             placeholder="Es. Mario Rossi o Alfa Srl"
           />
         </div>
 
-        <div class="infobox" style="margin-bottom: 14px">
-          🗂️ Classifica il cliente nelle 4 colonne. I campi si attivano in
-          cascata.
-        </div>
+        <div class="data-section">
+          <div class="data-section-title">Classificazione Cliente</div>
+          <div class="infobox" style="margin-bottom: 16px">
+            🗂️ Classifica il cliente nelle 4 colonne. I campi si attivano in
+            cascata.
+          </div>
 
-        <div class="quattro-colonne-grid">
+          <div class="quattro-colonne-grid">
           <div class="form-group col-classificazione">
             <label><span class="col-num">1</span> Tipologia *</label>
             <select
@@ -162,31 +164,36 @@
           <div class="riepilogo-content" id="riepilogo-classificazione"></div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Codice Fiscale</label>
-            <input
-              class="input"
-              id="c-cf"
-              placeholder="RSSMRA80A01L219K"
-              style="text-transform: uppercase"
-            />
-          </div>
-          <div class="form-group">
-            <label>Partita IVA</label>
-            <!-- ✅ SOLO NUMERI -->
-            <input
-              class="input"
-              id="c-piva"
-              placeholder="12345678901"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="11"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-            />
-          </div>
+        <div class="data-section">
+          <div class="data-section-title">Dati Anagrafici</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Codice Fiscale</label>
+              <input
+                class="input"
+                id="c-cf"
+                placeholder="RSSMRA80A01L219K"
+                style="text-transform: uppercase"
+              />
+            </div>
+            <div class="form-group">
+              <label>Partita IVA</label>
+              <!-- ✅ SOLO NUMERI -->
+              <input
+                class="input"
+                id="c-piva"
+                placeholder="12345678901"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="11"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+              />
+            </div>
         </div>
-        <div class="form-row">
+
+        <div class="data-section">
+          <div class="data-section-title">Contatti e Comunicazioni</div>
+          <div class="form-row">
           <div class="form-group">
             <label>Email</label>
             <input
@@ -228,62 +235,74 @@
             />
           </div>
         </div>
-        <div class="form-group">
-          <label>Indirizzo</label>
-          <input class="input" id="c-indirizzo" placeholder="Via Roma 1" />
-        </div>
-        <div class="form-row">
+
+        <div class="data-section">
+          <div class="data-section-title">Indirizzo</div>
           <div class="form-group">
-            <label>Città</label>
-            <input class="input" id="c-citta" placeholder="Roma" />
+            <label>Indirizzo</label>
+            <input class="input" id="c-indirizzo" placeholder="Via Roma 1" />
           </div>
-          <div class="form-group" style="max-width: 110px">
-            <label>CAP</label>
-            <!-- ✅ SOLO NUMERI -->
-            <input
-              class="input"
-              id="c-cap"
-              placeholder="00100"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="5"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-            />
-          </div>
-          <div class="form-group" style="max-width: 90px">
-            <label>Prov.</label>
-            <input
-              class="input"
-              id="c-prov"
-              placeholder="RM"
-              style="text-transform: uppercase"
-              maxlength="2"
-            />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Referente</label>
-            <input class="input" id="c-referente" placeholder="Dott. Rossi" />
-          </div>
-          <div class="form-group">
-            <label>IBAN</label>
-            <input
-              class="input"
-              id="c-iban"
-              placeholder="IT00X0000000000000000000000"
-              style="text-transform: uppercase"
-            />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Città</label>
+              <input class="input" id="c-citta" placeholder="Roma" />
+            </div>
+            <div class="form-group" style="max-width: 110px">
+              <label>CAP</label>
+              <!-- ✅ SOLO NUMERI -->
+              <input
+                class="input"
+                id="c-cap"
+                placeholder="00100"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="5"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+              />
+            </div>
+            <div class="form-group" style="max-width: 90px">
+              <label>Prov.</label>
+              <input
+                class="input"
+                id="c-prov"
+                placeholder="RM"
+                style="text-transform: uppercase"
+                maxlength="2"
+              />
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label>Note</label>
-          <textarea
-            class="input"
-            id="c-note"
-            rows="2"
-            placeholder="Note aggiuntive..."
-          ></textarea>
+
+        <div class="data-section">
+          <div class="data-section-title">Dati Bancari e Referente</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Referente</label>
+              <input class="input" id="c-referente" placeholder="Dott. Rossi" />
+            </div>
+            <div class="form-group">
+              <label>IBAN</label>
+              <input
+                class="input"
+                id="c-iban"
+                placeholder="IT00X0000000000000000000000"
+                style="text-transform: uppercase"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-title">Note Aggiuntive</div>
+          <div class="form-group">
+            <label>Note</label>
+            <textarea
+              class="input"
+              id="c-note"
+              rows="2"
+              placeholder="Note aggiuntive..."
+            ></textarea>
+          </div>
         </div>
         <div class="modal-actions">
           <button
