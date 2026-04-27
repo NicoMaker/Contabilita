@@ -2,6 +2,54 @@
 // UTILS.JS — Funzioni di utilità generali
 // ═══════════════════════════════════════════════════════════════
 
+// ─── DECIMAL INPUT HANDLER ────────────────────────────────────────
+function normalizeDecimalInput(value) {
+  // Convert commas to dots for decimal separator
+  return value.replace(',', '.');
+}
+
+function setupDecimalInput(input) {
+  input.addEventListener('input', function(e) {
+    let value = e.target.value;
+    
+    // Replace all commas with dots for internal processing
+    value = value.replace(/,/g, '.');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Remove any non-numeric characters except dots
+    value = value.replace(/[^0-9.]/g, '');
+    
+    e.target.value = value;
+  });
+  
+  input.addEventListener('blur', function(e) {
+    let value = e.target.value;
+    if (value && value !== '') {
+      // Convert to number and format to 2 decimal places
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        e.target.value = num.toFixed(2);
+      }
+    }
+  });
+  
+  // Also handle paste events
+  input.addEventListener('paste', function(e) {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const cleanedData = pastedData.replace(/,/g, '.');
+    const num = parseFloat(cleanedData);
+    if (!isNaN(num)) {
+      e.target.value = num.toFixed(2);
+    }
+  });
+}
+
 // ─── ROW STORE ────────────────────────────────────────────────
 const _rowStore = {};
 

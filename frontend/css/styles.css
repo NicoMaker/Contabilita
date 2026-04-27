@@ -2220,14 +2220,14 @@ tr.clickable:hover td {
 .flag-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 10px 16px;
   border-radius: var(--r-sm);
   background: var(--s2);
   border: 1px solid var(--b1);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s;
 }
 .flag-chip:hover {

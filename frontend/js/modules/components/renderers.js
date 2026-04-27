@@ -38,7 +38,7 @@ function renderImportoCellCompact(r) {
     return `<div class="importi-cell">
       ${iva ? `<div class="imp-row"><span class="imp-lbl">💰 IVA</span><span class="imp-val">${iva}</span></div>` : ""}
       ${acc2 ? `<div class="imp-row"><span class="imp-lbl">📥 2°Acc.</span><span class="imp-val">${acc2}</span></div>` : ""}
-      ${contDone ? `<div class="imp-row"><span class="imp-lbl">📊 Redditi Comp.</span><span class="imp-val">✓</span></div>` : ""}
+      ${contDone ? `<div class="imp-row"><span class="imp-lbl">📊 Adempimento Comp.</span><span class="imp-val">✓</span></div>` : ""}
     </div>`;
   }
   if (hasRate(r)) {
@@ -276,7 +276,7 @@ function _buildContabilitaLabel(r, pillColor) {
     </div>
     <div class="pp-cont-row">
       <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
-      <span class="pp-cont-lbl" style="color:${cCont}">📊 Redditi Comp.</span>
+      <span class="pp-cont-lbl" style="color:${cCont}">📊 Adempimento Comp.</span>
       <span class="pp-cont-val" style="color:${cCont}">${contDone ? "fatto" : "—"}</span>
     </div>
   </div>`;
@@ -321,7 +321,7 @@ function _buildRateLabel(r, pillColor) {
 
   const contRow = `<div class="pp-cont-row">
     <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
-    <span class="pp-cont-lbl" style="color:${cCont}">📊 Redditi Comp.</span>
+    <span class="pp-cont-lbl" style="color:${cCont}">📊 Adempimento Comp.</span>
     <span class="pp-cont-val" style="color:${cCont}">${contDone ? "fatto" : "—"}</span>
   </div>`;
 
