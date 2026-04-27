@@ -2220,21 +2220,30 @@ tr.clickable:hover td {
 .flag-chip {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 15px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
   background: var(--s2);
   border: 1px solid var(--b1);
-  border-radius: var(--r-sm);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.12s;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 .flag-chip:hover {
+  background: var(--s3);
   border-color: var(--accent);
 }
 .flag-chip input {
-  accent-color: var(--accent);
+  margin: 0;
+}
+.flag-chip span {
+  color: #000 !important;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.flag-chip:hover span {
+  color: #000 !important;
 }
 
 /* ════════════════════════════════════════════════════════════════

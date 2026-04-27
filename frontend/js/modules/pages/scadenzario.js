@@ -553,6 +553,26 @@ function renderAdempimentiSelection() {
   const container = document.getElementById("genera-tutti-adempimenti-list");
   if (!container) return;
   
+  // Controlla se gli adempimenti sono disponibili
+  if (!state.adempimenti || state.adempimenti.length === 0) {
+    // Prova a caricare gli adempimenti se non disponibili
+    if (typeof socket !== "undefined") {
+      socket.emit("get:adempimenti");
+    }
+    // Mostra caricamento mentre aspetta i dati
+    container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
+      <div>📋 Caricamento adempimenti...</div>
+    </div>`;
+    
+    // Retry dopo 2 secondi se i dati non sono ancora caricati
+    setTimeout(() => {
+      if (!state.adempimenti || state.adempimenti.length === 0) {
+        renderAdempimentiSelection();
+      }
+    }, 2000);
+    return;
+  }
+  
   // Seleziona automaticamente tutti gli adempimenti
   const checkboxes = state.adempimenti.map(a => {
     const checked = localStorage.getItem(`gen_adp_${a.id}`) !== "false"; // Default a true
@@ -657,9 +677,21 @@ function renderAddAdpSelection() {
   
   // Controlla se gli adempimenti sono disponibili
   if (!state.adempimenti || state.adempimenti.length === 0) {
+    // Prova a caricare gli adempimenti se non disponibili
+    if (typeof socket !== "undefined") {
+      socket.emit("get:adempimenti");
+    }
+    // Mostra caricamento mentre aspetta i dati
     container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
       <div>📋 Caricamento adempimenti...</div>
     </div>`;
+    
+    // Retry dopo 2 secondi se i dati non sono ancora caricati
+    setTimeout(() => {
+      if (!state.adempimenti || state.adempimenti.length === 0) {
+        renderAddAdpSelection();
+      }
+    }, 2000);
     return;
   }
   
