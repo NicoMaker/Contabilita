@@ -65,7 +65,7 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
       s.codice as sottotipologia_codice,
       s.nome as sottotipologia_nome
     FROM clienti c 
-    LEFT JOIN clienti_config_annuale cfg ON c.id = cfg.id_cliente AND cfg.anno = ?
+    INNER JOIN clienti_config_annuale cfg ON c.id = cfg.id_cliente AND cfg.anno = ?
     LEFT JOIN tipologie_cliente t ON cfg.id_tipologia = t.id
     LEFT JOIN sottotipologie s ON cfg.id_sottotipologia = s.id
     WHERE c.attivo = 1
@@ -88,6 +88,7 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
     sql += ` AND cfg.periodicita = ?`;
     params.push(filtri.periodicita);
   }
+  
   if (filtri.search?.trim()) {
     const s = `%${filtri.search.trim()}%`;
     sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ?)`;
@@ -96,25 +97,6 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
 
   sql += ` ORDER BY c.nome`;
   const results = queryAll(sql, params);
-
-  for (const c of results) {
-    if (!c.id_tipologia) {
-      const lastConfig = getConfigCorrente(c.id, anno);
-      if (lastConfig) {
-        c.id_tipologia = lastConfig.id_tipologia;
-        c.tipologia_codice = lastConfig.tipologia_codice;
-        c.tipologia_nome = lastConfig.tipologia_nome;
-        c.tipologia_colore = lastConfig.tipologia_colore;
-        c.id_sottotipologia = lastConfig.id_sottotipologia;
-        c.sottotipologia_codice = lastConfig.sottotipologia_codice;
-        c.sottotipologia_nome = lastConfig.sottotipologia_nome;
-        c.col2_value = lastConfig.col2_value;
-        c.col3_value = lastConfig.col3_value;
-        c.periodicita = lastConfig.periodicita;
-        c.config_anno = lastConfig.anno;
-      }
-    }
-  }
 
   return results;
 }
@@ -349,25 +331,77 @@ function updateClienteAnagrafica(data) {
   );
 }
 
-function deleteCliente(id) {
-  const count = queryOne(
-    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
-    [id],
-  );
-  if (count.cnt > 0) {
-    throw new Error(
-      `Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati.`,
+function deleteCliente(id, anno = null, deleteAll = false) {
+  if (deleteAll) {
+    // Eliminazione completa da tutti gli anni
+    const count = queryOne(
+      `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
+      [id],
     );
+    if (count.cnt > 0) {
+      throw new Error(
+        `Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati.`,
+      );
+    }
+    runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
+  } else if (anno) {
+    // Eliminazione solo per un anno specifico
+    const count = queryOne(
+      `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`,
+      [id, anno],
+    );
+    if (count.cnt > 0) {
+      throw new Error(
+        `Impossibile eliminare il cliente per l'anno ${anno}: ha ${count.cnt} adempimenti associati.`,
+      );
+    }
+    // Elimina solo la configurazione per quell'anno
+    runQuery(`DELETE FROM clienti_config_annuale WHERE id_cliente = ? AND anno = ?`, [id, anno]);
+    
+    // Verifica se il cliente ha configurazioni per altri anni
+    const remainingConfigs = queryOne(
+      `SELECT COUNT(*) as cnt FROM clienti_config_annuale WHERE id_cliente = ?`,
+      [id],
+    );
+    
+    // Se non ha più configurazioni, disattiva il cliente
+    if (remainingConfigs.cnt === 0) {
+      runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
+    }
+  } else {
+    // Comportamento di default (vecchia logica)
+    const count = queryOne(
+      `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
+      [id],
+    );
+    if (count.cnt > 0) {
+      throw new Error(
+        `Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati.`,
+      );
+    }
+    runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
   }
-  runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
 }
 
-function canDeleteCliente(id) {
-  const count = queryOne(
-    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
-    [id],
-  );
+function canDeleteCliente(id, anno = null) {
+  let sql, params;
+  if (anno) {
+    sql = `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`;
+    params = [id, anno];
+  } else {
+    sql = `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`;
+    params = [id];
+  }
+  const count = queryOne(sql, params);
   return { canDelete: count.cnt === 0, adempimentiCount: count.cnt };
+}
+
+function checkAdempimentiClienteAnno(id_cliente, anno) {
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`,
+    [id_cliente, anno],
+  );
+  return { hasAdempimenti: count.cnt > 0, count: count.cnt };
 }
 
 function copiaConfigClienteAnno(id_cliente, anno_da, anno_a) {
@@ -496,6 +530,7 @@ module.exports = {
   updateClienteConfig,
   deleteCliente,
   canDeleteCliente,
+  checkAdempimentiClienteAnno,
   copiaConfigClienteAnno,
   copiaTuttiClientiAnno,
 };

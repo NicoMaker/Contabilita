@@ -165,8 +165,7 @@ function renderClientiTabella(clienti) {
         if (c.periodicita)
           colBadges += `<span class="badge-per"  style="font-size:11px">📅 ${periodicitaMap[c.periodicita] || c.periodicita}</span>`;
 
-        const configInfo =
-          c.config_anno && c.config_anno !== currentAnno
+        const configInfo = c.config_anno && c.config_anno !== currentAnno
             ? `<div style="font-size:9px;color:var(--yellow);margin-top:3px" title="Configurazione ereditata dal ${c.config_anno}">📌 eredita ${c.config_anno}</div>`
             : "";
 
@@ -437,18 +436,37 @@ function deleteClienteFromDettaglio() {
   const cliente = state.clienti.find(c => c.id === currentClienteId);
   const clienteNome = cliente ? cliente.nome : "questo cliente";
   
-  // Per ora, usa la logica semplificata senza verifica degli adempimenti
-  // TODO: Implementare verifica adempimenti quando il backend supporta l'evento
-  const message = `Eliminare "${clienteNome}" solo per l'anno ${anno}?
-  
-Questa operazione eliminerà il cliente solo dall'anno ${anno}, mantenendo i dati negli altri anni.
-Se vuoi eliminare il cliente da tutti gli anni, contatta l'amministratore.`;
+  // Verifica se il cliente ha adempimenti nell'anno selezionato
+  if (typeof socket !== "undefined") {
+    socket.emit("check:adempimenti_cliente", { id_cliente: currentClienteId, anno });
+    
+    socket.once("res:check:adempimenti_cliente", ({ success, hasAdempimenti, count }) => {
+      if (!success) {
+        // Fallback se il backend non supporta la verifica
+        proceedWithBasicDeletion(currentClienteId, anno, clienteNome);
+        return;
+      }
+      
+      if (hasAdempimenti && count > 0) {
+        // Ha adempimenti - non può essere eliminato
+        alert(`Impossibile eliminare "${clienteNome}" per l'anno ${anno}.
 
-  if (confirm(message)) {
-    closeModal("modal-cliente-dettaglio");
-    if (typeof socket !== "undefined") {
-      socket.emit("delete:cliente", { id: currentClienteId, anno });
-    }
+Il cliente ha ${count} adempimento/i in questo anno. Per eliminare il cliente, prima elimina tutti gli adempimenti per questo anno.`);
+        return;
+      } else {
+        // Non ha adempimenti - chiedi conferma
+        const message = `Eliminare "${clienteNome}" dall'anno ${anno}?
+
+Il cliente non ha adempimenti in questo anno. Questa operazione eliminerà solo la configurazione per l'anno ${anno}, mantenendo i dati negli altri anni.`;
+        
+        if (confirm(message)) {
+          closeModal("modal-cliente-dettaglio");
+          if (typeof socket !== "undefined") {
+            socket.emit("delete:cliente", { id: currentClienteId, anno });
+          }
+        }
+      }
+    });
   }
 }
 
@@ -470,14 +488,25 @@ function editCliente(id) {
 // ─── MODALE MODIFICA CLIENTE ──────────────────────────────────
 function openEditClienteModal(cliente, anno) {
   document.getElementById("modal-cliente-title").textContent =
-    `Modifica Cliente — ${anno}`;
+    `Modifica Cliente`;
   document.getElementById("cliente-id").value = cliente.id;
   document.getElementById("cliente-edit-anno").value = anno;
 
   const annoInfo = document.getElementById("cliente-anno-info");
   if (annoInfo) {
-    annoInfo.innerHTML = `<div class="infobox" style="margin-bottom:16px;background:var(--accent-d);border-color:var(--accent)">
-      📅 Configurazione per <strong>${anno}</strong>. Le modifiche non influenzeranno gli anni precedenti.</div>`;
+    annoInfo.innerHTML = `
+      <div class="infobox" style="margin-bottom:16px;background:var(--accent-d);border-color:var(--accent)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--text2)">📅 Anno configurazione:</span>
+          <select id="cliente-anno-select" class="select" style="width:110px" onchange="updateAnnoCreazione()">
+            ${buildAnniOptions(anno)}
+          </select>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">
+          Stai modificando la configurazione per l'anno selezionato. Le modifiche non influenzeranno gli altri anni.
+        </div>
+      </div>
+    `;
   }
 
   const fields = {
@@ -536,14 +565,24 @@ function openEditClienteModal(cliente, anno) {
 function openNuovoCliente() {
   const currentAnno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
   
-  document.getElementById("modal-cliente-title").textContent = `Nuovo Cliente — ${currentAnno}`;
+  document.getElementById("modal-cliente-title").textContent = `Nuovo Cliente`;
   document.getElementById("cliente-id").value = "";
   document.getElementById("cliente-edit-anno").value = currentAnno;
   const annoInfo = document.getElementById("cliente-anno-info");
   if (annoInfo) {
-    annoInfo.innerHTML = `<div class="infobox" style="margin-bottom:16px;background:var(--accent-d);border-color:var(--accent)">
-      📅 Creazione cliente per l'anno <strong>${currentAnno}</strong>. Il cliente sarà disponibile solo per questo anno e gli anni successivi.
-    </div>`;
+    annoInfo.innerHTML = `
+      <div class="infobox" style="margin-bottom:16px;background:var(--accent-d);border-color:var(--accent)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--text2)">📅 Anno di creazione:</span>
+          <select id="cliente-anno-select" class="select" style="width:110px" onchange="updateAnnoCreazione()">
+            ${buildAnniOptions(currentAnno)}
+          </select>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">
+          Il cliente sarà disponibile solo per l'anno selezionato. Per renderlo visibile in altri anni, crea configurazioni specifiche per ogni anno.
+        </div>
+      </div>
+    `;
   }
 
   [
@@ -589,6 +628,14 @@ function openNuovoCliente() {
 }
 
 // ─── SALVA CLIENTE ────────────────────────────────────────────
+function updateAnnoCreazione() {
+  const annoSelect = document.getElementById("cliente-anno-select");
+  const editAnnoInput = document.getElementById("cliente-edit-anno");
+  if (annoSelect && editAnnoInput) {
+    editAnnoInput.value = annoSelect.value;
+  }
+}
+
 function saveCliente() {
   const id = document.getElementById("cliente-id").value;
   const anno = parseInt(
@@ -708,44 +755,32 @@ function deleteCliente(id) {
       let deleteAllYears = false;
       
       if (hasAdempimenti && count > 0) {
-        // Ha adempimenti - elimina solo per l'anno corrente
-        message = `Eliminare "${clienteNome}" solo per l'anno ${currentAnno}?
-        
-Il cliente ha ${count} adempimento/i in questo anno. Questa operazione eliminerà il cliente solo dall'anno ${currentAnno}, mantenendo i dati negli altri anni.
-Se vuoi eliminare il cliente da tutti gli anni, prima elimina tutti gli adempimenti.`;
-        deleteAllYears = false;
+        // Ha adempimenti - non può essere eliminato
+        message = `Impossibile eliminare "${clienteNome}" per l'anno ${currentAnno}.
+
+Il cliente ha ${count} adempimento/i in questo anno. Per eliminare il cliente, prima elimina tutti gli adempimenti per questo anno.`;
+        alert(message);
+        return;
       } else {
         // Non ha adempimenti - chiedi se eliminare da tutti gli anni
-        message = `Eliminare "${clienteNome}" da tutti gli anni?
+        message = `Eliminare "${clienteNome}"?
 
-Il cliente non ha adempimenti nell'anno ${currentAnno}. Puoi eliminarlo completamente da tutti gli anni o solo dall'anno corrente.
+Il cliente non ha adempimenti nell'anno ${currentAnno}. Scegli come procedere:
 
-Clicca OK per eliminare da tutti gli anni
-Clicca ANNULLA per eliminare solo dall'anno ${currentAnno}`;
-        deleteAllYears = true;
-      }
-      
-      const confirmed = confirm(message);
-      
-      if (confirmed) {
-        if (typeof socket !== "undefined") {
-          if (deleteAllYears) {
-            // Elimina da tutti gli anni
-            socket.emit("delete:cliente", { id, anno: null, deleteAll: true });
-          } else {
-            // Elimina solo per l'anno corrente
-            socket.emit("delete:cliente", { id, anno: currentAnno });
-          }
-        }
-      } else if (hasAdempimenti && count > 0) {
-        // Se ha adempimenti e l'utente annulla, chiedi se vuole eliminare solo per l'anno corrente
-        const confirmYearOnly = confirm(`Eliminare "${clienteNome}" solo per l'anno ${currentAnno}?
+Clicca OK per eliminare solo dall'anno ${currentAnno}
+Clicca ANNULLA per eliminare da tutti gli anni`;
         
-Questa operazione eliminerà il cliente solo dall'anno ${currentAnno}, mantenendo i dati negli altri anni.`);
+        const confirmed = confirm(message);
         
-        if (confirmYearOnly) {
+        if (confirmed) {
+          // Elimina solo per l'anno corrente
           if (typeof socket !== "undefined") {
             socket.emit("delete:cliente", { id, anno: currentAnno });
+          }
+        } else {
+          // Elimina da tutti gli anni
+          if (typeof socket !== "undefined") {
+            socket.emit("delete:cliente", { id, anno: null, deleteAll: true });
           }
         }
       }
@@ -1145,6 +1180,7 @@ window.showClienteDettaglio = showClienteDettaglio;
 window.onDettaglioAnnoChange = onDettaglioAnnoChange;
 window.editClienteFromDettaglio = editClienteFromDettaglio;
 window.deleteClienteFromDettaglio = deleteClienteFromDettaglio;
+window.updateAnnoCreazione = updateAnnoCreazione;
 window.goToClienteScadenzario = goToClienteScadenzario;
 window.openCopiaConfig = openCopiaConfig;
 window.openCopiaConfigTutti = openCopiaConfigTutti;

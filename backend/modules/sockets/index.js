@@ -83,18 +83,28 @@ module.exports = function setupSocketHandlers(io) {
       }
     });
 
-    socket.on("delete:cliente", ({ id }) => {
+    socket.on("delete:cliente", ({ id, anno, deleteAll = false }) => {
       try {
-        clientiModel.deleteCliente(id);
+        clientiModel.deleteCliente(id, anno, deleteAll);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:delete:cliente", { success: true });
+        const msg = deleteAll ? "Cliente eliminato completamente" : `Cliente eliminato per l'anno ${anno}`;
         socket.emit("notify", {
           type: "success",
-          msg: "Cliente eliminato con successo",
+          msg: msg + " con successo",
         });
       } catch (e) {
         socket.emit("res:delete:cliente", { success: false, error: e.message });
         socket.emit("notify", { type: "error", msg: e.message });
+      }
+    });
+
+    socket.on("check:adempimenti_cliente", ({ id_cliente, anno }) => {
+      try {
+        const result = clientiModel.checkAdempimentiClienteAnno(id_cliente, anno);
+        socket.emit("res:check:adempimenti_cliente", { success: true, ...result });
+      } catch (e) {
+        socket.emit("res:check:adempimenti_cliente", { success: false, error: e.message });
       }
     });
 
