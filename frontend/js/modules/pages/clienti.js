@@ -489,12 +489,7 @@ function openEditClienteModal(cliente, anno) {
     if (el) el.value = val || "";
   });
 
-  // Imposta il checkbox contabilita
-  const contabilitaCheckbox = document.getElementById("c-contabilita");
-  if (contabilitaCheckbox) {
-    contabilitaCheckbox.checked = cliente.contabilita === 1;
-  }
-
+  
   populateTipologiaSelect(cliente.id_tipologia);
   const col2Val = cliente.col2_value || "",
     col3Val = cliente.col3_value || "",
@@ -560,12 +555,7 @@ function openNuovoCliente() {
     if (el) el.value = "";
   });
 
-  // Resetta anche il checkbox
-  const contabilitaCheckbox = document.getElementById("c-contabilita");
-  if (contabilitaCheckbox) {
-    contabilitaCheckbox.checked = false;
-  }
-
+  
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
 
@@ -659,7 +649,6 @@ function saveCliente() {
     col2_value: col2Val || null,
     col3_value: col3Val || null,
     periodicita: col4Val || null,
-    contabilita: document.getElementById("c-contabilita")?.checked ? 1 : 0,
     codice_fiscale:
       document.getElementById("c-cf")?.value.trim().toUpperCase() || null,
     partita_iva: document.getElementById("c-piva")?.value.trim() || null,

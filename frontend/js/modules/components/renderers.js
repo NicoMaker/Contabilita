@@ -382,7 +382,7 @@ function renderClienteDatiRiferimento(cliente) {
   if (cliente.codice_fiscale)
     add("🆔", "CF:", cliente.codice_fiscale, "Codice Fiscale");
   if (cliente.partita_iva)
-    add("🏢", "P.IVA:", cliente.partita_iva, "Partita IVA");
+    add("🏢", "P.IVA:", cliente.partita_iva.replace(/[^0-9]/g, ''), "Partita IVA");
   if (cliente.email) add("📧", "Email:", cliente.email, "Indirizzo email");
   if (cliente.telefono)
     add("📞", "Tel:", cliente.telefono.replace(/[^0-9]/g, ''), "Numero di telefono");
