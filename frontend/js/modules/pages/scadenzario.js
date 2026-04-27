@@ -481,23 +481,9 @@ function renderScadenzarioTabella(data) {
 // ─── AZIONI ───────────────────────────────────────────────────
 function generaScadenzario() {
   if (!state.selectedCliente) return;
-  if (
-    state.scadenzario &&
-    state.scadenzario.length > 0 &&
-    getAdempimentiMancanti().length === 0
-  ) {
-    showNotif(
-      "✅ Tutti gli adempimenti sono già stati generati per quest'anno",
-      "info",
-    );
-    return;
-  }
-  if (typeof socket !== "undefined") {
-    socket.emit("genera:scadenzario", {
-      id_cliente: state.selectedCliente.id,
-      anno: state.anno,
-    });
-  }
+  
+  // Apri il modal di selezione adempimenti invece di generare direttamente
+  openAddAdp(state.selectedCliente.id);
 }
 
 function openCopia() {
@@ -543,25 +529,195 @@ function eseguiCopia() {
 
 function openGeneraTutti() {
   document.getElementById("genera-tutti-anno").value = state.anno;
+  
+  // Assicura che gli adempimenti siano caricati prima di aprire il modal
+  if (!state.adempimenti || state.adempimenti.length === 0) {
+    if (typeof socket !== "undefined") {
+      socket.emit("get:adempimenti");
+    }
+    // Mostra caricamento mentre aspetta i dati
+    const container = document.getElementById("genera-tutti-adempimenti-list");
+    if (container) {
+      container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
+        <div>📋 Caricamento adempimenti...</div>
+      </div>`;
+    }
+  } else {
+    renderAdempimentiSelection();
+  }
+  
   openModal("modal-genera-tutti");
+}
+
+function renderAdempimentiSelection() {
+  const container = document.getElementById("genera-tutti-adempimenti-list");
+  if (!container) return;
+  
+  // Seleziona automaticamente tutti gli adempimenti
+  const checkboxes = state.adempimenti.map(a => {
+    const checked = localStorage.getItem(`gen_adp_${a.id}`) !== "false"; // Default a true
+    localStorage.setItem(`gen_adp_${a.id}`, checked); // Salva il default
+    return `
+      <label class="flag-chip" style="margin: 2px; padding: 6px 10px; font-size: 12px;">
+        <input type="checkbox" 
+               id="gen_adp_${a.id}" 
+               value="${a.id}" 
+               ${checked ? 'checked' : ''}
+               onchange="saveAdpSelection(${a.id})">
+        <span>${a.nome} (${a.codice})</span>
+      </label>
+    `;
+  }).join('');
+  
+  container.innerHTML = checkboxes;
+  
+  // Imposta lo stato del checkbox "Seleziona Tutti" in base a quanti sono selezionati
+  updateSelectAllCheckbox();
+}
+
+function updateSelectAllCheckbox() {
+  const selectAllCheckbox = document.getElementById("genera-tutti-seleziona-tutti");
+  if (!selectAllCheckbox) return;
+  
+  const totalCheckboxes = state.adempimenti.filter(a => document.getElementById(`gen_adp_${a.id}`));
+  const checkedBoxes = totalCheckboxes.filter(a => document.getElementById(`gen_adp_${a.id}`).checked);
+  
+  selectAllCheckbox.checked = totalCheckboxes.length > 0 && checkedBoxes.length === totalCheckboxes.length;
+}
+
+function saveAdpSelection(id) {
+  const checkbox = document.getElementById(`gen_adp_${id}`);
+  localStorage.setItem(`gen_adp_${id}`, checkbox.checked);
+}
+
+function toggleSelezionaTuttiAdempimenti() {
+  const selectAll = document.getElementById("genera-tutti-seleziona-tutti").checked;
+  state.adempimenti.forEach(a => {
+    const checkbox = document.getElementById(`gen_adp_${a.id}`);
+    if (checkbox) {
+      checkbox.checked = selectAll;
+      localStorage.setItem(`gen_adp_${a.id}`, selectAll);
+    }
+  });
+}
+
+function getSelectedAdempimenti() {
+  return state.adempimenti
+    .filter(a => {
+      const checkbox = document.getElementById(`gen_adp_${a.id}`);
+      return checkbox && checkbox.checked;
+    })
+    .map(a => a.id);
 }
 
 function eseguiGeneraTutti() {
   const anno = parseInt(document.getElementById("genera-tutti-anno").value);
+  const selectedAdempimenti = getSelectedAdempimenti();
+  
+  if (selectedAdempimenti.length === 0) {
+    showNotif("Seleziona almeno un adempimento da generare", "error");
+    return;
+  }
+  
   if (typeof socket !== "undefined") {
-    socket.emit("genera:tutti", { anno });
+    socket.emit("genera:tutti", { anno, adempimenti: selectedAdempimenti });
   }
 }
 
 function openAddAdp(id_cliente) {
   document.getElementById("add-adp-cliente-id").value = id_cliente;
   document.getElementById("add-adp-anno").value = state.anno;
+  
+  // Assicura che gli adempimenti siano caricati prima di aprire il modal
+  if (!state.adempimenti || state.adempimenti.length === 0) {
+    if (typeof socket !== "undefined") {
+      socket.emit("get:adempimenti");
+    }
+    // Mostra caricamento mentre aspetta i dati
+    const container = document.getElementById("add-adp-list");
+    if (container) {
+      container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
+        <div>📋 Caricamento adempimenti...</div>
+      </div>`;
+    }
+  } else {
+    renderAddAdpSelection();
+  }
+  
   const c = state.selectedCliente;
   if (c)
     document.getElementById("add-adp-cliente-info").innerHTML =
       renderClienteInfoBox(c);
-  refreshAddAdpSelect();
   openModal("modal-add-adp");
+}
+
+function renderAddAdpSelection() {
+  const container = document.getElementById("add-adp-list");
+  if (!container) return;
+  
+  // Controlla se gli adempimenti sono disponibili
+  if (!state.adempimenti || state.adempimenti.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
+      <div>📋 Caricamento adempimenti...</div>
+    </div>`;
+    return;
+  }
+  
+  // Seleziona automaticamente tutti gli adempimenti
+  const checkboxes = state.adempimenti.map(a => {
+    const checked = localStorage.getItem(`add_adp_${a.id}`) !== "false"; // Default a true
+    localStorage.setItem(`add_adp_${a.id}`, checked); // Salva il default
+    return `
+      <label class="flag-chip" style="margin: 2px; padding: 6px 10px; font-size: 12px;">
+        <input type="checkbox" 
+               id="add_adp_${a.id}" 
+               value="${a.id}" 
+               ${checked ? 'checked' : ''}
+               onchange="saveAddAdpSelection(${a.id})">
+        <span>${a.nome} (${a.codice})</span>
+      </label>
+    `;
+  }).join('');
+  
+  container.innerHTML = checkboxes;
+  
+  // Imposta lo stato del checkbox "Seleziona Tutti" in base a quanti sono selezionati
+  updateSelectAllAddAdpCheckbox();
+}
+
+function updateSelectAllAddAdpCheckbox() {
+  const selectAllCheckbox = document.getElementById("add-adp-seleziona-tutti");
+  if (!selectAllCheckbox) return;
+  
+  const totalCheckboxes = state.adempimenti.filter(a => document.getElementById(`add_adp_${a.id}`));
+  const checkedBoxes = totalCheckboxes.filter(a => document.getElementById(`add_adp_${a.id}`).checked);
+  
+  selectAllCheckbox.checked = totalCheckboxes.length > 0 && checkedBoxes.length === totalCheckboxes.length;
+}
+
+function saveAddAdpSelection(id) {
+  const checkbox = document.getElementById(`add_adp_${id}`);
+  localStorage.setItem(`add_adp_${id}`, checkbox.checked);
+}
+
+function toggleSelezionaTuttiAddAdp() {
+  const selectAll = document.getElementById("add-adp-seleziona-tutti").checked;
+  state.adempimenti.forEach(a => {
+    const checkbox = document.getElementById(`add_adp_${a.id}`);
+    if (checkbox) {
+      checkbox.checked = selectAll;
+      localStorage.setItem(`add_adp_${a.id}`, selectAll);
+    }
+  });
+}
+
+function getSelectedAddAdp() {
+  return state.adempimenti
+    .filter(a => {
+      const checkbox = document.getElementById(`add_adp_${a.id}`);
+      return checkbox && checkbox.checked;
+    })
+    .map(a => a.id);
 }
 
 function refreshAddAdpSelect() {
@@ -614,20 +770,30 @@ function eseguiAddAdp() {
   const id_cliente = parseInt(
     document.getElementById("add-adp-cliente-id").value,
   );
-  const id_adempimento = parseInt(
-    document.getElementById("add-adp-select").value,
-  );
+  const selectedAdempimenti = getSelectedAddAdp();
   const anno = parseInt(document.getElementById("add-adp-anno").value);
-  const periodo = document.getElementById("add-adp-periodo").value;
-  const data = { id_cliente, id_adempimento, anno };
-  if (periodo.startsWith("mese:")) data.mese = parseInt(periodo.split(":")[1]);
-  else if (periodo.startsWith("trim:"))
-    data.trimestre = parseInt(periodo.split(":")[1]);
-  else if (periodo.startsWith("sem:"))
-    data.semestre = parseInt(periodo.split(":")[1]);
-  if (typeof socket !== "undefined") {
-    socket.emit("add:adempimento_cliente", data);
+  
+  if (selectedAdempimenti.length === 0) {
+    showNotif("Seleziona almeno un adempimento da aggiungere", "error");
+    return;
   }
+  
+  // Per ogni adempimento selezionato, aggiungilo con il periodo selezionato
+  const periodo = document.getElementById("add-adp-periodo").value;
+  selectedAdempimenti.forEach(id_adempimento => {
+    const data = { id_cliente, id_adempimento, anno };
+    if (periodo.startsWith("mese:")) data.mese = parseInt(periodo.split(":")[1]);
+    else if (periodo.startsWith("trim:"))
+      data.trimestre = parseInt(periodo.split(":")[1]);
+    else if (periodo.startsWith("sem:"))
+      data.semestre = parseInt(periodo.split(":")[1]);
+    
+    if (typeof socket !== "undefined") {
+      socket.emit("add:adempimento_cliente", data);
+    }
+  });
+  
+  closeModal('modal-add-adp');
 }
 
 // Esponi funzioni globali

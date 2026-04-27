@@ -251,9 +251,9 @@ module.exports = function setupSocketHandlers(io) {
       }
     });
 
-    socket.on("genera:tutti", ({ anno }) => {
+    socket.on("genera:tutti", ({ anno, adempimenti }) => {
       try {
-        const tot = scadenzarioModel.generaTuttiClientiAnno(anno);
+        const tot = scadenzarioModel.generaTuttiClientiAnno(anno, adempimenti);
         io.emit("broadcast:scadenzario_updated", { anno });
         io.emit("broadcast:globale_updated", { anno });
         io.emit("broadcast:stats_updated", { anno });

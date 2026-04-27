@@ -384,12 +384,12 @@
             >
               <label
                 id="label-cont-completata"
-                style="transition: color 0.2s; display: none"
-                >📊 Contabilità</label
+                style="transition: color 0.2s"
+                >📊 Redditi Completati</label
               >
               <label
                 class="flag-chip"
-                style="margin-top: 6px; padding: 11px 15px; display: none"
+                style="margin-top: 6px; padding: 11px 15px"
                 id="contabilita-checkbox-wrapper"
               >
                 <input
@@ -398,7 +398,7 @@
                   onchange="onContabilitaImportoChange()"
                 />
                 <span id="label-imp-cont" style="transition: color 0.2s"
-                  >✓ Contabilità completata</span
+                  >✓ Redditi Completati</span
                 >
               </label>
             </div>
@@ -547,7 +547,7 @@
               id="adp-def-contabilita"
               onchange="onAdpFlagsChange()"
             />
-            <span>📊 Contabilità (IVA + ✓ Cont.)</span>
+            <span>📊 Contabilità (IVA + Redditi Completati)</span>
           </label>
           <label class="flag-chip">
             <input
@@ -643,6 +643,18 @@
           <label>Anno</label
           ><input class="input" id="genera-tutti-anno" type="number" />
         </div>
+        <div class="form-group">
+          <label>Seleziona Adempimenti da Generare</label>
+          <div id="genera-tutti-adempimenti-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px;">
+            <!-- Gli adempimenti verranno caricati qui dinamicamente -->
+          </div>
+          <div style="margin-top: 8px;">
+            <label class="flag-chip">
+              <input type="checkbox" id="genera-tutti-seleziona-tutti" onchange="toggleSelezionaTuttiAdempimenti()">
+              <span>Seleziona/Deseleziona Tutti</span>
+            </label>
+          </div>
+        </div>
         <div class="modal-actions">
           <button
             class="btn btn-secondary"
@@ -709,6 +721,18 @@
             id="add-adp-select"
             onchange="updatePeriodoOptions()"
           ></select>
+        </div>
+        <div class="form-group">
+          <label>Seleziona Adempimenti da Aggiungere</label>
+          <div id="add-adp-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px; background: var(--s2);">
+            <!-- Gli adempimenti verranno caricati qui dinamicamente -->
+          </div>
+          <div style="margin-top: 8px;">
+            <label class="flag-chip">
+              <input type="checkbox" id="add-adp-seleziona-tutti" onchange="toggleSelezionaTuttiAddAdp()">
+              <span>Seleziona/Deseleziona Tutti</span>
+            </label>
+          </div>
         </div>
         <div class="form-group">
           <label>Anno</label

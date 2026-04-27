@@ -38,7 +38,7 @@ function renderImportoCellCompact(r) {
     return `<div class="importi-cell">
       ${iva ? `<div class="imp-row"><span class="imp-lbl">💰 IVA</span><span class="imp-val">${iva}</span></div>` : ""}
       ${acc2 ? `<div class="imp-row"><span class="imp-lbl">📥 2°Acc.</span><span class="imp-val">${acc2}</span></div>` : ""}
-      ${contDone ? `<div class="imp-row"><span class="imp-lbl">📊 Cont.</span><span class="imp-val">✓</span></div>` : ""}
+      ${contDone ? `<div class="imp-row"><span class="imp-lbl">📊 Redditi Comp.</span><span class="imp-val">✓</span></div>` : ""}
     </div>`;
   }
   if (hasRate(r)) {
@@ -86,7 +86,15 @@ function getPillColor(r, stato) {
 
   if (isContabilita(r)) {
     const hasIva = !!r.importo_iva;
-    if (hasIva) return "var(--green)";
+    const contDone = parseInt(r.cont_completata) === 1;
+    
+    if (hasIva && contDone) {
+      // Entrambi completati = verde
+      return "var(--green)";
+    } else if (hasIva || contDone) {
+      // Solo uno completato = blu
+      return "var(--accent)";
+    }
     return "var(--red)";
   }
 
@@ -244,7 +252,20 @@ function renderPeriodoPill(r) {
 // ─── HELPER: label con checkbox per contabilità ───────────────
 function _buildContabilitaLabel(r, pillColor) {
   const hasIva = !!r.importo_iva;
-  const cIva = hasIva ? "var(--green)" : "var(--red)";
+  const contDone = parseInt(r.cont_completata) === 1;
+  
+  let cIva, cCont;
+  if (hasIva && contDone) {
+    // Entrambi completati = verde
+    cIva = cCont = "var(--green)";
+  } else if (hasIva || contDone) {
+    // Solo uno completato = blu
+    cIva = cCont = "var(--accent)";
+  } else {
+    // Nessuno completato = rosso
+    cIva = cCont = "var(--red)";
+  }
+  
   const ivaVal = hasIva ? `€${parseFloat(r.importo_iva).toFixed(2)}` : "—";
 
   return `<div class="pp-cont-labels">
@@ -252,6 +273,11 @@ function _buildContabilitaLabel(r, pillColor) {
       <span class="pp-cont-check" style="color:${cIva}">${hasIva ? "✓" : "✗"}</span>
       <span class="pp-cont-lbl" style="color:${cIva}">💰 IVA</span>
       <span class="pp-cont-val" style="color:${cIva}">${ivaVal}</span>
+    </div>
+    <div class="pp-cont-row">
+      <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
+      <span class="pp-cont-lbl" style="color:${cCont}">📊 Redditi Comp.</span>
+      <span class="pp-cont-val" style="color:${cCont}">${contDone ? "fatto" : "—"}</span>
     </div>
   </div>`;
 }
@@ -295,7 +321,7 @@ function _buildRateLabel(r, pillColor) {
 
   const contRow = `<div class="pp-cont-row">
     <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>
-    <span class="pp-cont-lbl" style="color:${cCont}">📊 Cont.</span>
+    <span class="pp-cont-lbl" style="color:${cCont}">📊 Redditi Comp.</span>
     <span class="pp-cont-val" style="color:${cCont}">${contDone ? "fatto" : "—"}</span>
   </div>`;
 

@@ -566,11 +566,11 @@ body {
    ════════════════════════════════════════════════════════════════ */
 .input,
 .select {
-  background: var(--s2);
+  background: #ffffff !important;
   border: 1px solid var(--b1);
   border-radius: var(--r-sm);
   padding: 10px 14px;
-  color: var(--t0);
+  color: #000 !important;
   font-family: var(--sans);
   font-size: 14px;
   width: 100%;
@@ -582,7 +582,7 @@ body {
 .input:focus,
 .select:focus {
   border-color: var(--accent);
-  background: var(--s3);
+  background: #ffffff !important;
 }
 .input::placeholder {
   color: var(--t3);
@@ -2543,7 +2543,7 @@ tr.clickable:hover td {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
-  color: var(--text);
+  color: #f0f0f0 !important;
 }
 .ss-panel {
   display: none;
@@ -2588,7 +2588,7 @@ tr.clickable:hover td {
   overflow: hidden;
   text-overflow: ellipsis;
   transition: background 0.1s;
-  color: var(--t0);
+  color: #f0f0f0 !important;
   border-left: 2px solid transparent;
 }
 .ss-item:hover {

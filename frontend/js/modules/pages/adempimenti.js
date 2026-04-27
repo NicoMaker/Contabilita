@@ -315,12 +315,14 @@ function openAdpModal(r) {
     rateContWrapper.style.display = isRate && !isCbx ? "" : "none";
   }
 
-  // Per is_contabilita puro: nascondi sempre il wrapper contabilità
+  // ── Checkbox contabilità: MOSTRIAMO per adempimenti contabilità puri
+  // Per is_contabilita mostriamo la checkbox per segnare i redditi completati
   const contCheckWrapper = document.getElementById(
     "contabilita-checkbox-wrapper",
   );
   if (contCheckWrapper) {
-    contCheckWrapper.style.display = "none";
+    // Visibile solo se è contabilità pura (e non checkbox)
+    contCheckWrapper.style.display = isCont && !isCbx ? "" : "none";
   }
 
   // ── Impostazione valori rate + contabilità ─────────────────
@@ -333,6 +335,9 @@ function openAdpModal(r) {
 
   // ── Impostazione valori contabilità pura ──────────────────
   if (isCont && !isCbx) {
+    const contCheck = document.getElementById("adp-cont-completata");
+    if (contCheck)
+      contCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriContabilita(r);
   }
 
@@ -400,12 +405,30 @@ function setCbxModalStato(nuovoStato) {
 function _aggiornaColoriContabilita(r) {
   const ivaVal = document.getElementById("adp-imp-iva")?.value;
   const hasIva = ivaVal != null && ivaVal !== "";
-  const colorIva = hasIva ? "var(--green)" : "";
+  
+  const contCheck = document.getElementById("adp-cont-completata");
+  const contDone = contCheck ? contCheck.checked : parseInt(r?.cont_completata) === 1;
+  
+  let colorIva = "";
+  let colorCont = "";
+  
+  if (hasIva && contDone) {
+    // Entrambi completati = verde
+    colorIva = colorCont = "var(--green)";
+  } else if (hasIva || contDone) {
+    // Solo uno completato = blu
+    colorIva = colorCont = "var(--accent)";
+  }
 
   const ivaLabel = document.getElementById("label-imp-iva");
   const ivaInput = document.getElementById("adp-imp-iva");
+  const contLabel = document.getElementById("label-cont-completata");
+  const contSpan = document.getElementById("label-imp-cont");
+  
   if (ivaLabel) ivaLabel.style.color = colorIva;
-  if (ivaInput) ivaInput.style.borderColor = hasIva ? "var(--green)" : "";
+  if (ivaInput) ivaInput.style.borderColor = hasIva ? colorIva : "";
+  if (contLabel) contLabel.style.color = colorCont;
+  if (contSpan) contSpan.style.color = colorCont;
 }
 
 function onContabilitaImportoChange() {
@@ -467,8 +490,11 @@ function saveAdpStato() {
   } else if (isCont) {
     data.importo_iva = parseFloat(getVal("adp-imp-iva")) || null;
     data.importo_contabilita = parseFloat(getVal("adp-imp-cont")) || null;
-    // Per contabilità pura non c'è checkbox → cont_completata resta 0
-    data.cont_completata = 0;
+    // Per contabilità pura la checkbox redditi completati è visibile
+    data.cont_completata = document.getElementById("adp-cont-completata")
+      ?.checked
+      ? 1
+      : 0;
   } else if (isRate) {
     data.importo_saldo = parseFloat(getVal("adp-imp-saldo")) || null;
     data.importo_acconto1 = parseFloat(getVal("adp-imp-acc1")) || null;
