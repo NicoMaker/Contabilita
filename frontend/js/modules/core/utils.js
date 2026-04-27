@@ -12,28 +12,65 @@ function setupDecimalInput(input) {
   input.addEventListener('input', function(e) {
     let value = e.target.value;
     
-    // Replace all commas with dots for internal processing
-    value = value.replace(/,/g, '.');
+    // Allow both comma and dot, but don't auto-convert comma to dot
+    // Keep the user's preferred separator
     
-    // Ensure only one decimal point
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      value = parts[0] + '.' + parts.slice(1).join('');
+    // Ensure only one decimal separator (either comma or dot)
+    const hasComma = value.includes(',');
+    const hasDot = value.includes('.');
+    
+    if (hasComma && hasDot) {
+      // If both separators exist, keep only the first one
+      const commaIndex = value.indexOf(',');
+      const dotIndex = value.indexOf('.');
+      if (commaIndex < dotIndex) {
+        // Keep comma, remove dots
+        value = value.replace(/\./g, '');
+      } else {
+        // Keep dot, remove commas
+        value = value.replace(/,/g, '');
+      }
     }
     
-    // Remove any non-numeric characters except dots
-    value = value.replace(/[^0-9.]/g, '');
+    // Remove any non-numeric characters except comma and dot
+    value = value.replace(/[^0-9,.]/g, '');
     
     e.target.value = value;
+    
+    // Auto-format to 2 decimal places while typing
+    setTimeout(() => {
+      const currentValue = e.target.value;
+      const separator = currentValue.includes(',') ? ',' : '.';
+      const cleanValue = currentValue.replace(/[^0-9,\.]/g, '');
+      const parts = cleanValue.split(separator);
+      
+      if (parts.length === 2) {
+        const integerPart = parts[0];
+        const decimalPart = parts[1] || '';
+        const formattedDecimal = decimalPart.padEnd(2, '0').substring(0, 2);
+        e.target.value = integerPart + separator + formattedDecimal;
+      }
+    }, 100);
   });
   
   input.addEventListener('blur', function(e) {
     let value = e.target.value;
     if (value && value !== '') {
-      // Convert to number and format to 2 decimal places
-      const num = parseFloat(value);
-      if (!isNaN(num)) {
-        e.target.value = num.toFixed(2);
+      // Parse with comma as decimal separator for Italian locale
+      const cleanValue = value.replace(/[^0-9,\.]/g, '');
+      const parts = cleanValue.split(',');
+      
+      if (parts.length === 2) {
+        const integerPart = parts[0];
+        const decimalPart = parts[1] || '';
+        const formattedDecimal = decimalPart.padEnd(2, '0').substring(0, 2);
+        e.target.value = integerPart + ',' + formattedDecimal;
+      } else {
+        // If no comma, format with comma
+        const num = parseFloat(cleanValue.replace(',', '.'));
+        if (!isNaN(num)) {
+          e.target.value = num.toFixed(2).replace('.', ',');
+        }
       }
     }
   });
@@ -42,10 +79,22 @@ function setupDecimalInput(input) {
   input.addEventListener('paste', function(e) {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text');
-    const cleanedData = pastedData.replace(/,/g, '.');
-    const num = parseFloat(cleanedData);
-    if (!isNaN(num)) {
-      e.target.value = num.toFixed(2);
+    
+    // Clean the pasted data but preserve comma if present
+    const cleanData = pastedData.replace(/[^0-9,\.]/g, '');
+    const parts = cleanData.split(',');
+    
+    if (parts.length === 2) {
+      const integerPart = parts[0];
+      const decimalPart = parts[1] || '';
+      const formattedDecimal = decimalPart.padEnd(2, '0').substring(0, 2);
+      e.target.value = integerPart + ',' + formattedDecimal;
+    } else {
+      // If no comma, format with comma
+      const num = parseFloat(cleanData.replace(',', '.'));
+      if (!isNaN(num)) {
+        e.target.value = num.toFixed(2).replace('.', ',');
+      }
     }
   });
 }
