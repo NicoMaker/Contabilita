@@ -2860,3 +2860,38 @@ select {
     padding: 5px 10px;
   }
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   FORM INPUTS BIANCHI — solo dentro modal e form di inserimento
+   ════════════════════════════════════════════════════════════════ */
+.modal .input,
+.modal .select,
+.modal textarea.input,
+.modal .select-search-input,
+.form-group .input,
+.form-group .select,
+.form-group textarea.input {
+  background: #ffffff;
+  border: 1.5px solid #c8d0e0;
+  color: #1a1f2e;
+}
+
+.modal .input:focus,
+.modal .select:focus,
+.modal textarea.input:focus,
+.form-group .input:focus,
+.form-group .select:focus {
+  border-color: var(--accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(91, 141, 246, 0.18);
+}
+
+.modal .input::placeholder,
+.form-group .input::placeholder {
+  color: #9aa3b8;
+}
+
+.modal .select-search-input:focus {
+  border-color: var(--accent);
+}
