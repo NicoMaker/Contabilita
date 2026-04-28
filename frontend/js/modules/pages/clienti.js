@@ -19,9 +19,6 @@ const ANNO_MAX = 2200;
 function buildAnniOptions(selectedAnno, includeAll = false) {
   const opts = [];
   for (let y = ANNO_MIN; y <= ANNO_MAX; y++) {
-    // Skip all years before 2026 - users should only be available from 2026 onwards
-    if (y < 2026) continue;
-    
     opts.push(
       `<option value="${y}" ${y === selectedAnno ? "selected" : ""}>${y}</option>`,
     );

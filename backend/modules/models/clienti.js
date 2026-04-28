@@ -32,11 +32,6 @@ function getConfigCorrente(id_cliente, anno = new Date().getFullYear()) {
 }
 
 function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
-  // Skip all years before 2026 - users should only be available from 2026 onwards
-  if (anno < 2026) {
-    return [];
-  }
-  
   let sql = `
     SELECT 
       c.id,

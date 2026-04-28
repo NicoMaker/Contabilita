@@ -2,8 +2,6 @@ const initSqlJs = require("sql.js");
 const path = require("path");
 const fs = require("fs");
 const { createSchema, seedData } = require("./seedData");
-const { removePre2026Configurations } = require("./migrations/remove_2025_configs");
-const { add2026PlusConfigurations } = require("./migrations/add_2026_configs");
 
 const DB_PATH = path.join(__dirname, "../../db", "gestionale.db");
 let db;
@@ -86,16 +84,6 @@ function migrateDB() {
       // Ignora errori di colonna già esistente
     }
   });
-  
-  // Apply year-specific migrations
-  try {
-    console.log('🔄 Applying year-specific migrations...');
-    removePre2026Configurations();
-    add2026PlusConfigurations();
-  } catch (e) {
-    console.error('❌ Error applying year migrations:', e);
-  }
-  
   saveDB();
 }
 
