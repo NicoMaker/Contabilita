@@ -253,11 +253,14 @@ module.exports = function setupSocketHandlers(io) {
 
     socket.on("genera:tutti", ({ anno, adempimenti }) => {
       try {
-        const tot = scadenzarioModel.generaTuttiClientiAnno(anno, adempimenti);
+        const risultato = scadenzarioModel.generaTuttiClientiAnno(anno, adempimenti);
         io.emit("broadcast:scadenzario_updated", { anno });
         io.emit("broadcast:globale_updated", { anno });
         io.emit("broadcast:stats_updated", { anno });
-        socket.emit("res:genera:tutti", { success: true, inseriti: tot });
+        socket.emit("res:genera:tutti", { 
+          success: true, 
+          ...risultato
+        });
       } catch (e) {
         socket.emit("res:genera:tutti", { success: false, error: e.message });
       }
@@ -272,6 +275,25 @@ module.exports = function setupSocketHandlers(io) {
         socket.emit("res:rigenera:tutti", { success: true, inseriti: tot });
       } catch (e) {
         socket.emit("res:rigenera:tutti", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("create:adempimento_personalizzato", (data) => {
+      try {
+        const risultato = adempimentiModel.createAdempimentoPersonalizzato(data);
+        io.emit("broadcast:adempimenti_updated");
+        socket.emit("res:create:adempimento_personalizzato", { success: true, ...risultato });
+      } catch (e) {
+        socket.emit("res:create:adempimento_personalizzato", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("check:adempimenti_cliente", ({ id_cliente, anno }) => {
+      try {
+        const risultato = adempimentiModel.checkAdempimentiClienteEsistenti(id_cliente, anno);
+        socket.emit("res:check:adempimenti_cliente", { success: true, data: risultato });
+      } catch (e) {
+        socket.emit("res:check:adempimenti_cliente", { success: false, error: e.message });
       }
     });
 

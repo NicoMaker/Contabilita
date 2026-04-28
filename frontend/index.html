@@ -729,6 +729,69 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MODAL ADEMPIMENTO PERSONALIZZATO                         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-adempimento-personalizzato">
+      <div class="modal modal-sm">
+        <div class="modal-title">🎯 Crea Adempimento Personalizzato</div>
+        <div class="infobox" style="margin-bottom: 18px">
+          Crea un nuovo adempimento con un nome personalizzato che non esiste nel sistema standard.
+        </div>
+        
+        <div class="form-group">
+          <label>Nome Adempimento *</label>
+          <input class="input" id="custom-adp-nome" type="text" placeholder="Es: Dichiarazione Ambientale 2025" required />
+        </div>
+        
+        <div class="form-group">
+          <label>Descrizione</label>
+          <textarea class="input" id="custom-adp-descrizione" rows="2" placeholder="Descrizione dettagliata dell'adempimento..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Tipo Scadenza</label>
+          <select class="input" id="custom-adp-scadenza-tipo">
+            <option value="annuale">Annuale</option>
+            <option value="semestrale">Semestrale</option>
+            <option value="trimestrale">Trimestrale</option>
+            <option value="mensile">Mensile</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Adempimento di contabilità</label>
+          <label class="flag-chip">
+            <input type="checkbox" id="custom-adp-is-contabilita">
+            <span>Sì, è un adempimento di contabilità</span>
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label>Genera immediatamente per</label>
+          <select class="input" id="custom-adp-genera-per">
+            <option value="">Non generare ora</option>
+            <option value="tutti">Tutti i clienti attivi</option>
+            <option value="selezionati">Clienti selezionati</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Anno</label>
+          <input class="input" id="custom-adp-anno" type="number" value="2025" />
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeModal('modal-adempimento-personalizzato')">
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="creaAdempimentoPersonalizzato()">
+            🎯 Crea Adempimento
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- MODAL AGGIUNGI ADEMPIMENTO                              -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-add-adp">
@@ -759,10 +822,6 @@
         <div class="form-group">
           <label>Anno</label
           ><input class="input" id="add-adp-anno" type="number" />
-        </div>
-        <div class="form-group">
-          <label>Periodo</label
-          ><select class="select" id="add-adp-periodo"></select>
         </div>
         <div class="modal-actions">
           <button

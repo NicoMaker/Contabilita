@@ -284,6 +284,7 @@ function renderPage(page) {
       </div>
       <button class="btn btn-sm" style="background:var(--accent-d);color:var(--accent);border:1px solid rgba(91,141,246,0.3);font-size:13px" onclick="setDashCat('tutti')" title="Mostra tutti">📋 Tutti</button>
       <button class="btn btn-orange btn-sm no-print" onclick="openGeneraTutti()" style="font-size:13px">⚡ Genera</button>
+      <button class="btn btn-purple btn-sm no-print" onclick="openAdempimentoPersonalizzato()" style="font-size:13px" title="Crea adempimento personalizzato">🎯 Personalizzato</button>
       <button class="btn btn-cyan btn-sm no-print"   onclick="openCopiaTutti()" style="font-size:13px">📋 Copia</button>
       <button class="btn btn-print btn-sm"           onclick="window.print()" style="font-size:13px">🖨️</button>`;
     socket.emit("get:stats", { anno: state.anno });

@@ -168,13 +168,16 @@ socket.on("res:genera:scadenzario", ({ success }) => {
   if (success && state.selectedCliente) loadScadenzario();
 });
 
-socket.on("res:genera:tutti", ({ success }) => {
+socket.on("res:genera:tutti", ({ success, inseriti, mantenuti, riepilogo, dettagli }) => {
   if (success) {
     closeModal("modal-genera-tutti");
+    // Mostra un messaggio dettagliato
+    alert(riepilogo || `Generati ${inseriti} nuovi adempimenti, mantenuti ${mantenuti} adempimenti esistenti`);
     // Ricarica lo scadenzario globale e quello del cliente selezionato
     if (state.page === "scadenzario_globale") {
       loadGlobale();
-    } else if (state.page === "scadenzario" && state.selectedCliente) {
+    }
+    if (state.selectedCliente) {
       loadScadenzario();
     }
   }
@@ -225,6 +228,29 @@ socket.on("res:add:adempimento_cliente", ({ success }) => {
   if (success) {
     closeModal("modal-add-adp");
     loadScadenzario();
+  }
+});
+
+socket.on("res:create:adempimento_personalizzato", ({ success, id, codice, generati_per_clienti, messaggio }) => {
+  if (success) {
+    closeModal("modal-adempimento-personalizzato");
+    alert(messaggio || `Adempimento personalizzato creato con successo!`);
+    
+    // Ricarica la lista degli adempimenti
+    if (typeof socket !== "undefined") {
+      socket.emit("get:adempimenti");
+    }
+    
+    // Se sono stati generati adempimenti, ricarica anche lo scadenzario
+    if (generati_per_clienti > 0) {
+      if (state.page === "scadenzario_globale") {
+        loadGlobale();
+      } else if (state.page === "scadenzario" && state.selectedCliente) {
+        loadScadenzario();
+      }
+    }
+  } else {
+    alert("Errore nella creazione dell'adempimento personalizzato");
   }
 });
 

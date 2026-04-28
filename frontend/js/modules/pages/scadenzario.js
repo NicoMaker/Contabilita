@@ -815,15 +815,15 @@ function eseguiAddAdp() {
     return;
   }
   
-  // Per ogni adempimento selezionato, aggiungilo con il periodo selezionato
-  const periodo = document.getElementById("add-adp-periodo").value;
+  // Per ogni adempimento selezionato, aggiungilo
   selectedAdempimenti.forEach(id_adempimento => {
     const data = { id_cliente, id_adempimento, anno };
-    if (periodo.startsWith("mese:")) data.mese = parseInt(periodo.split(":")[1]);
-    else if (periodo.startsWith("trim:"))
-      data.trimestre = parseInt(periodo.split(":")[1]);
-    else if (periodo.startsWith("sem:"))
-      data.semestre = parseInt(periodo.split(":")[1]);
+    
+    // Il backend creerà automaticamente tutti i periodi necessari:
+    // - Mensili: 12 mesi (Gen-Dic)
+    // - Trimestrali: 4 trimestri
+    // - Semestrali: 2 semestri
+    // - Annuali: 12 mesi o 1 record a seconda del tipo
     
     if (typeof socket !== "undefined") {
       socket.emit("add:adempimento_cliente", data);
@@ -841,6 +841,47 @@ window.applyScadFiltri = applyScadFiltri;
 window.filterAdpButtons = filterAdpButtons;
 window.resetScadFiltri = resetScadFiltri;
 window.generaScadenzario = generaScadenzario;
+function openAdempimentoPersonalizzato() {
+  document.getElementById("custom-adp-anno").value = state.anno;
+  openModal("modal-adempimento-personalizzato");
+}
+
+function creaAdempimentoPersonalizzato() {
+  const nome = document.getElementById("custom-adp-nome").value.trim();
+  const descrizione = document.getElementById("custom-adp-descrizione").value.trim();
+  const scadenzaTipo = document.getElementById("custom-adp-scadenza-tipo").value;
+  const isContabilita = document.getElementById("custom-adp-is-contabilita").checked;
+  const generaPer = document.getElementById("custom-adp-genera-per").value;
+  const anno = parseInt(document.getElementById("custom-adp-anno").value);
+  
+  if (!nome) {
+    alert("Il nome dell'adempimento è obbligatorio");
+    return;
+  }
+  
+  const data = {
+    nome,
+    descrizione,
+    scadenza_tipo: scadenzaTipo,
+    is_contabilita: isContabilita ? 1 : 0,
+    anno,
+    genera_immediatamente: generaPer !== ""
+  };
+  
+  if (generaPer === "tutti") {
+    // Genera per tutti i clienti attivi
+    data.clienti_selezionati = null; // Il backend lo gestirà come "tutti"
+  } else if (generaPer === "selezionati") {
+    // TODO: Implementare selezione clienti
+    alert("Selezione clienti specifici non ancora implementata. Usa 'Tutti i clienti attivi' o 'Non generare ora'");
+    return;
+  }
+  
+  if (typeof socket !== "undefined") {
+    socket.emit("create:adempimento_personalizzato", data);
+  }
+}
+
 window.openCopia = openCopia;
 window.openCopiaTutti = openCopiaTutti;
 window.eseguiCopia = eseguiCopia;
@@ -848,5 +889,7 @@ window.openGeneraTutti = openGeneraTutti;
 window.eseguiGeneraTutti = eseguiGeneraTutti;
 window.openAddAdp = openAddAdp;
 window.eseguiAddAdp = eseguiAddAdp;
+window.openAdempimentoPersonalizzato = openAdempimentoPersonalizzato;
+window.creaAdempimentoPersonalizzato = creaAdempimentoPersonalizzato;
 window.refreshAddAdpSelect = refreshAddAdpSelect;
 window.updatePeriodoOptions = updatePeriodoOptions;
