@@ -644,6 +644,19 @@
           ><input class="input" id="genera-tutti-anno" type="number" />
         </div>
         <div class="form-group">
+          <label>Modalità di generazione</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            <label class="flag-chip">
+              <input type="radio" name="genera-modalita" value="normale" checked>
+              <span>📋 Normale - Aggiungi solo adempimenti mancanti</span>
+            </label>
+            <label class="flag-chip">
+              <input type="radio" name="genera-modalita" value="rigenera">
+              <span>🔄 Rigenera - Elimina e ricrea tutti gli adempimenti selezionati</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Seleziona Adempimenti da Generare</label>
           <div id="genera-tutti-adempimenti-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px;">
             <!-- Gli adempimenti verranno caricati qui dinamicamente -->

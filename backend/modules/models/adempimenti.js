@@ -147,6 +147,70 @@ function generaAdempimentoPerTutti(id_adp, anno) {
   return tot;
 }
 
+function rigeneraAdempimentoPerTutti(id_adp, anno) {
+  const a = queryOne(`SELECT * FROM adempimenti WHERE id = ?`, [id_adp]);
+  if (!a) return 0;
+  let tot = 0;
+  queryAll(`SELECT id FROM clienti WHERE attivo = 1`).forEach((c) => {
+    tot += inserisciAdempimentoForzato(c.id, a, anno);
+  });
+  return tot;
+}
+
+function inserisciAdempimentoForzato(id_cliente, adp, anno) {
+  let inseriti = 0;
+  
+  // Prima elimina gli adempimenti esistenti per questo cliente/adempimento/anno
+  if (adp.scadenza_tipo === "trimestrale") {
+    runQuery(
+      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
+      [id_cliente, adp.id, anno]
+    );
+    for (let t = 1; t <= 4; t++) {
+      runQuery(
+        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
+        [id_cliente, adp.id, anno, t, "da_fare"],
+      );
+      inseriti++;
+    }
+  } else if (adp.scadenza_tipo === "semestrale") {
+    runQuery(
+      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
+      [id_cliente, adp.id, anno]
+    );
+    for (let s = 1; s <= 2; s++) {
+      runQuery(
+        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
+        [id_cliente, adp.id, anno, s, "da_fare"],
+      );
+      inseriti++;
+    }
+  } else if (adp.scadenza_tipo === "mensile") {
+    runQuery(
+      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
+      [id_cliente, adp.id, anno]
+    );
+    for (let m = 1; m <= 12; m++) {
+      runQuery(
+        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
+        [id_cliente, adp.id, anno, m, "da_fare"],
+      );
+      inseriti++;
+    }
+  } else {
+    runQuery(
+      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ? AND mese IS NULL AND trimestre IS NULL AND semestre IS NULL`,
+      [id_cliente, adp.id, anno]
+    );
+    runQuery(
+      `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+      [id_cliente, adp.id, anno, "da_fare"],
+    );
+    inseriti++;
+  }
+  return inseriti;
+}
+
 module.exports = {
   getAdempimenti,
   getAdempimentiCliente,
@@ -154,6 +218,7 @@ module.exports = {
   updateAdempimento,
   deleteAdempimento,
   generaAdempimentoPerTutti,
+  rigeneraAdempimentoPerTutti,
   inserisciAdempimentoSeAssente,
   canDeleteAdempimento,
 };

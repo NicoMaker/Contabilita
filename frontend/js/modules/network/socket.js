@@ -169,7 +169,27 @@ socket.on("res:genera:scadenzario", ({ success }) => {
 });
 
 socket.on("res:genera:tutti", ({ success }) => {
-  if (success) closeModal("modal-genera-tutti");
+  if (success) {
+    closeModal("modal-genera-tutti");
+    // Ricarica lo scadenzario globale e quello del cliente selezionato
+    if (state.page === "scadenzario_globale") {
+      loadGlobale();
+    } else if (state.page === "scadenzario" && state.selectedCliente) {
+      loadScadenzario();
+    }
+  }
+});
+
+socket.on("res:rigenera:tutti", ({ success }) => {
+  if (success) {
+    closeModal("modal-genera-tutti");
+    // Ricarica lo scadenzario globale e quello del cliente selezionato
+    if (state.page === "scadenzario_globale") {
+      loadGlobale();
+    } else if (state.page === "scadenzario" && state.selectedCliente) {
+      loadScadenzario();
+    }
+  }
 });
 
 socket.on("res:copia:scadenzario", ({ success }) => {

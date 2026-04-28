@@ -166,6 +166,31 @@ function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   return tot;
 }
 
+function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
+  const clienti = queryAll(`SELECT id FROM clienti WHERE attivo = 1`);
+  let adempimenti;
+  
+  if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
+    // Filtra solo gli adempimenti selezionati
+    const placeholders = adempimentiSelezionati.map(() => '?').join(',');
+    adempimenti = queryAll(
+      `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
+      adempimentiSelezionati
+    );
+  } else {
+    // Se nessun adempimento selezionato, usa tutti (comportamento originale)
+    adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
+  }
+  
+  let tot = 0;
+  clienti.forEach((c) => {
+    adempimenti.forEach((a) => {
+      tot += inserisciAdempimentoForzato(c.id, a, anno);
+    });
+  });
+  return tot;
+}
+
 function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
   const righe = queryAll(
     `SELECT * FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`,
@@ -267,6 +292,7 @@ module.exports = {
   getScadenzarioGlobale,
   generaScadenzarioInterno,
   generaTuttiClientiAnno,
+  rigeneraTuttiClientiAnno,
   copiaScadenzarioCliente,
   copiaTuttiClienti,
   updateAdempimentoStato,

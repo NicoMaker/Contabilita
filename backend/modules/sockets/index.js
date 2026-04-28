@@ -263,6 +263,18 @@ module.exports = function setupSocketHandlers(io) {
       }
     });
 
+    socket.on("rigenera:tutti", ({ anno, adempimenti }) => {
+      try {
+        const tot = scadenzarioModel.rigeneraTuttiClientiAnno(anno, adempimenti);
+        io.emit("broadcast:scadenzario_updated", { anno });
+        io.emit("broadcast:globale_updated", { anno });
+        io.emit("broadcast:stats_updated", { anno });
+        socket.emit("res:rigenera:tutti", { success: true, inseriti: tot });
+      } catch (e) {
+        socket.emit("res:rigenera:tutti", { success: false, error: e.message });
+      }
+    });
+
     socket.on("copia:scadenzario", ({ id_cliente, anno_da, anno_a }) => {
       try {
         const tot = scadenzarioModel.copiaScadenzarioCliente(

@@ -633,6 +633,7 @@ function getSelectedAdempimenti() {
 function eseguiGeneraTutti() {
   const anno = parseInt(document.getElementById("genera-tutti-anno").value);
   const selectedAdempimenti = getSelectedAdempimenti();
+  const modalita = document.querySelector('input[name="genera-modalita"]:checked')?.value || 'normale';
   
   if (selectedAdempimenti.length === 0) {
     showNotif("Seleziona almeno un adempimento da generare", "error");
@@ -640,7 +641,11 @@ function eseguiGeneraTutti() {
   }
   
   if (typeof socket !== "undefined") {
-    socket.emit("genera:tutti", { anno, adempimenti: selectedAdempimenti });
+    if (modalita === 'rigenera') {
+      socket.emit("rigenera:tutti", { anno, adempimenti: selectedAdempimenti });
+    } else {
+      socket.emit("genera:tutti", { anno, adempimenti: selectedAdempimenti });
+    }
   }
 }
 

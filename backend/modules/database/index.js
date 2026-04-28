@@ -76,6 +76,24 @@ function migrateDB() {
     `ALTER TABLE clienti ADD COLUMN periodicita TEXT`,
     `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
     `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
+    // Migrazione per risolvere il problema del vincolo UNIQUE sul codice
+    // In SQLite non possiamo modificare direttamente un vincolo UNIQUE, quindi ricreiamo la tabella
+    `CREATE TABLE IF NOT EXISTS adempimenti_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codice TEXT NOT NULL,
+      nome TEXT NOT NULL,
+      descrizione TEXT,
+      scadenza_tipo TEXT CHECK(scadenza_tipo IN ('annuale','semestrale','trimestrale','mensile')),
+      is_contabilita INTEGER DEFAULT 0,
+      has_rate INTEGER DEFAULT 0,
+      is_checkbox INTEGER DEFAULT 0,
+      rate_labels TEXT,
+      attivo INTEGER DEFAULT 1
+    )`,
+    `INSERT INTO adempimenti_new SELECT * FROM adempimenti`,
+    `DROP TABLE adempimenti`,
+    `ALTER TABLE adempimenti_new RENAME TO adempimenti`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_adempimenti_codice_attivo ON adempimenti(codice) WHERE attivo = 1`,
   ];
   migrations.forEach((sql) => {
     try {
