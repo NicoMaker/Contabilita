@@ -296,12 +296,12 @@ function openAdpModal(r) {
   setDisplay("sect-importo-rate", isRate && !isCbx ? "" : "none");
   setDisplay("sect-importo-checkbox", isCbx ? "" : "none");
 
-  setVal("adp-importo", r.importo || "");
-  setVal("adp-imp-iva", r.importo_iva || "");
-  setVal("adp-imp-cont", r.importo_contabilita || "");
-  setVal("adp-imp-saldo", r.importo_saldo || "");
-  setVal("adp-imp-acc1", r.importo_acconto1 || "");
-  setVal("adp-imp-acc2", r.importo_acconto2 || "");
+  setVal("adp-importo", formattaNumeroItaliano(r.importo));
+  setVal("adp-imp-iva", formattaNumeroItaliano(r.importo_iva));
+  setVal("adp-imp-cont", formattaNumeroItaliano(r.importo_contabilita));
+  setVal("adp-imp-saldo", formattaNumeroItaliano(r.importo_saldo));
+  setVal("adp-imp-acc1", formattaNumeroItaliano(r.importo_acconto1));
+  setVal("adp-imp-acc2", formattaNumeroItaliano(r.importo_acconto2));
 
   // ── Checkbox contabilità: SOLO per adempimenti con RATE ───
   // Per is_contabilita puro NON mostriamo la checkbox (IVA basta a
@@ -433,6 +433,12 @@ function _aggiornaColoriContabilita(r) {
 
 function onContabilitaImportoChange() {
   _aggiornaColoriContabilita(null);
+}
+
+// ─── CONVERSIONE NUMERO IN FORMATO ITALIANO ─────────────────────
+function formattaNumeroItaliano(valore) {
+  if (valore === null || valore === undefined || valore === "") return "";
+  return String(valore).replace('.', ',');
 }
 
 // ─── VALIDAZIONE INPUT NUMERICO ───────────────────────────────────────

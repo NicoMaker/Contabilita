@@ -2,6 +2,12 @@
 // RENDERERS.JS — Helper di rendering condivisi
 // ═══════════════════════════════════════════════════════════════
 
+// ─── UTILITY ───────────────────────────────────────────────
+function formattaNumeroItaliano(valore) {
+  if (valore === null || valore === undefined || valore === "") return "";
+  return String(valore).replace('.', ',');
+}
+
 // ─── TYPE HELPERS ─────────────────────────────────────────────
 function isContabilita(r) {
   return (
@@ -28,10 +34,10 @@ function renderImportoCellCompact(r) {
   }
   if (isContabilita(r)) {
     const iva = r.importo_iva
-      ? `€${parseFloat(r.importo_iva).toFixed(2)}`
+      ? `€${formattaNumeroItaliano(r.importo_iva)}`
       : null;
     const acc2 = r.importo_acconto2
-      ? `€${parseFloat(r.importo_acconto2).toFixed(2)}`
+      ? `€${formattaNumeroItaliano(r.importo_acconto2)}`
       : null;
     const contDone = parseInt(r.cont_completata) === 1;
     if (!iva && !acc2 && !contDone) return `<span class="imp-empty">—</span>`;
@@ -47,13 +53,13 @@ function renderImportoCellCompact(r) {
       if (r.rate_labels) lb = JSON.parse(r.rate_labels);
     } catch (e) {}
     const s = r.importo_saldo
-      ? `€${parseFloat(r.importo_saldo).toFixed(2)}`
+      ? `€${formattaNumeroItaliano(r.importo_saldo)}`
       : null;
     const a1 = r.importo_acconto1
-      ? `€${parseFloat(r.importo_acconto1).toFixed(2)}`
+      ? `€${formattaNumeroItaliano(r.importo_acconto1)}`
       : null;
     const a2 = r.importo_acconto2
-      ? `€${parseFloat(r.importo_acconto2).toFixed(2)}`
+      ? `€${formattaNumeroItaliano(r.importo_acconto2)}`
       : null;
     if (!s && !a1 && !a2) return `<span class="imp-empty">—</span>`;
     return `<div class="importi-cell">
@@ -63,7 +69,7 @@ function renderImportoCellCompact(r) {
     </div>`;
   }
   return r.importo
-    ? `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">💶</span><span class="imp-val">€${parseFloat(r.importo).toFixed(2)}</span></div></div>`
+    ? `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">💶</span><span class="imp-val">€${formattaNumeroItaliano(r.importo)}</span></div></div>`
     : `<span class="imp-empty">—</span>`;
 }
 
@@ -266,7 +272,7 @@ function _buildContabilitaLabel(r, pillColor) {
     cIva = cCont = "var(--red)";
   }
   
-  const ivaVal = hasIva ? `€${parseFloat(r.importo_iva).toFixed(2)}` : "—";
+  const ivaVal = hasIva ? `€${formattaNumeroItaliano(r.importo_iva)}` : "—";
 
   return `<div class="pp-cont-labels">
     <div class="pp-cont-row">
@@ -310,7 +316,7 @@ function _buildRateLabel(r, pillColor) {
   const rows = vals
     .map((v, i) => {
       const done = v != null && v !== "" && parseFloat(v) > 0;
-      const display = done ? `€${parseFloat(v).toFixed(2)}` : "—";
+      const display = done ? `€${formattaNumeroItaliano(v)}` : "—";
       return `<div class="pp-cont-row">
       <span class="pp-cont-check" style="color:${cRate}">${done ? "✓" : "✗"}</span>
       <span class="pp-cont-lbl" style="color:${cRate}">${icons[i]} ${lb[i]}</span>
