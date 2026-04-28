@@ -345,9 +345,11 @@
             <input
               class="input"
               id="adp-importo"
-              type="number"
+              type="text"
               step="0.01"
-              placeholder="0.00"
+              placeholder="0,00"
+              oninput="validaInputNumerico(this)"
+              onblur="convertiVirgolaInPunto(this)"
             />
           </div>
         </div>
@@ -367,10 +369,11 @@
               <input
                 class="input"
                 id="adp-imp-iva"
-                type="number"
+                type="text"
                 step="0.01"
-                placeholder="0.00"
-                oninput="onContabilitaImportoChange()"
+                placeholder="0,00"
+                oninput="validaInputNumerico(this); onContabilitaImportoChange()"
+                onblur="convertiVirgolaInPunto(this)"
                 style="transition: border-color 0.2s"
               />
             </div>
@@ -412,10 +415,12 @@
               <input
                 class="input"
                 id="adp-imp-saldo"
-                type="number"
+                type="text"
                 step="0.01"
-                placeholder="0.00"
+                placeholder="0,00"
+                oninput="validaInputNumerico(this)"
                 onchange="onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this)"
               />
             </div>
             <div class="form-group">
@@ -423,10 +428,12 @@
               <input
                 class="input"
                 id="adp-imp-acc1"
-                type="number"
+                type="text"
                 step="0.01"
-                placeholder="0.00"
+                placeholder="0,00"
+                oninput="validaInputNumerico(this)"
                 onchange="onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this)"
               />
             </div>
             <div class="form-group">
@@ -434,10 +441,12 @@
               <input
                 class="input"
                 id="adp-imp-acc2"
-                type="number"
+                type="text"
                 step="0.01"
-                placeholder="0.00"
+                placeholder="0,00"
+                oninput="validaInputNumerico(this)"
                 onchange="onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this)"
               />
             </div>
           </div>

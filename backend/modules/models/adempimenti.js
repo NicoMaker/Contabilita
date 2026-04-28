@@ -17,6 +17,12 @@ function getAdempimentiCliente(id_cliente, anno) {
 }
 
 function createAdempimento(data) {
+  // Verifica se il codice esiste già
+  const esistente = queryOne(`SELECT id FROM adempimenti WHERE codice = ? AND attivo = 1`, [data.codice]);
+  if (esistente) {
+    throw new Error(`Codice adempimento "${data.codice}" già esistente`);
+  }
+  
   const rl = data.rate_labels ? JSON.stringify(data.rate_labels) : null;
   runQuery(
     `INSERT INTO adempimenti (codice, nome, descrizione, scadenza_tipo, is_contabilita, has_rate, is_checkbox, rate_labels) 

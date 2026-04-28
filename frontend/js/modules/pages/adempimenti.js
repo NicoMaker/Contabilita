@@ -435,6 +435,50 @@ function onContabilitaImportoChange() {
   _aggiornaColoriContabilita(null);
 }
 
+// ─── VALIDAZIONE INPUT NUMERICO ───────────────────────────────────────
+function validaInputNumerico(input) {
+  let valore = input.value;
+  let posizioneCursore = input.selectionStart;
+  
+  // Rimuovi solo caratteri non validi, mantieni numeri, virgola, punto
+  let valoreFiltrato = valore.replace(/[^0-9,.-]/g, '');
+  
+  // Se il valore è cambiato, aggiorna e riposiziona il cursore
+  if (valore !== valoreFiltrato) {
+    input.value = valoreFiltrato;
+    // Riposiziona il cursore considerando i caratteri rimossi
+    const caratteriRimossi = valore.length - valoreFiltrato.length;
+    const nuovaPosizione = Math.max(0, posizioneCursore - caratteriRimossi);
+    input.setSelectionRange(nuovaPosizione, nuovaPosizione);
+  }
+}
+
+// ─── CONVERSIONE PUNTO IN VIRGOLA (FORMATO ITALIANO) ─────────────────
+function convertiVirgolaInPunto(input) {
+  let valore = input.value.trim();
+  
+  // Sostituisci tutti i punti con virgole (formato italiano)
+  valore = valore.replace(/\./g, ',');
+  
+  // Gestisci virgole multiple: mantieni solo la prima come separatore decimale
+  const parti = valore.split(',');
+  if (parti.length > 2) {
+    // Prendi la prima parte (intera) e unisci tutte le altre come decimali
+    valore = parti[0] + ',' + parti.slice(1).join('');
+  } else if (parti.length === 2) {
+    // Caso normale: parte intera + decimali
+    valore = parti[0] + ',' + parti[1];
+  }
+  
+  // Limita a 2 decimali massimo
+  const partiFinali = valore.split(',');
+  if (partiFinali.length === 2 && partiFinali[1].length > 2) {
+    valore = partiFinali[0] + ',' + partiFinali[1].substring(0, 2);
+  }
+  
+  input.value = valore;
+}
+
 // ─── COLORI RATE + CONTABILITÀ ────────────────────────────────
 function _aggiornaColoriRateContabilita(r) {
   const rateContCheck = document.getElementById("adp-rate-cont-completata");
@@ -488,24 +532,24 @@ function saveAdpStato() {
   if (isCbx) {
     // Checkbox: nessun importo, stato già in data.stato
   } else if (isCont) {
-    data.importo_iva = parseFloat(getVal("adp-imp-iva")) || null;
-    data.importo_contabilita = parseFloat(getVal("adp-imp-cont")) || null;
+    data.importo_iva = parseFloat(getVal("adp-imp-iva").replace(',', '.')) || null;
+    data.importo_contabilita = parseFloat(getVal("adp-imp-cont").replace(',', '.')) || null;
     // Per contabilità pura la checkbox redditi completati è visibile
     data.cont_completata = document.getElementById("adp-cont-completata")
       ?.checked
       ? 1
       : 0;
   } else if (isRate) {
-    data.importo_saldo = parseFloat(getVal("adp-imp-saldo")) || null;
-    data.importo_acconto1 = parseFloat(getVal("adp-imp-acc1")) || null;
-    data.importo_acconto2 = parseFloat(getVal("adp-imp-acc2")) || null;
+    data.importo_saldo = parseFloat(getVal("adp-imp-saldo").replace(',', '.')) || null;
+    data.importo_acconto1 = parseFloat(getVal("adp-imp-acc1").replace(',', '.')) || null;
+    data.importo_acconto2 = parseFloat(getVal("adp-imp-acc2").replace(',', '.')) || null;
     // Per le rate la checkbox contabilità è visibile
     data.cont_completata = document.getElementById("adp-rate-cont-completata")
       ?.checked
       ? 1
       : 0;
   } else {
-    data.importo = parseFloat(getVal("adp-importo")) || null;
+    data.importo = parseFloat(getVal("adp-importo").replace(',', '.')) || null;
   }
 
   socket.emit("update:adempimento_stato", data);
