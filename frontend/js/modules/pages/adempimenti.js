@@ -304,24 +304,18 @@ function openAdpModal(r) {
   setVal("adp-imp-acc2", formattaNumeroItaliano(r.importo_acconto2));
 
   // ── Checkbox contabilità: SOLO per adempimenti con RATE ───
-  // Per is_contabilita puro NON mostriamo la checkbox (IVA basta a
-  // determinare lo stato); per has_rate invece la checkbox è utile
-  // per segnare separatamente il completamento della contabilità.
   const rateContWrapper = document.getElementById(
     "rate-contabilita-checkbox-wrapper",
   );
   if (rateContWrapper) {
-    // Visibile solo se è rate (e non checkbox)
     rateContWrapper.style.display = isRate && !isCbx ? "" : "none";
   }
 
   // ── Checkbox contabilità: MOSTRIAMO per adempimenti contabilità puri
-  // Per is_contabilita mostriamo la checkbox per segnare i redditi completati
   const contCheckWrapper = document.getElementById(
     "contabilita-checkbox-wrapper",
   );
   if (contCheckWrapper) {
-    // Visibile solo se è contabilità pura (e non checkbox)
     contCheckWrapper.style.display = isCont && !isCbx ? "" : "none";
   }
 
@@ -361,7 +355,6 @@ function openAdpModal(r) {
 }
 
 // ─── CHECKBOX PILL UI ─────────────────────────────────────────
-// Aggiorna l'aspetto visivo dei tre pulsanti nella sezione checkbox del modal
 function _aggiornaPulsantiCheckbox(stato) {
   const btnDaFare = document.getElementById("cbx-modal-dafare");
   const btnNA = document.getElementById("cbx-modal-na");
@@ -369,7 +362,6 @@ function _aggiornaPulsantiCheckbox(stato) {
 
   if (!btnDaFare || !btnNA || !btnCompl) return;
 
-  // Reset tutti
   [btnDaFare, btnNA, btnCompl].forEach((b) => {
     b.classList.remove(
       "cbx-modal-active-red",
@@ -401,22 +393,19 @@ function setCbxModalStato(nuovoStato) {
 }
 
 // ─── COLORI CONTABILITÀ PURA ──────────────────────────────────
-// Blu = IVA compilata | Verde = IVA + cont ✓ (ma cont non mostrata nel modal)
 function _aggiornaColoriContabilita(r) {
   const ivaVal = document.getElementById("adp-imp-iva")?.value;
   const hasIva = ivaVal != null && ivaVal !== "";
-  
+
   const contCheck = document.getElementById("adp-cont-completata");
   const contDone = contCheck ? contCheck.checked : parseInt(r?.cont_completata) === 1;
-  
+
   let colorIva = "";
   let colorCont = "";
-  
+
   if (hasIva && contDone) {
-    // Entrambi completati = verde
     colorIva = colorCont = "var(--green)";
   } else if (hasIva || contDone) {
-    // Solo uno completato = blu
     colorIva = colorCont = "var(--accent)";
   }
 
@@ -424,7 +413,7 @@ function _aggiornaColoriContabilita(r) {
   const ivaInput = document.getElementById("adp-imp-iva");
   const contLabel = document.getElementById("label-cont-completata");
   const contSpan = document.getElementById("label-imp-cont");
-  
+
   if (ivaLabel) ivaLabel.style.color = colorIva;
   if (ivaInput) ivaInput.style.borderColor = hasIva ? colorIva : "";
   if (contLabel) contLabel.style.color = colorCont;
@@ -435,54 +424,142 @@ function onContabilitaImportoChange() {
   _aggiornaColoriContabilita(null);
 }
 
-// ─── CONVERSIONE NUMERO IN FORMATO ITALIANO ─────────────────────
+// ─── FORMATTAZIONE NUMERO IN FORMATO ITALIANO ────────────────
+// Converte un numero JS in stringa italiana: 1234567.89 → "1.234.567,89"
+// I negativi vengono restituiti con il segno meno: -1234.5 → "-1.234,50"
 function formattaNumeroItaliano(valore) {
   if (valore === null || valore === undefined || valore === "") return "";
-  return String(valore).replace('.', ',');
+  const s = String(valore);
+  // Se è già un numero JS (o stringa con punto decimale senza virgola),
+  // parseFloat lo legge direttamente: "1000.25" → 1000.25 ✓
+  // Se è in formato italiano ("1.000,25"), prima rimuoviamo i punti
+  // migliaia e convertiamo la virgola: "1000.25" → 1000.25 ✓
+  const normalizzato = s.includes(",")
+    ? s.replace(/\./g, "").replace(",", ".")
+    : s;
+  const numero = parseFloat(normalizzato);
+  if (isNaN(numero)) return "";
+  const negativo = numero < 0;
+  const [intero, dec] = Math.abs(numero).toFixed(2).split(".");
+  const interoFormattato = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const risultato = interoFormattato + "," + dec;
+  return negativo ? "-" + risultato : risultato;
 }
 
-// ─── VALIDAZIONE INPUT NUMERICO ───────────────────────────────────────
+// ─── FORMATTA NUMERO CON COLORE PER DISPLAY ──────────────────
+// Scrive il numero formattato in un elemento DOM colorandolo:
+//   verde per positivi, rosso per negativi
+function formattaNumeroConColore(valore, elemento) {
+  if (valore === null || valore === undefined || valore === "") {
+    if (elemento) {
+      elemento.textContent = "";
+      elemento.style.color = "";
+    }
+    return "";
+  }
+  const _sc = String(valore);
+  const numero = parseFloat(_sc.includes(",") ? _sc.replace(/\./g, "").replace(",", ".") : _sc);
+  if (isNaN(numero)) {
+    if (elemento) {
+      elemento.textContent = valore;
+      elemento.style.color = "";
+    }
+    return valore;
+  }
+  const formattato = formattaNumeroItaliano(numero);
+  if (elemento) {
+    elemento.textContent = formattato;
+    // Rosso per negativi, verde per zero e positivi
+    elemento.style.color = numero < 0 ? "var(--red)" : "var(--green)";
+  }
+  return formattato;
+}
+
+// ─── HELPER: converte stringa italiana in numero JS ──────────
+// "1.234.567,89" → 1234567.89  |  "-1.234,50" → -1234.5
+function parseItalianoFloat(str) {
+  if (str === null || str === undefined || str === "") return null;
+  const n = parseFloat(
+    String(str).replace(/\./g, "").replace(",", ".")
+  );
+  return isNaN(n) ? null : n;
+}
+
+// ─── FORMATTA INPUT NUMERICO CON SEPARATORI MIGLIAIA ─────────
+// Chiamata ad ogni evento input/keyup per aggiungere i punti migliaia
+// mentre l'utente digita, senza spostare il cursore in modo inatteso.
+function formattaInputConSeparatori(input) {
+  if (!input) return;
+  const raw = input.value;
+  if (!raw || raw === "-") return;
+
+  // Salva posizione cursore per ripristinarla dopo la modifica
+  const posCursore = input.selectionStart;
+  const lunghezzaOriginale = raw.length;
+
+  // Estrai il segno meno se presente
+  const negativo = raw.startsWith("-");
+
+  // Rimuovi tutto tranne cifre e virgola (elimina i punti migliaia già presenti)
+  let pulito = raw.replace(/[^0-9,]/g, "");
+
+  // Gestisci virgole multiple: solo la prima è separatore decimale
+  const parti = pulito.split(",");
+  let intero = parti[0];
+  // Unisci eventuali parti extra dopo la prima virgola, limita a 2 cifre
+  let decimale = parti.length > 1 ? parti.slice(1).join("").substring(0, 2) : null;
+
+  // Aggiungi i punti migliaia nella parte intera
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  // Ricostruisci
+  let formattato = negativo ? "-" + intero : intero;
+  if (decimale !== null) formattato += "," + decimale;
+
+  if (raw !== formattato) {
+    input.value = formattato;
+    // Aggiusta posizione cursore proporzionalmente alla variazione di lunghezza
+    const delta = formattato.length - lunghezzaOriginale;
+    const nuovaPos = Math.max(0, posCursore + delta);
+    try { input.setSelectionRange(nuovaPos, nuovaPos); } catch (e) {}
+  }
+}
+
+// ─── BLOCCA IL PUNTO NEGLI INPUT NUMERICI ────────────────────
+// Da usare su onkeydown="bloccaPuntoInput(event)" negli input numerici.
+// Impedisce di digitare "." (che è il separatore migliaia automatico),
+// lasciando passare tutto il resto (virgola, cifre, meno, tasti speciali).
+function bloccaPuntoInput(e) {
+  if (e.key === ".") e.preventDefault();
+}
+
+// ─── VALIDAZIONE INPUT NUMERICO ──────────────────────────────
 function validaInputNumerico(input) {
-  let valore = input.value;
-  let posizioneCursore = input.selectionStart;
-  
-  // Rimuovi solo caratteri non validi, mantieni numeri, virgola, punto
-  let valoreFiltrato = valore.replace(/[^0-9,.-]/g, '');
-  
-  // Se il valore è cambiato, aggiorna e riposiziona il cursore
-  if (valore !== valoreFiltrato) {
-    input.value = valoreFiltrato;
-    // Riposiziona il cursore considerando i caratteri rimossi
-    const caratteriRimossi = valore.length - valoreFiltrato.length;
-    const nuovaPosizione = Math.max(0, posizioneCursore - caratteriRimossi);
-    input.setSelectionRange(nuovaPosizione, nuovaPosizione);
-  }
+  formattaInputConSeparatori(input);
 }
 
-// ─── CONVERSIONE PUNTO IN VIRGOLA (FORMATO ITALIANO) ─────────────────
+// ─── FORMATTAZIONE FINALE AL BLUR (FORMATO ITALIANO COMPLETO) ─
+// Chiamata onblur: completa la formattazione aggiungendo ,00 se mancano i decimali
 function convertiVirgolaInPunto(input) {
-  let valore = input.value.trim();
-  
-  // Sostituisci tutti i punti con virgole (formato italiano)
-  valore = valore.replace(/\./g, ',');
-  
-  // Gestisci virgole multiple: mantieni solo la prima come separatore decimale
-  const parti = valore.split(',');
-  if (parti.length > 2) {
-    // Prendi la prima parte (intera) e unisci tutte le altre come decimali
-    valore = parti[0] + ',' + parti.slice(1).join('');
-  } else if (parti.length === 2) {
-    // Caso normale: parte intera + decimali
-    valore = parti[0] + ',' + parti[1];
-  }
-  
-  // Limita a 2 decimali massimo
-  const partiFinali = valore.split(',');
-  if (partiFinali.length === 2 && partiFinali[1].length > 2) {
-    valore = partiFinali[0] + ',' + partiFinali[1].substring(0, 2);
-  }
-  
-  input.value = valore;
+  const raw = input.value.trim();
+  if (!raw) { input.value = ""; return; }
+
+  // Estrai il segno meno
+  const negativo = raw.startsWith("-");
+
+  // Rimuovi tutto tranne cifre e virgola (elimina punti migliaia)
+  let pulito = raw.replace(/[^0-9,]/g, "");
+
+  // Gestisci virgole multiple
+  const parti = pulito.split(",");
+  let intero = parti[0] || "0";
+  // Limita i decimali a 2 cifre, con padding a destra se necessario
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
+
+  // Aggiungi i punti migliaia nella parte intera
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  input.value = (negativo ? "-" : "") + intero + "," + decimale;
 }
 
 // ─── COLORI RATE + CONTABILITÀ ────────────────────────────────
@@ -538,24 +615,19 @@ function saveAdpStato() {
   if (isCbx) {
     // Checkbox: nessun importo, stato già in data.stato
   } else if (isCont) {
-    data.importo_iva = parseFloat(getVal("adp-imp-iva").replace(',', '.')) || null;
-    data.importo_contabilita = parseFloat(getVal("adp-imp-cont").replace(',', '.')) || null;
-    // Per contabilità pura la checkbox redditi completati è visibile
+    // Usa parseItalianoFloat per gestire correttamente "1.234,56" → 1234.56
+    data.importo_iva = parseItalianoFloat(getVal("adp-imp-iva"));
+    data.importo_contabilita = parseItalianoFloat(getVal("adp-imp-cont"));
     data.cont_completata = document.getElementById("adp-cont-completata")
-      ?.checked
-      ? 1
-      : 0;
+      ?.checked ? 1 : 0;
   } else if (isRate) {
-    data.importo_saldo = parseFloat(getVal("adp-imp-saldo").replace(',', '.')) || null;
-    data.importo_acconto1 = parseFloat(getVal("adp-imp-acc1").replace(',', '.')) || null;
-    data.importo_acconto2 = parseFloat(getVal("adp-imp-acc2").replace(',', '.')) || null;
-    // Per le rate la checkbox contabilità è visibile
+    data.importo_saldo = parseItalianoFloat(getVal("adp-imp-saldo"));
+    data.importo_acconto1 = parseItalianoFloat(getVal("adp-imp-acc1"));
+    data.importo_acconto2 = parseItalianoFloat(getVal("adp-imp-acc2"));
     data.cont_completata = document.getElementById("adp-rate-cont-completata")
-      ?.checked
-      ? 1
-      : 0;
+      ?.checked ? 1 : 0;
   } else {
-    data.importo = parseFloat(getVal("adp-importo").replace(',', '.')) || null;
+    data.importo = parseItalianoFloat(getVal("adp-importo"));
   }
 
   socket.emit("update:adempimento_stato", data);
