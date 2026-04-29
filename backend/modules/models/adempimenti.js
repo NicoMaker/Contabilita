@@ -192,15 +192,13 @@ function checkAdempimentiClienteEsistenti(id_cliente, anno) {
         }
       }
     } else if (a.scadenza_tipo === "annuale") {
-      // Per gli annuali crea 12 mesi
-      status.totale = 12;
-      for (let m = 1; m <= 12; m++) {
-        const esiste = esistenti.find(e => e.id_adempimento === a.id && e.mese === m);
-        if (esiste) {
-          status.esistenti.push({ periodo: getMeseNome(m), id: esiste.id });
-        } else {
-          status.mancanti.push({ periodo: getMeseNome(m), mese: m });
-        }
+      // Per gli annuali crea 1 solo record
+      status.totale = 1;
+      const esiste = esistenti.find(e => e.id_adempimento === a.id && e.mese === null && e.trimestre === null && e.semestre === null);
+      if (esiste) {
+        status.esistenti.push({ periodo: "Ann", id: esiste.id });
+      } else {
+        status.mancanti.push({ periodo: "Ann", mese: null });
       }
     } else {
       // Annuale semplice
@@ -292,16 +290,14 @@ function inserisciAdempimentoSeAssente(id_cliente, adp, anno) {
     }
     console.log(`DEBUG: Totale inseriti mensili: ${inseriti}`);
   } else if (adp.scadenza_tipo === "annuale") {
-    // Gli adempimenti annuali creano 12 record mensili (Gen, Feb, Mar, etc.)
-    for (let m = 1; m <= 12; m++) {
-      const esiste = esistenti.find(e => e.mese === m);
-      if (!esiste) {
-        runQuery(
-          `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
-          [id_cliente, adp.id, anno, m, "da_fare"],
-        );
-        inseriti++;
-      }
+    // Gli adempimenti annuali creano 1 solo record
+    const esiste = esistenti.find(e => e.mese === null && e.trimestre === null && e.semestre === null);
+    if (!esiste) {
+      runQuery(
+        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+        [id_cliente, adp.id, anno, "da_fare"],
+      );
+      inseriti++;
     }
   } else {
     const esiste = esistenti.find(e => e.mese === null && e.trimestre === null && e.semestre === null);
@@ -392,24 +388,22 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
       }
     }
   } else if (adp.scadenza_tipo === "annuale") {
-    // Gli adempimenti annuali creano 12 record mensili (Gen, Feb, Mar, etc.)
-    for (let m = 1; m <= 12; m++) {
-      const esiste = esistenti.find(e => e.mese === m);
-      if (!esiste) {
-        runQuery(
-          `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
-          [id_cliente, adp.id, anno, m, "da_fare"],
-        );
-        inseriti++;
-      } else {
-        mantenuti++;
-        dettagli.push({
-          tipo: "mese",
-          valore: m,
-          id_esistente: esiste.id,
-          azione: "mantenuto (annuale)"
-        });
-      }
+    // Gli adempimenti annuali creano 1 solo record
+    const esiste = esistenti.find(e => e.mese === null && e.trimestre === null && e.semestre === null);
+    if (!esiste) {
+      runQuery(
+        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
+        [id_cliente, adp.id, anno, "da_fare"],
+      );
+      inseriti++;
+    } else {
+      mantenuti++;
+      dettagli.push({
+        tipo: "annuale",
+        valore: null,
+        id_esistente: esiste.id,
+        azione: "mantenuto (annuale)"
+      });
     }
   } else {
     const esiste = esistenti.find(e => e.mese === null && e.trimestre === null && e.semestre === null);
