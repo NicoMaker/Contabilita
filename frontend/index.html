@@ -174,7 +174,6 @@
           </div>
           <div class="form-group">
             <label>Partita IVA</label>
-            <!-- ✅ SOLO NUMERI -->
             <input
               class="input"
               id="c-piva"
@@ -198,7 +197,6 @@
           </div>
           <div class="form-group">
             <label>Telefono</label>
-            <!-- ✅ SOLO NUMERI + simboli telefonici -->
             <input
               class="input"
               id="c-tel"
@@ -239,7 +237,6 @@
           </div>
           <div class="form-group" style="max-width: 110px">
             <label>CAP</label>
-            <!-- ✅ SOLO NUMERI -->
             <input
               class="input"
               id="c-cap"
@@ -339,6 +336,7 @@
           </div>
         </div>
 
+        <!-- ── IMPORTO NORMALE ── -->
         <div id="sect-importo-normale">
           <div class="form-group">
             <label>Importo (€)</label>
@@ -354,6 +352,7 @@
           </div>
         </div>
 
+        <!-- ── IMPORTO CONTABILITÀ ── -->
         <div id="sect-importo-cont" style="display: none">
           <div class="infobox" style="margin-bottom: 12px; font-size: 12px">
             💡 <strong style="color: var(--accent)">IVA</strong> compilata →
@@ -373,8 +372,8 @@
                 step="0.01"
                 placeholder="0,00"
                 oninput="validaInputNumerico(this); onContabilitaImportoChange()"
-                onblur="convertiVirgolaInPunto(this)"
-                style="transition: border-color 0.2s"
+                onblur="convertiVirgolaInPunto(this); onContabilitaImportoChange()"
+                style="transition: border-color 0.2s, color 0.2s"
               />
             </div>
             <div
@@ -408,6 +407,7 @@
           </div>
         </div>
 
+        <!-- ── IMPORTO RATE ── -->
         <div id="sect-importo-rate" style="display: none">
           <div class="rate-grid">
             <div class="form-group">
@@ -418,9 +418,9 @@
                 type="text"
                 step="0.01"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this)"
-                onchange="onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this)"
+                oninput="validaInputNumerico(this); onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                style="transition: border-color 0.2s, color 0.2s"
               />
             </div>
             <div class="form-group">
@@ -431,9 +431,9 @@
                 type="text"
                 step="0.01"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this)"
-                onchange="onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this)"
+                oninput="validaInputNumerico(this); onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                style="transition: border-color 0.2s, color 0.2s"
               />
             </div>
             <div class="form-group">
@@ -444,9 +444,9 @@
                 type="text"
                 step="0.01"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this)"
-                onchange="onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this)"
+                oninput="validaInputNumerico(this); onRateContabilitaChange()"
+                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                style="transition: border-color 0.2s, color 0.2s"
               />
             </div>
           </div>
@@ -468,6 +468,7 @@
           </div>
         </div>
 
+        <!-- ── CHECKBOX ── -->
         <div id="sect-importo-checkbox" style="display: none">
           <div class="infobox" style="font-size: 12px; margin-bottom: 4px">
             ☑️ Adempimento semplice — usa Stato e Note per tracciare il
@@ -668,7 +669,6 @@
         <div class="form-group">
           <label>Seleziona Adempimenti da Generare</label>
           <div id="genera-tutti-adempimenti-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px;">
-            <!-- Gli adempimenti verranno caricati qui dinamicamente -->
           </div>
           <div style="margin-top: 8px;">
             <label class="flag-chip">
@@ -810,7 +810,6 @@
         <div class="form-group">
           <label>Seleziona Adempimenti da Aggiungere</label>
           <div id="add-adp-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px; background: var(--s2);">
-            <!-- Gli adempimenti verranno caricati qui dinamicamente -->
           </div>
           <div style="margin-top: 8px;">
             <label class="flag-chip">
