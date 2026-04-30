@@ -7,7 +7,6 @@ function _annoFromRow(anno) {
 }
 
 function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
-  // ⭐ JOIN con clienti_config_annuale per avere tipologia/col2/col3/periodicita
   let sql = `
     SELECT 
       ac.*,
@@ -63,12 +62,12 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
     params.push(s, s);
   }
 
-  sql += ` ORDER BY a.nome, ac.mese, ac.trimestre, ac.semestre`;
+  // Adempimenti in ordine alfabetico, poi cliente alfabetico, poi periodo
+  sql += ` ORDER BY a.nome COLLATE NOCASE, c.nome COLLATE NOCASE, ac.mese, ac.trimestre, ac.semestre`;
   return queryAll(sql, params);
 }
 
 function getScadenzarioGlobale(anno, filtri = {}) {
-  // ⭐ JOIN con clienti_config_annuale per avere tipologia/col2/col3/periodicita
   let sql = `
     SELECT 
       ac.*,
@@ -128,7 +127,8 @@ function getScadenzarioGlobale(anno, filtri = {}) {
     params.push(s, s, s, s);
   }
 
-  sql += ` ORDER BY a.nome, c.nome, ac.mese, ac.trimestre, ac.semestre`;
+  // Adempimenti in ordine alfabetico, poi clienti in ordine alfabetico, poi periodo
+  sql += ` ORDER BY a.nome COLLATE NOCASE, c.nome COLLATE NOCASE, ac.mese, ac.trimestre, ac.semestre`;
   return queryAll(sql, params);
 }
 
@@ -146,14 +146,12 @@ function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   let adempimenti;
   
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
-    // Filtra solo gli adempimenti selezionati
     const placeholders = adempimentiSelezionati.map(() => '?').join(',');
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
       adempimentiSelezionati
     );
   } else {
-    // Se nessun adempimento selezionato, usa tutti (comportamento originale)
     adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
   }
   
@@ -192,14 +190,12 @@ function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   let adempimenti;
   
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
-    // Filtra solo gli adempimenti selezionati
     const placeholders = adempimentiSelezionati.map(() => '?').join(',');
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
       adempimentiSelezionati
     );
   } else {
-    // Se nessun adempimento selezionato, usa tutti (comportamento originale)
     adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
   }
   
@@ -295,7 +291,6 @@ function addAdempimentoCliente(data) {
   ]);
   if (!adp) throw new Error("Adempimento non trovato");
   
-  // Usa la nostra logica corretta per creare tutti i periodi necessari
   return inserisciAdempimentoSeAssente(data.id_cliente, adp, data.anno);
 }
 

@@ -121,7 +121,7 @@ function renderGlobaleHeader() {
     adpSel.innerHTML =
       `<option value="">📋 Tutti adempimenti</option>` +
       Array.from(st.adempimenti)
-        .sort()
+        .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }))
         .map(
           (a) =>
             `<option value="${escAttr(a)}" ${current === a ? "selected" : ""}>${a}</option>`,
@@ -136,7 +136,9 @@ function renderGlobaleHeader() {
 function navigaAdempimento(direzione) {
   const adpSel = document.getElementById("glob-filtro-adp");
   if (!adpSel || !state.globaleStats) return;
-  const lista = Array.from(state.globaleStats.adempimenti).sort();
+  const lista = Array.from(state.globaleStats.adempimenti).sort((a, b) =>
+    a.localeCompare(b, "it", { sensitivity: "base" }),
+  );
   const current = adpSel.value;
   const idx = lista.indexOf(current);
   let newIdx;
@@ -225,7 +227,9 @@ function renderGlobaleTabella(rawData) {
   const adpSel = document.getElementById("glob-filtro-adp");
   const adpFiltroAttivo = adpSel?.value || "";
   const adpListaOrdinata = st.adempimenti
-    ? Array.from(st.adempimenti).sort()
+    ? Array.from(st.adempimenti).sort((a, b) =>
+        a.localeCompare(b, "it", { sensitivity: "base" }),
+      )
     : [];
   const adpIdx = adpListaOrdinata.indexOf(adpFiltroAttivo);
 
@@ -283,20 +287,22 @@ function renderGlobaleTabella(rawData) {
     ${navAdpHtml}
   </div>`;
 
-  // Raggruppa per adempimento
-  const grouped = {};
+  // ── Raggruppa per adempimento (ordine alfabetico garantito dal backend,
+  //    ma usiamo una Map per preservare l'insertion order) ──────────────
+  const grouped = new Map();
   data.forEach((r) => {
     storeRow(r);
     const adpKey = r.adempimento_nome;
-    if (!grouped[adpKey])
-      grouped[adpKey] = {
+    if (!grouped.has(adpKey))
+      grouped.set(adpKey, {
         nome: r.adempimento_nome,
         codice: r.adempimento_codice,
-        clienti: {},
-      };
+        clienti: new Map(),
+      });
+    const g = grouped.get(adpKey);
     const cliKey = r.cliente_id;
-    if (!grouped[adpKey].clienti[cliKey])
-      grouped[adpKey].clienti[cliKey] = {
+    if (!g.clienti.has(cliKey))
+      g.clienti.set(cliKey, {
         id: r.cliente_id,
         nome: r.cliente_nome,
         cf: r.cliente_cf,
@@ -308,15 +314,24 @@ function renderGlobaleTabella(rawData) {
         col2: r.cliente_col2,
         col3: r.cliente_col3,
         periodi: [],
-      };
-    grouped[adpKey].clienti[cliKey].periodi.push(r);
+      });
+    g.clienti.get(cliKey).periodi.push(r);
   });
 
+  // ── Ordina i gruppi adempimento alfabeticamente ────────────────────
+  const gruppiOrdinati = Array.from(grouped.values()).sort((a, b) =>
+    a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }),
+  );
+
   let content = "";
-  Object.values(grouped).forEach((g) => {
-    const clientiFiltrati = Object.values(g.clienti).filter((c) =>
-      clientePassaFiltroStato(c.periodi, filtroClienteStato),
-    );
+  gruppiOrdinati.forEach((g) => {
+    // ── Ordina i clienti alfabeticamente dentro ogni adempimento ──────
+    const clientiFiltrati = Array.from(g.clienti.values())
+      .filter((c) => clientePassaFiltroStato(c.periodi, filtroClienteStato))
+      .sort((a, b) =>
+        a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }),
+      );
+
     if (!clientiFiltrati.length) return;
 
     const allRows = clientiFiltrati.flatMap((c) => c.periodi);
@@ -360,11 +375,8 @@ function renderGlobaleTabella(rawData) {
             `<span style="font-size:10px;color:var(--text3);background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:1px 6px" title="${naC} N/A">➖ ${naC}</span>`,
           );
 
-        // ⭐ CLASSIFICAZIONE COMPLETA visibile nel card cliente
         const classBadgesHtml = _renderGlobaleClienteClassBadges(c);
-
         const sottotipoLabel = c.sottotipologia_nome || "";
-
         const periodiHtml = c.periodi.map((r) => renderPeriodoPill(r)).join("");
         const isMensile = c.periodi.length > 4;
 
@@ -375,7 +387,6 @@ function renderGlobaleTabella(rawData) {
             <div class="gcr-nome" style="font-size:14px">${escAttr(c.nome)}</div>
             <div class="gcr-cf" style="font-size:11px">${c.cf || c.piva || "-"}</div>
             ${sottotipoLabel ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">🏷️ ${sottotipoLabel}</div>` : ""}
-            <!-- ⭐ Classificazione completa: tipologia + col2 + col3 + periodicità -->
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
               ${classBadgesHtml}
             </div>
