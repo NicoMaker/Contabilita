@@ -129,8 +129,6 @@ function renderClientiTabella(clienti) {
         <option value="ordinario"   ${curCol3 === "ordinario" ? "selected" : ""}>📊 Ordinario</option>
         <option value="semplificato"${curCol3 === "semplificato" ? "selected" : ""}>📄 Semplificato</option>
         <option value="forfettario" ${curCol3 === "forfettario" ? "selected" : ""}>💰 Forfettario</option>
-        <option value="ordinaria"   ${curCol3 === "ordinaria" ? "selected" : ""}>📊 Ordinaria</option>
-        <option value="semplificata"${curCol3 === "semplificata" ? "selected" : ""}>📄 Semplificata</option>
       </select>
       <select id="filter-periodicita" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per periodicità">
         <option value="" ${!curPeriodicita ? "selected" : ""}>📋 Tutte</option>

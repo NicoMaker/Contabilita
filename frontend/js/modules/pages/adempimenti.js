@@ -100,7 +100,12 @@ function renderAdempimentiTabella(adempimenti) {
     ${isFiltrato ? `<button class="btn btn-sm btn-primary" onclick="resetAdempimentiFiltri()" style="font-size:12px">⟳ Tutti</button>` : ""}
   </div>`;
 
-  const cards = adempimenti
+  // ── Ordine alfabetico per nome ─────────────────────────────
+  const adempimentiOrdinati = [...adempimenti].sort((a, b) =>
+    a.nome.localeCompare(b.nome, "it", { sensitivity: "base" })
+  );
+
+  const cards = adempimentiOrdinati
     .map((a) => {
       const flagsBadges = [];
       if (a.is_contabilita)
@@ -155,7 +160,7 @@ function openNuovoAdpDef() {
   setVal("adp-def-codice", "");
   setVal("adp-def-nome", "");
   setVal("adp-def-desc", "");
-  setVal("adp-def-categoria", "TUTTI");
+  // NOTA: #adp-def-categoria rimosso — non presente nell'HTML del modal
   setVal("adp-def-scadenza", "annuale");
   setVal("adp-def-contabilita", false);
   setVal("adp-def-rate", false);
@@ -176,7 +181,7 @@ function editAdpDef(id) {
   setVal("adp-def-codice", a.codice);
   setVal("adp-def-nome", a.nome);
   setVal("adp-def-desc", a.descrizione || "");
-  setVal("adp-def-categoria", a.categoria || "TUTTI");
+  // NOTA: #adp-def-categoria rimosso — non presente nell'HTML del modal
   setVal("adp-def-scadenza", a.scadenza_tipo || "annuale");
   setVal("adp-def-contabilita", !!a.is_contabilita);
   setVal("adp-def-rate", !!a.has_rate);
@@ -230,7 +235,7 @@ function saveAdpDef() {
     codice,
     nome,
     descrizione: String(getVal("adp-def-desc")).trim() || null,
-    categoria: getVal("adp-def-categoria"),
+    // categoria rimossa: campo non presente nel modal HTML
     scadenza_tipo: getVal("adp-def-scadenza"),
     is_contabilita: getVal("adp-def-contabilita") ? 1 : 0,
     has_rate: getVal("adp-def-rate") ? 1 : 0,
@@ -429,13 +434,11 @@ function onContabilitaImportoChange() {
 }
 
 // ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
-// Verde per valori positivi (≥ 0), rosso per negativi, neutro se vuoto/NaN
-// Colora SOLO il testo, nessun bordo
 function coloraInputImporto(input) {
   if (!input) return;
   const raw = (input.value || "")
-    .replace(/\./g, "")   // rimuovi punti migliaia
-    .replace(",", ".")    // virgola → punto decimale
+    .replace(/\./g, "")
+    .replace(",", ".")
     .trim();
   const num = parseFloat(raw);
   if (!input.value || isNaN(num)) {
@@ -451,8 +454,6 @@ function coloraInputImporto(input) {
 }
 
 // ─── FORMATTAZIONE NUMERO IN FORMATO ITALIANO ────────────────
-// Converte un numero JS in stringa italiana: 1234567.89 → "1.234.567,89"
-// I negativi vengono restituiti con il segno meno: -1234.5 → "-1.234,50"
 function formattaNumeroItaliano(valore) {
   if (valore === null || valore === undefined || valore === "") return "";
   const s = String(valore);
@@ -495,7 +496,6 @@ function formattaNumeroConColore(valore, elemento) {
 }
 
 // ─── HELPER: converte stringa italiana in numero JS ──────────
-// "1.234.567,89" → 1234567.89  |  "-1.234,50" → -1234.5
 function parseItalianoFloat(str) {
   if (str === null || str === undefined || str === "") return null;
   const n = parseFloat(
@@ -539,15 +539,12 @@ function bloccaPuntoInput(e) {
 }
 
 // ─── VALIDAZIONE INPUT NUMERICO ──────────────────────────────
-// Formatta i separatori migliaia E colora l'input in tempo reale
 function validaInputNumerico(input) {
   formattaInputConSeparatori(input);
   coloraInputImporto(input);
 }
 
 // ─── FORMATTAZIONE FINALE AL BLUR ────────────────────────────
-// Completa la formattazione aggiungendo ,00 se mancano i decimali
-// e colora l'input dopo la formattazione finale
 function convertiVirgolaInPunto(input) {
   const raw = input.value.trim();
   if (!raw) {
@@ -566,8 +563,6 @@ function convertiVirgolaInPunto(input) {
   intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
   input.value = (negativo ? "-" : "") + intero + "," + decimale;
-
-  // Colora dopo la formattazione finale
   coloraInputImporto(input);
 }
 
@@ -603,7 +598,6 @@ function _aggiornaColoriRateContabilita(r) {
 
 function onRateContabilitaChange() {
   _aggiornaColoriRateContabilita(null);
-  // Aggiorna anche i colori degli input rate
   ["adp-imp-saldo", "adp-imp-acc1", "adp-imp-acc2"].forEach((id) => {
     coloraInputImporto(document.getElementById(id));
   });
