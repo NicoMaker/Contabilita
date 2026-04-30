@@ -304,7 +304,7 @@ function openAdpModal(r) {
   setVal("adp-imp-acc2", formattaNumeroItaliano(r.importo_acconto2));
 
   // ── Colora subito tutti gli input importo all'apertura ────
-  ["adp-importo", "adp-imp-iva", "adp-imp-saldo", "adp-imp-acc1", "adp-imp-acc2"].forEach((id) => {
+  ["adp-importo", "adp-imp-iva", "adp-imp-cont", "adp-imp-saldo", "adp-imp-acc1", "adp-imp-acc2"].forEach((id) => {
     coloraInputImporto(document.getElementById(id));
   });
 
@@ -421,17 +421,16 @@ function _aggiornaColoriContabilita(r) {
   if (ivaLabel) ivaLabel.style.color = colorIva;
   if (contLabel) contLabel.style.color = colorCont;
   if (contSpan) contSpan.style.color = colorCont;
-  // Nota: il border/color dell'input IVA viene gestito da coloraInputImporto
 }
 
 function onContabilitaImportoChange() {
   _aggiornaColoriContabilita(null);
-  // Aggiorna anche il colore dell'input IVA in tempo reale
   coloraInputImporto(document.getElementById("adp-imp-iva"));
 }
 
 // ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
 // Verde per valori positivi (≥ 0), rosso per negativi, neutro se vuoto/NaN
+// Colora SOLO il testo, nessun bordo
 function coloraInputImporto(input) {
   if (!input) return;
   const raw = (input.value || "")
@@ -444,10 +443,10 @@ function coloraInputImporto(input) {
     input.style.borderColor = "";
   } else if (num < 0) {
     input.style.color = "var(--red)";
-    input.style.borderColor = "var(--red)";
+    input.style.borderColor = "";
   } else {
     input.style.color = "var(--green)";
-    input.style.borderColor = "var(--green)";
+    input.style.borderColor = "";
   }
 }
 
