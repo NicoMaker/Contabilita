@@ -264,6 +264,7 @@ function resetScadFiltri() {
 }
 
 // ─── RENDER TABELLA ───────────────────────────────────────────
+// ─── RENDER TABELLA ───────────────────────────────────────────
 function renderScadenzarioTabella(data) {
   const c = state.selectedCliente;
   if (!c) return;
@@ -429,7 +430,7 @@ function renderScadenzarioTabella(data) {
   </div>
   ${adempimentiButtons}`;
 
-  // Raggruppa per adempimento
+  // ⭐ Raggruppa per adempimento
   const grouped = {};
   dataFiltrata.forEach((r) => {
     storeRow(r);
@@ -444,8 +445,13 @@ function renderScadenzarioTabella(data) {
     grouped[key].rows.push(r);
   });
 
+  // ⭐ ORDINA gli adempimenti per nome alfabetico (come in globale.js)
+  const gruppiOrdinati = Object.values(grouped).sort((a, b) =>
+    a.nome.localeCompare(b.nome, "it", { sensitivity: "base" })
+  );
+
   let content = "";
-  Object.values(grouped).forEach((g) => {
+  gruppiOrdinati.forEach((g) => {
     const compG = g.rows.filter((r) => r.stato === "completato").length;
     const totG = g.rows.length;
     const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
