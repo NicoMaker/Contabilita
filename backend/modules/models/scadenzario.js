@@ -1,5 +1,6 @@
 const { runQuery, queryAll, queryOne } = require("../database");
 const { inserisciAdempimentoSeAssente, inserisciAdempimentoSeAssenteConDettagli } = require("./adempimenti");
+const ANNO_DELETE_MARKER = "__ANNO_ELIMINATO__";
 
 // ─── HELPER: anno dalla data_scadenza o anno corrente ─────────
 function _annoFromRow(anno) {
@@ -23,34 +24,30 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
       c.partita_iva as cliente_piva,
       c.email as cliente_email,
       c.telefono as cliente_tel,
-      COALESCE(cfg.id_tipologia, cfg_last.id_tipologia) as cliente_id_tipologia,
-      COALESCE(t.codice, t_last.codice)   as cliente_tipologia_codice,
-      COALESCE(t.colore, t_last.colore)   as cliente_tipologia_colore,
-      COALESCE(s.codice, s_last.codice)   as cliente_sottotipologia_codice,
-      COALESCE(s.nome,   s_last.nome)     as cliente_sottotipologia_nome,
-      COALESCE(cfg.periodicita,   cfg_last.periodicita)   as cliente_periodicita,
-      COALESCE(cfg.col2_value,    cfg_last.col2_value)    as cliente_col2,
-      COALESCE(cfg.col3_value,    cfg_last.col3_value)    as cliente_col3
+      cfg.id_tipologia as cliente_id_tipologia,
+      t.codice as cliente_tipologia_codice,
+      t.colore as cliente_tipologia_colore,
+      s.codice as cliente_sottotipologia_codice,
+      s.nome as cliente_sottotipologia_nome,
+      cfg.periodicita as cliente_periodicita,
+      cfg.col2_value as cliente_col2,
+      cfg.col3_value as cliente_col3
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
-    -- Config per l'anno richiesto
-    LEFT JOIN clienti_config_annuale cfg 
-      ON cfg.id_cliente = c.id AND cfg.anno = ?
-    -- Config più recente come fallback
-    LEFT JOIN clienti_config_annuale cfg_last 
-      ON cfg_last.id = (
-        SELECT id FROM clienti_config_annuale 
-        WHERE id_cliente = c.id AND anno <= ?
-        ORDER BY anno DESC LIMIT 1
+    INNER JOIN clienti_config_annuale cfg
+      ON cfg.id = (
+        SELECT c2.id
+        FROM clienti_config_annuale c2
+        WHERE c2.id_cliente = c.id AND c2.anno <= ?
+        ORDER BY c2.anno DESC
+        LIMIT 1
       )
     LEFT JOIN tipologie_cliente t      ON t.id      = cfg.id_tipologia
     LEFT JOIN sottotipologie   s      ON s.id      = cfg.id_sottotipologia
-    LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
-    LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
-    WHERE ac.id_cliente = ? AND ac.anno = ?
+    WHERE ac.id_cliente = ? AND ac.anno = ? AND IFNULL(cfg.col2_value, '') != ?
   `;
-  const params = [anno, anno, id_cliente, anno];
+  const params = [anno, id_cliente, anno, ANNO_DELETE_MARKER];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -84,34 +81,30 @@ function getScadenzarioGlobale(anno, filtri = {}) {
       c.partita_iva as cliente_piva,
       c.email as cliente_email,
       c.telefono as cliente_tel,
-      COALESCE(cfg.id_tipologia, cfg_last.id_tipologia) as cliente_id_tipologia,
-      COALESCE(t.codice, t_last.codice)   as cliente_tipologia_codice,
-      COALESCE(t.colore, t_last.colore)   as cliente_tipologia_colore,
-      COALESCE(s.codice, s_last.codice)   as cliente_sottotipologia_codice,
-      COALESCE(s.nome,   s_last.nome)     as cliente_sottotipologia_nome,
-      COALESCE(cfg.periodicita,   cfg_last.periodicita)   as cliente_periodicita,
-      COALESCE(cfg.col2_value,    cfg_last.col2_value)    as cliente_col2,
-      COALESCE(cfg.col3_value,    cfg_last.col3_value)    as cliente_col3
+      cfg.id_tipologia as cliente_id_tipologia,
+      t.codice as cliente_tipologia_codice,
+      t.colore as cliente_tipologia_colore,
+      s.codice as cliente_sottotipologia_codice,
+      s.nome as cliente_sottotipologia_nome,
+      cfg.periodicita as cliente_periodicita,
+      cfg.col2_value as cliente_col2,
+      cfg.col3_value as cliente_col3
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
-    -- Config per l'anno richiesto
-    LEFT JOIN clienti_config_annuale cfg 
-      ON cfg.id_cliente = c.id AND cfg.anno = ?
-    -- Config più recente come fallback
-    LEFT JOIN clienti_config_annuale cfg_last 
-      ON cfg_last.id = (
-        SELECT id FROM clienti_config_annuale 
-        WHERE id_cliente = c.id AND anno <= ?
-        ORDER BY anno DESC LIMIT 1
+    LEFT JOIN clienti_config_annuale cfg
+      ON cfg.id = (
+        SELECT c2.id
+        FROM clienti_config_annuale c2
+        WHERE c2.id_cliente = c.id AND c2.anno <= ?
+        ORDER BY c2.anno DESC
+        LIMIT 1
       )
     LEFT JOIN tipologie_cliente t      ON t.id      = cfg.id_tipologia
     LEFT JOIN sottotipologie   s      ON s.id      = cfg.id_sottotipologia
-    LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
-    LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
-    WHERE ac.anno = ? AND c.attivo = 1
+    WHERE ac.anno = ? AND c.attivo = 1 AND (cfg.id IS NULL OR IFNULL(cfg.col2_value, '') != ?)
   `;
-  const params = [anno, anno, anno];
+  const params = [anno, anno, ANNO_DELETE_MARKER];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -142,7 +135,20 @@ function generaScadenzarioInterno(id_cliente, anno) {
 }
 
 function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
-  const clienti = queryAll(`SELECT id, nome FROM clienti WHERE attivo = 1`);
+  const clienti = queryAll(
+    `SELECT c.id, c.nome
+     FROM clienti c
+     INNER JOIN clienti_config_annuale cfg
+       ON cfg.id = (
+         SELECT c2.id
+         FROM clienti_config_annuale c2
+         WHERE c2.id_cliente = c.id AND c2.anno <= ?
+         ORDER BY c2.anno DESC
+         LIMIT 1
+       )
+     WHERE c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?`,
+    [anno, ANNO_DELETE_MARKER],
+  );
   let adempimenti;
   
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
@@ -186,7 +192,20 @@ function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
 }
 
 function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
-  const clienti = queryAll(`SELECT id FROM clienti WHERE attivo = 1`);
+  const clienti = queryAll(
+    `SELECT c.id
+     FROM clienti c
+     INNER JOIN clienti_config_annuale cfg
+       ON cfg.id = (
+         SELECT c2.id
+         FROM clienti_config_annuale c2
+         WHERE c2.id_cliente = c.id AND c2.anno <= ?
+         ORDER BY c2.anno DESC
+         LIMIT 1
+       )
+     WHERE c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?`,
+    [anno, ANNO_DELETE_MARKER],
+  );
   let adempimenti;
   
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
@@ -242,7 +261,20 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
 
 function copiaTuttiClienti(anno_da, anno_a) {
   let tot = 0;
-  queryAll(`SELECT id FROM clienti WHERE attivo = 1`).forEach((c) => {
+  queryAll(
+    `SELECT c.id
+     FROM clienti c
+     INNER JOIN clienti_config_annuale cfg
+       ON cfg.id = (
+         SELECT c2.id
+         FROM clienti_config_annuale c2
+         WHERE c2.id_cliente = c.id AND c2.anno <= ?
+         ORDER BY c2.anno DESC
+         LIMIT 1
+       )
+     WHERE c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?`,
+    [anno_da, ANNO_DELETE_MARKER],
+  ).forEach((c) => {
     tot += copiaScadenzarioCliente(c.id, anno_da, anno_a);
   });
   return tot;

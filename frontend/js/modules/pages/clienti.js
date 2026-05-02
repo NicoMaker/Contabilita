@@ -12,9 +12,185 @@ let lastClienteFormValues = {
   col4: "",
 };
 
+// Carica le tipologie dal file JSON
+let TIPOLOGIE_DATA = null;
+
+function loadTipologieData() {
+  if (TIPOLOGIE_DATA) return Promise.resolve(TIPOLOGIE_DATA);
+  
+  return fetch('./json/tipologie-data.json')
+    .then(response => response.json())
+    .then(data => {
+      TIPOLOGIE_DATA = data;
+      return data;
+    })
+    .catch(error => {
+      console.error('Errore nel caricamento delle tipologie:', error);
+      return null;
+    });
+}
+
+// Costruisci le opzioni di filtro dinamicamente dai dati
+function buildClientiFilterOptions() {
+  if (!TIPOLOGIE_DATA) {
+    // Fallback to default options if data not loaded yet
+    return {
+      tipo: [
+        { value: "PF", label: "👤 PF — Persona Fisica" },
+        { value: "SP", label: "🤝 SP — Soc. Persone" },
+        { value: "SC", label: "🏢 SC — Soc. Capitali" },
+        { value: "ASS", label: "🏛️ ASS — Associazione" },
+      ],
+      col2: [
+        { value: "privato", label: "👤 Privato" },
+        { value: "ditta", label: "🏢 Ditta" },
+        { value: "socio", label: "🤝 Socio" },
+        { value: "professionista", label: "⚕️ Professionista" },
+      ],
+      col3: [
+        { value: "forfettario", label: "💰 Forfettario" },
+        { value: "ordinario", label: "📊 Ordinario" },
+        { value: "ordinaria", label: "📊 Ordinaria" },
+        { value: "semplificato", label: "📄 Semplificato" },
+        { value: "semplificata", label: "📄 Semplificata" },
+      ],
+      periodicita: [
+        { value: "mensile", label: "📅 Mensile" },
+        { value: "trimestrale", label: "📆 Trimestrale" },
+        { value: "annuale", label: "🗓️ Annuale" },
+      ],
+    };
+  }
+  
+  const options = {
+    tipo: [],
+    col2: [],
+    col3: [],
+    periodicita: [],
+  };
+  
+  // Tipologie principali
+  Object.entries(TIPOLOGIE_DATA.tipologie).forEach(([key, value]) => {
+    options.tipo.push({
+      value: key,
+      label: `${value.icon} ${key.toUpperCase()} — ${value.desc}`
+    });
+  });
+  
+  // Col2 (sottocategorie)
+  const col2Set = new Set();
+  Object.values(TIPOLOGIE_DATA.percorsi).forEach(percorso => {
+    percorso.forEach(item => {
+      if (item.col2Label) {
+        col2Set.add(item.col2Label);
+      }
+    });
+  });
+  
+  col2Set.forEach(col2 => {
+    const value = col2.toLowerCase().replace(/\s+/g, '_').replace('.', '');
+    options.col2.push({
+      value: value,
+      label: col2
+    });
+  });
+  
+  // Col3 (regimi)
+  const col3Set = new Set();
+  Object.values(TIPOLOGIE_DATA.percorsi).forEach(percorso => {
+    percorso.forEach(item => {
+      if (item.col3Label) {
+        col3Set.add(item.col3Label);
+      }
+    });
+  });
+  
+  col3Set.forEach(col3 => {
+    const value = col3.toLowerCase().replace(/\s+/g, '_').replace('.', '');
+    options.col3.push({
+      value: value,
+      label: col3
+    });
+  });
+  
+  // Periodicità
+  [...TIPOLOGIE_DATA.periodicitaIva, ...TIPOLOGIE_DATA.periodicitaAnnuale].forEach(periodo => {
+    options.periodicita.push({
+      value: periodo.value,
+      label: periodo.label
+    });
+  });
+  
+  return options;
+}
+
+let CLIENTI_FILTER_OPTIONS = buildClientiFilterOptions();
+let clientiFilterState = null;
+
 // ─── ANNO MIN/MAX ─────────────────────────────────────────────
-const ANNO_MIN = 2000;
+const ANNO_MIN = 2026;
 const ANNO_MAX = 2200;
+
+function initClientiFilterState() {
+  if (clientiFilterState) return;
+  clientiFilterState = {};
+  Object.entries(CLIENTI_FILTER_OPTIONS).forEach(([group, options]) => {
+    clientiFilterState[group] = new Set(options.map((o) => o.value));
+  });
+}
+
+function getClientiFilterValues(group) {
+  initClientiFilterState();
+  return Array.from(clientiFilterState[group] || []);
+}
+
+function isClientiAllSelected(group) {
+  const selected = new Set(getClientiFilterValues(group));
+  const all = CLIENTI_FILTER_OPTIONS[group].map((o) => o.value);
+  return all.every((v) => selected.has(v));
+}
+
+function renderClientiFilterGroup(group, title) {
+  const values = getClientiFilterValues(group);
+  const selected = new Set(values);
+  const allSelected = isClientiAllSelected(group);
+  const optionsHtml = CLIENTI_FILTER_OPTIONS[group]
+    .map(
+      (opt) => `<label class="gf-option ${selected.has(opt.value) ? "is-selected" : ""}">
+      <input type="checkbox" ${selected.has(opt.value) ? "checked" : ""} onchange="onClientiFilterToggle('${group}','${opt.value}',this.checked)">
+      <span>${opt.label}</span>
+    </label>`,
+    )
+    .join("");
+  return `<div class="gf-group">
+    <div class="gf-head">
+      <strong>${title}</strong>
+      <label class="gf-all ${allSelected ? "is-selected" : ""}">
+        <input type="checkbox" ${allSelected ? "checked" : ""} onchange="onClientiFilterToggleAll('${group}',this.checked)">
+        <span>Tutti</span>
+      </label>
+    </div>
+    <div class="gf-options">${optionsHtml}</div>
+  </div>`;
+}
+
+function onClientiFilterToggle(group, value, checked) {
+  initClientiFilterState();
+  if (!clientiFilterState[group]) clientiFilterState[group] = new Set();
+  if (checked) clientiFilterState[group].add(value);
+  else clientiFilterState[group].delete(value);
+  renderClientiPage();
+  applyClientiFiltri();
+}
+
+function onClientiFilterToggleAll(group, checked) {
+  initClientiFilterState();
+  clientiFilterState[group] = checked
+    ? new Set(CLIENTI_FILTER_OPTIONS[group].map((o) => o.value))
+    : new Set();
+  renderClientiPage();
+  applyClientiFiltri();
+}
 
 function buildAnniOptions(selectedAnno, includeAll = false) {
   const opts = [];
@@ -29,11 +205,10 @@ function buildAnniOptions(selectedAnno, includeAll = false) {
 // ─── FILTRI ───────────────────────────────────────────────────
 const applyClientiFiltriDB = debounce(() => {
   const search = document.getElementById("global-search-clienti")?.value || "";
-  const tipologia = document.getElementById("filter-tipo")?.value || "";
-  const col2 = document.getElementById("filter-col2")?.value || "";
-  const col3 = document.getElementById("filter-col3")?.value || "";
-  const periodicita =
-    document.getElementById("filter-periodicita")?.value || "";
+  const tipologia = getClientiFilterValues("tipo");
+  const col2 = getClientiFilterValues("col2");
+  const col3 = getClientiFilterValues("col3");
+  const periodicita = getClientiFilterValues("periodicita");
   const anno =
     parseInt(document.getElementById("filter-anno")?.value) ||
     new Date().getFullYear();
@@ -54,15 +229,11 @@ function applyClientiFiltri() {
 }
 
 function resetClientiFiltri() {
-  [
-    "global-search-clienti",
-    "filter-tipo",
-    "filter-col2",
-    "filter-col3",
-    "filter-periodicita",
-  ].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
+  const search = document.getElementById("global-search-clienti");
+  if (search) search.value = "";
+  initClientiFilterState();
+  Object.entries(CLIENTI_FILTER_OPTIONS).forEach(([group, options]) => {
+    clientiFilterState[group] = new Set(options.map((o) => o.value));
   });
   const annoSelect = document.getElementById("filter-anno");
   if (annoSelect) annoSelect.value = new Date().getFullYear();
@@ -72,10 +243,19 @@ function resetClientiFiltri() {
 
 // ─── RENDER LISTA ─────────────────────────────────────────────
 function renderClientiPage() {
-  renderClientiTabella(state.clienti);
+  // Carica i dati delle tipologie se non già caricati
+  loadTipologieData().then(() => {
+    // Ricostruisci le opzioni di filtro con i dati caricati
+    CLIENTI_FILTER_OPTIONS = buildClientiFilterOptions();
+    // Reinizializza lo stato dei filtri con le nuove opzioni
+    initClientiFilterState();
+    // Renderizza la tabella
+    renderClientiTabella(state.clienti);
+  });
 }
 
 function renderClientiTabella(clienti) {
+  initClientiFilterState();
   const col2Map = {
     privato: "Privato",
     ditta: "Ditta Ind.",
@@ -95,11 +275,6 @@ function renderClientiTabella(clienti) {
     annuale: "Annuale",
   };
 
-  const curTipo = document.getElementById("filter-tipo")?.value || "";
-  const curCol2 = document.getElementById("filter-col2")?.value || "";
-  const curCol3 = document.getElementById("filter-col3")?.value || "";
-  const curPeriodicita =
-    document.getElementById("filter-periodicita")?.value || "";
   const currentAnno =
     parseInt(document.getElementById("filter-anno")?.value) ||
     new Date().getFullYear();
@@ -110,32 +285,13 @@ function renderClientiTabella(clienti) {
       <select id="filter-anno" class="select" style="width:110px" onchange="applyClientiFiltri()" title="Filtra per anno">
         ${buildAnniOptions(currentAnno)}
       </select>
-      <select id="filter-tipo" class="select" style="width:160px" onchange="applyClientiFiltri()" title="Filtra per tipologia cliente">
-        <option value="" ${!curTipo ? "selected" : ""}>📋 Tutti i tipi</option>
-        <option value="PF"  ${curTipo === "PF" ? "selected" : ""}>👤 PF — Persona Fisica</option>
-        <option value="SP"  ${curTipo === "SP" ? "selected" : ""}>🤝 SP — Soc. Persone</option>
-        <option value="SC"  ${curTipo === "SC" ? "selected" : ""}>🏢 SC — Soc. Capitali</option>
-        <option value="ASS" ${curTipo === "ASS" ? "selected" : ""}>🏛️ ASS — Associazione</option>
-      </select>
-      <select id="filter-col2" class="select" style="width:190px" onchange="applyClientiFiltri()" title="Filtra per sottocategoria">
-        <option value="" ${!curCol2 ? "selected" : ""}>📋 Tutte</option>
-        <option value="privato"        ${curCol2 === "privato" ? "selected" : ""}>👤 Privato</option>
-        <option value="ditta"          ${curCol2 === "ditta" ? "selected" : ""}>🏢 Ditta</option>
-        <option value="socio"          ${curCol2 === "socio" ? "selected" : ""}>🤝 Socio</option>
-        <option value="professionista" ${curCol2 === "professionista" ? "selected" : ""}>⚕️ Professionista</option>
-      </select>
-      <select id="filter-col3" class="select" style="width:180px" onchange="applyClientiFiltri()" title="Filtra per regime">
-        <option value="" ${!curCol3 ? "selected" : ""}>📋 Tutti</option>
-        <option value="forfettario" ${curCol3 === "forfettario" ? "selected" : ""}>💰 Forfettario</option>
-        <option value="ordinaria"   ${curCol3 === "ordinaria" ? "selected" : ""}>📊 Ordinaria</option>
-        <option value="semplificata"${curCol3 === "semplificata" ? "selected" : ""}>📄 Semplificata</option>
-      </select>
-      <select id="filter-periodicita" class="select" style="width:170px" onchange="applyClientiFiltri()" title="Filtra per periodicità">
-        <option value="" ${!curPeriodicita ? "selected" : ""}>📋 Tutte</option>
-        <option value="mensile"     ${curPeriodicita === "mensile" ? "selected" : ""}>📅 Mensile</option>
-        <option value="trimestrale" ${curPeriodicita === "trimestrale" ? "selected" : ""}>📆 Trimestrale</option>
-        <option value="annuale"     ${curPeriodicita === "annuale" ? "selected" : ""}>📅 Annuale</option>
-      </select>
+      <div class="gf-wrap">
+        ${renderClientiFilterGroup("tipo", "Tipologia")}
+        ${renderClientiFilterGroup("col2", "Sottocategoria")}
+        ${renderClientiFilterGroup("col3", "Regime")}
+        ${renderClientiFilterGroup("periodicita", "Periodicità")}
+      </div>
+      <button class="btn btn-sm btn-orange" onclick="showCopyClientiDialog()" title="Copia clienti da un anno all'altro" style="margin-right:8px">📋 Copia Anno</button>
       <button class="btn btn-sm btn-primary" onclick="resetClientiFiltri()" style="margin-left:auto">⟳ Tutti</button>
     </div>`;
 
@@ -166,7 +322,7 @@ function renderClientiTabella(clienti) {
         const configInfo =
           c.config_anno && c.config_anno !== currentAnno
             ? `<div style="font-size:9px;color:var(--yellow);margin-top:3px" title="Configurazione ereditata dal ${c.config_anno}">📌 eredita ${c.config_anno}</div>`
-            : "";
+            : `<div style="font-size:9px;color:var(--green);margin-top:3px" title="Configurazione per l'anno ${currentAnno}">✅ Configurato ${currentAnno}</div>`;
 
         return `<tr class="clickable" onclick="showClienteDettaglio(${c.id})" style="cursor:pointer">
         <td style="padding:12px 16px">
@@ -693,12 +849,16 @@ function deleteCliente(id) {
     socket.emit("check:adempimenti_cliente", { id_cliente: id, anno: currentAnno });
     
     // Aspetta la risposta per decidere il tipo di eliminazione
-    socket.once("res:check:adempimenti_cliente", ({ success, hasAdempimenti, count }) => {
+    socket.once("res:check:adempimenti_cliente", ({ success, data }) => {
       if (!success) {
         // Se il backend non supporta la verifica, procedi con logica base
         proceedWithBasicDeletion(id, currentAnno, clienteNome);
         return;
       }
+      const totalAdempimenti =
+        (data || []).reduce((sum, item) => sum + (item?.esistenti?.length || 0), 0) || 0;
+      const hasAdempimenti = totalAdempimenti > 0;
+      const count = totalAdempimenti;
       
       let message;
       let deleteAllYears = false;
@@ -711,14 +871,11 @@ Il cliente ha ${count} adempimento/i in questo anno. Questa operazione eliminer�
 Se vuoi eliminare il cliente da tutti gli anni, prima elimina tutti gli adempimenti.`;
         deleteAllYears = false;
       } else {
-        // Non ha adempimenti - chiedi se eliminare da tutti gli anni
-        message = `Eliminare "${clienteNome}" da tutti gli anni?
-
-Il cliente non ha adempimenti nell'anno ${currentAnno}. Puoi eliminarlo completamente da tutti gli anni o solo dall'anno corrente.
-
-Clicca OK per eliminare da tutti gli anni
-Clicca ANNULLA per eliminare solo dall'anno ${currentAnno}`;
-        deleteAllYears = true;
+        // Non ha adempimenti - elimina solo per l'anno corrente
+        message = `Eliminare "${clienteNome}" dall'anno ${currentAnno}?
+        
+Questa operazione eliminerà il cliente solo dall'anno ${currentAnno}, mantenendo i dati negli altri anni.`;
+        deleteAllYears = false;
       }
       
       const confirmed = confirm(message);
@@ -1071,6 +1228,73 @@ function onCol3Change() {
   aggiornaRiepilogoClassificazione();
 }
 
+// ─── COPIA CLIENTI DA ANNO ───────────────────────────────────────
+function showCopyClientiDialog() {
+  const currentAnno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
+  
+  const dialog = document.createElement('div');
+  dialog.className = 'modal-overlay';
+  dialog.innerHTML = `
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">
+        <h3>📋 Copia Clienti da Anno</h3>
+        <button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:16px;color:var(--text2)">Copia tutti i clienti con le loro configurazioni da un anno all'altro.</p>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div>
+            <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--text1)">Da anno:</label>
+            <select id="copy-da-anno" class="select" style="width:100%">
+              ${buildAnniOptions(currentAnno - 1)}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--text1)">A anno:</label>
+            <select id="copy-a-anno" class="select" style="width:100%">
+              ${buildAnniOptions(currentAnno)}
+            </select>
+          </div>
+        </div>
+        
+        <div class="infobox" style="background:var(--blue)18;color:var(--blue);border:1px solid var(--blue)44">
+          ℹ️ <strong>Attenzione:</strong> Verranno copiati solo i clienti che hanno una configurazione valida nell'anno di origine. Le configurazioni esistenti nell'anno di destinazione verranno sovrascritte.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Annulla</button>
+        <button class="btn btn-primary" onclick="eseguiCopiaClientiAnno()">📋 Copia Clienti</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(dialog);
+}
+
+function eseguiCopiaClientiAnno() {
+  const annoDa = parseInt(document.getElementById("copy-da-anno").value);
+  const annoA = parseInt(document.getElementById("copy-a-anno").value);
+  
+  if (!annoDa || !annoA) {
+    showNotification("Seleziona entrambi gli anni", "error");
+    return;
+  }
+  
+  if (annoDa === annoA) {
+    showNotification("Gli anni di origine e destinazione devono essere diversi", "error");
+    return;
+  }
+  
+  if (typeof socket !== "undefined") {
+    socket.emit("copia:clienti_da_anno", { anno_da: annoDa, anno_a: annoA });
+    // Chiudi il dialog
+    document.querySelector('.modal-overlay')?.remove();
+  } else {
+    showNotification("Funzionalità non disponibile in modalità offline", "error");
+  }
+}
+
 // ─── COPIA CONFIGURAZIONE ─────────────────────────────────────
 function openCopiaConfig(id_cliente = null) {
   document.getElementById("copia-config-cliente-id").value = id_cliente || "";
@@ -1145,6 +1369,8 @@ window.goToClienteScadenzario = goToClienteScadenzario;
 window.openCopiaConfig = openCopiaConfig;
 window.openCopiaConfigTutti = openCopiaConfigTutti;
 window.eseguiCopiaConfig = eseguiCopiaConfig;
+window.showCopyClientiDialog = showCopyClientiDialog;
+window.eseguiCopiaClientiAnno = eseguiCopiaClientiAnno;
 window.openNuovoCliente = openNuovoCliente;
 window.saveCliente = saveCliente;
 window.applyClientiFiltri = applyClientiFiltri;
@@ -1152,3 +1378,5 @@ window.resetClientiFiltri = resetClientiFiltri;
 window.onTipologiaChange = onTipologiaChange;
 window.onCol2Change = onCol2Change;
 window.onCol3Change = onCol3Change;
+window.onClientiFilterToggle = onClientiFilterToggle;
+window.onClientiFilterToggleAll = onClientiFilterToggleAll;

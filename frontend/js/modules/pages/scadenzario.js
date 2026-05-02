@@ -96,7 +96,46 @@ function renderScadenzarioPage() {
 }
 
 function renderScadenzarioSelect(clienti) {
-  const opts = (clienti || [])
+  const clientiAnno = clienti || [];
+  if (
+    state.selectedCliente &&
+    !clientiAnno.some((c) => c.id === state.selectedCliente.id)
+  ) {
+    state.selectedCliente = null;
+  }
+
+  // Se non ci sono clienti per l'anno selezionato, mostra un messaggio appropriato
+  if (clientiAnno.length === 0) {
+    document.getElementById("topbar-actions").innerHTML = `
+      <div class="year-sel">
+        <button onclick="changeAnnoScad(-1)" title="Anno precedente">&#9664;</button>
+        <span class="year-num">${state.anno}</span>
+        <button onclick="changeAnnoScad(1)" title="Anno successivo">&#9654;</button>
+      </div>
+      <div style="padding:12px 16px;background:var(--yellow)18;border:1px solid var(--yellow)44;border-radius:8px;margin-left:16px">
+        <span style="color:var(--yellow);font-weight:600">⚠️ Nessun cliente trovato per l'anno ${state.anno}</span>
+      </div>
+    `;
+    
+    document.getElementById("content").innerHTML = `
+      <div class="empty" style="text-align:center;padding:60px 20px">
+        <div class="empty-icon" style="font-size:48px;margin-bottom:16px">📅</div>
+        <h3 style="color:var(--text1);margin-bottom:8px">Nessun cliente per l'anno ${state.anno}</h3>
+        <p style="color:var(--text2);margin-bottom:16px">Non ci sono clienti configurati per questo anno.</p>
+        <div class="infobox" style="background:var(--blue)18;color:var(--blue);border:1px solid var(--blue)44;display:inline-block;text-align:left;margin:16px 0">
+          <strong>💡 Suggerimenti:</strong><br>
+          • Verifica se ci sono clienti in altri anni<br>
+          • Usa il pulsante "📋 Copia Anno" nella pagina Clienti per copiare clienti da un anno all'altro<br>
+          • Crea nuovi clienti per questo anno
+        </div>
+        <button class="btn btn-primary" onclick="goToClienti()" style="margin-right:8px">👥 Vai a Clienti</button>
+        <button class="btn btn-secondary" onclick="changeAnnoScad(-1)">⬅️ Anno Precedente</button>
+      </div>
+    `;
+    return;
+  }
+
+  const opts = clientiAnno
     .map(
       (c) =>
         `<option value="${c.id}" ${state.selectedCliente?.id === c.id ? "selected" : ""}>[${c.tipologia_codice || "?"}] ${c.nome}</option>`,
@@ -169,22 +208,27 @@ function changeAnnoScad(d) {
   document
     .querySelectorAll(".year-num")
     .forEach((el) => (el.textContent = state.anno));
-  if (state.selectedCliente) {
-    // Ricarica il cliente con la nuova configurazione per l'anno selezionato
-    if (typeof socket !== "undefined") {
-      socket.emit("get:cliente", {
-        id: state.selectedCliente.id,
-        anno: state.anno,
-      });
-      socket.once("res:cliente", ({ success, data }) => {
-        if (success && data) {
-          state.selectedCliente = data;
-          loadScadenzario();
-        }
-      });
-    } else {
-      loadScadenzario();
-    }
+  if (typeof socket !== "undefined") {
+    socket.emit("get:clienti", { anno: state.anno });
+    socket.once("res:clienti", ({ success, data }) => {
+      if (!success) return;
+      state.clienti = data || [];
+      renderScadenzarioSelect(state.clienti);
+      if (state.selectedCliente) {
+        socket.emit("get:cliente", {
+          id: state.selectedCliente.id,
+          anno: state.anno,
+        });
+        socket.once("res:cliente", ({ success: ok, data: cliente }) => {
+          if (ok && cliente) {
+            state.selectedCliente = cliente;
+            loadScadenzario();
+          }
+        });
+      }
+    });
+  } else if (state.selectedCliente) {
+    loadScadenzario();
   }
 }
 
@@ -236,6 +280,17 @@ function filterAdpButtons() {
       button.style.display = 'none';
     }
   });
+}
+
+function goToClienti() {
+  state.page = "clienti";
+  if (typeof navigateToPage === "function") {
+    navigateToPage("clienti");
+  } else {
+    // Fallback: reload the page with clienti hash
+    window.location.hash = "clienti";
+    location.reload();
+  }
 }
 
 function resetScadFiltri() {
@@ -476,7 +531,8 @@ function renderScadenzarioTabella(data) {
   if (!content)
     content = `<div class="empty">
       <div class="empty-icon">📅</div>
-      <p>Nessun adempimento per ${state.anno}</p>
+      <p>Nessun adempimento presente per il cliente <strong>${c.nome}</strong> nell'anno ${state.anno}</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:8px">Il cliente esiste ma non ha adempimenti configurati per questo anno.</p>
       <button class="btn btn-primary" onclick="generaScadenzario()" style="margin-top:16px">⚡ Genera Scadenzario</button>
     </div>`;
 
@@ -899,3 +955,4 @@ window.openAdempimentoPersonalizzato = openAdempimentoPersonalizzato;
 window.creaAdempimentoPersonalizzato = creaAdempimentoPersonalizzato;
 window.refreshAddAdpSelect = refreshAddAdpSelect;
 window.updatePeriodoOptions = updatePeriodoOptions;
+window.goToClienti = goToClienti;
