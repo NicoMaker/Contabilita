@@ -1,5 +1,8 @@
 const { runQuery, queryAll, queryOne } = require("../database");
-const { inserisciAdempimentoSeAssente, inserisciAdempimentoSeAssenteConDettagli } = require("./adempimenti");
+const {
+  inserisciAdempimentoSeAssente,
+  inserisciAdempimentoSeAssenteConDettagli,
+} = require("./adempimenti");
 
 // ─── HELPER: anno dalla data_scadenza o anno corrente ─────────
 function _annoFromRow(anno) {
@@ -144,61 +147,61 @@ function generaScadenzarioInterno(id_cliente, anno) {
 function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   const clienti = queryAll(`SELECT id, nome FROM clienti WHERE attivo = 1`);
   let adempimenti;
-  
+
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
-    const placeholders = adempimentiSelezionati.map(() => '?').join(',');
+    const placeholders = adempimentiSelezionati.map(() => "?").join(",");
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
-      adempimentiSelezionati
+      adempimentiSelezionati,
     );
   } else {
     adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
   }
-  
+
   let totaleInseriti = 0;
   let totaleMantenuti = 0;
   const dettagliCompleti = [];
-  
+
   clienti.forEach((c) => {
     adempimenti.forEach((a) => {
       const risultato = inserisciAdempimentoSeAssenteConDettagli(c.id, a, anno);
       totaleInseriti += risultato.inseriti;
       totaleMantenuti += risultato.mantenuti;
-      
+
       if (risultato.dettagli.length > 0) {
         dettagliCompleti.push({
           cliente: c.nome,
           cliente_id: c.id,
           adempimento: a.nome,
           adempimento_id: a.id,
-          dettagli: risultato.dettagli
+          dettagli: risultato.dettagli,
         });
       }
     });
   });
-  
+
   return {
     inseriti: totaleInseriti,
     mantenuti: totaleMantenuti,
     dettagli: dettagliCompleti,
-    riepilogo: `Generati ${totaleInseriti} nuovi adempimenti, mantenuti ${totaleMantenuti} adempimenti esistenti`
+    riepilogo: `Generati ${totaleInseriti} nuovi adempimenti, mantenuti ${totaleMantenuti} adempimenti esistenti`,
   };
 }
 
 function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   const clienti = queryAll(`SELECT id FROM clienti WHERE attivo = 1`);
   let adempimenti;
-  
+
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
-    const placeholders = adempimentiSelezionati.map(() => '?').join(',');
+    const placeholders = adempimentiSelezionati.map(() => "?").join(",");
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
-      adempimentiSelezionati
+      adempimentiSelezionati,
     );
   } else {
     adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
   }
-  
+
   let tot = 0;
   clienti.forEach((c) => {
     adempimenti.forEach((a) => {
@@ -290,7 +293,7 @@ function addAdempimentoCliente(data) {
     data.id_adempimento,
   ]);
   if (!adp) throw new Error("Adempimento non trovato");
-  
+
   return inserisciAdempimentoSeAssente(data.id_cliente, adp, data.anno);
 }
 

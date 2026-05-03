@@ -181,7 +181,7 @@
               inputmode="numeric"
               pattern="[0-9]*"
               maxlength="11"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
             />
           </div>
         </div>
@@ -202,7 +202,7 @@
               id="c-tel"
               placeholder="+39 000 0000000"
               inputmode="tel"
-              oninput="this.value=this.value.replace(/[^0-9+\s\-]/g,'')"
+              oninput="this.value = this.value.replace(/[^0-9+\s\-]/g, '')"
             />
           </div>
         </div>
@@ -244,7 +244,7 @@
               inputmode="numeric"
               pattern="[0-9]*"
               maxlength="5"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
             />
           </div>
           <div class="form-group" style="max-width: 90px">
@@ -370,8 +370,14 @@
                 id="adp-imp-iva"
                 type="text"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this); onContabilitaImportoChange()"
-                onblur="convertiVirgolaInPunto(this); onContabilitaImportoChange()"
+                oninput="
+                  validaInputNumerico(this);
+                  onContabilitaImportoChange();
+                "
+                onblur="
+                  convertiVirgolaInPunto(this);
+                  onContabilitaImportoChange();
+                "
                 style="transition: color 0.2s"
               />
             </div>
@@ -383,9 +389,7 @@
                 justify-content: flex-end;
               "
             >
-              <label
-                id="label-cont-completata"
-                style="transition: color 0.2s"
+              <label id="label-cont-completata" style="transition: color 0.2s"
                 >📊 Adempimento Completati</label
               >
               <label
@@ -416,8 +420,14 @@
                 id="adp-imp-saldo"
                 type="text"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this); onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                oninput="
+                  validaInputNumerico(this);
+                  onRateContabilitaChange();
+                "
+                onblur="
+                  convertiVirgolaInPunto(this);
+                  onRateContabilitaChange();
+                "
                 style="transition: color 0.2s"
               />
             </div>
@@ -428,8 +438,14 @@
                 id="adp-imp-acc1"
                 type="text"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this); onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                oninput="
+                  validaInputNumerico(this);
+                  onRateContabilitaChange();
+                "
+                onblur="
+                  convertiVirgolaInPunto(this);
+                  onRateContabilitaChange();
+                "
                 style="transition: color 0.2s"
               />
             </div>
@@ -440,8 +456,14 @@
                 id="adp-imp-acc2"
                 type="text"
                 placeholder="0,00"
-                oninput="validaInputNumerico(this); onRateContabilitaChange()"
-                onblur="convertiVirgolaInPunto(this); onRateContabilitaChange()"
+                oninput="
+                  validaInputNumerico(this);
+                  onRateContabilitaChange();
+                "
+                onblur="
+                  convertiVirgolaInPunto(this);
+                  onRateContabilitaChange();
+                "
                 style="transition: color 0.2s"
               />
             </div>
@@ -651,24 +673,52 @@
         </div>
         <div class="form-group">
           <label>Modalità di generazione</label>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+              margin-top: 8px;
+            "
+          >
             <label class="flag-chip">
-              <input type="radio" name="genera-modalita" value="normale" checked>
+              <input
+                type="radio"
+                name="genera-modalita"
+                value="normale"
+                checked
+              />
               <span>📋 Normale - Aggiungi solo adempimenti mancanti</span>
             </label>
             <label class="flag-chip">
-              <input type="radio" name="genera-modalita" value="rigenera">
-              <span>🔄 Rigenera - Elimina e ricrea tutti gli adempimenti selezionati</span>
+              <input type="radio" name="genera-modalita" value="rigenera" />
+              <span
+                >🔄 Rigenera - Elimina e ricrea tutti gli adempimenti
+                selezionati</span
+              >
             </label>
           </div>
         </div>
         <div class="form-group">
           <label>Seleziona Adempimenti da Generare</label>
-          <div id="genera-tutti-adempimenti-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px;">
-          </div>
-          <div style="margin-top: 8px;">
+          <div
+            id="genera-tutti-adempimenti-list"
+            style="
+              max-height: 200px;
+              overflow-y: auto;
+              border: 1px solid var(--b1);
+              border-radius: var(--r-sm);
+              padding: 10px;
+              margin-bottom: 10px;
+            "
+          ></div>
+          <div style="margin-top: 8px">
             <label class="flag-chip">
-              <input type="checkbox" id="genera-tutti-seleziona-tutti" onchange="toggleSelezionaTuttiAdempimenti()">
+              <input
+                type="checkbox"
+                id="genera-tutti-seleziona-tutti"
+                onchange="toggleSelezionaTuttiAdempimenti()"
+              />
               <span>Seleziona/Deseleziona Tutti</span>
             </label>
           </div>
@@ -731,19 +781,31 @@
       <div class="modal modal-sm">
         <div class="modal-title">🎯 Crea Adempimento Personalizzato</div>
         <div class="infobox" style="margin-bottom: 18px">
-          Crea un nuovo adempimento con un nome personalizzato che non esiste nel sistema standard.
+          Crea un nuovo adempimento con un nome personalizzato che non esiste
+          nel sistema standard.
         </div>
-        
+
         <div class="form-group">
           <label>Nome Adempimento *</label>
-          <input class="input" id="custom-adp-nome" type="text" placeholder="Es: Dichiarazione Ambientale 2025" required />
+          <input
+            class="input"
+            id="custom-adp-nome"
+            type="text"
+            placeholder="Es: Dichiarazione Ambientale 2025"
+            required
+          />
         </div>
-        
+
         <div class="form-group">
           <label>Descrizione</label>
-          <textarea class="input" id="custom-adp-descrizione" rows="2" placeholder="Descrizione dettagliata dell'adempimento..."></textarea>
+          <textarea
+            class="input"
+            id="custom-adp-descrizione"
+            rows="2"
+            placeholder="Descrizione dettagliata dell'adempimento..."
+          ></textarea>
         </div>
-        
+
         <div class="form-group">
           <label>Tipo Scadenza</label>
           <select class="input" id="custom-adp-scadenza-tipo">
@@ -753,15 +815,15 @@
             <option value="mensile">Mensile</option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label>Adempimento di contabilità</label>
           <label class="flag-chip">
-            <input type="checkbox" id="custom-adp-is-contabilita">
+            <input type="checkbox" id="custom-adp-is-contabilita" />
             <span>Sì, è un adempimento di contabilità</span>
           </label>
         </div>
-        
+
         <div class="form-group">
           <label>Genera immediatamente per</label>
           <select class="input" id="custom-adp-genera-per">
@@ -770,17 +832,28 @@
             <option value="selezionati">Clienti selezionati</option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label>Anno</label>
-          <input class="input" id="custom-adp-anno" type="number" value="2025" />
+          <input
+            class="input"
+            id="custom-adp-anno"
+            type="number"
+            value="2025"
+          />
         </div>
-        
+
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-adempimento-personalizzato')">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-adempimento-personalizzato')"
+          >
             Annulla
           </button>
-          <button class="btn btn-primary" onclick="creaAdempimentoPersonalizzato()">
+          <button
+            class="btn btn-primary"
+            onclick="creaAdempimentoPersonalizzato()"
+          >
             🎯 Crea Adempimento
           </button>
         </div>
@@ -805,11 +878,25 @@
         </div>
         <div class="form-group">
           <label>Seleziona Adempimenti da Aggiungere</label>
-          <div id="add-adp-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--b1); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px; background: var(--s2);">
-          </div>
-          <div style="margin-top: 8px;">
+          <div
+            id="add-adp-list"
+            style="
+              max-height: 200px;
+              overflow-y: auto;
+              border: 1px solid var(--b1);
+              border-radius: var(--r-sm);
+              padding: 10px;
+              margin-bottom: 10px;
+              background: var(--s2);
+            "
+          ></div>
+          <div style="margin-top: 8px">
             <label class="flag-chip">
-              <input type="checkbox" id="add-adp-seleziona-tutti" onchange="toggleSelezionaTuttiAddAdp()">
+              <input
+                type="checkbox"
+                id="add-adp-seleziona-tutti"
+                onchange="toggleSelezionaTuttiAddAdp()"
+              />
               <span>Seleziona/Deseleziona Tutti</span>
             </label>
           </div>

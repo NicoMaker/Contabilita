@@ -102,7 +102,7 @@ function renderAdempimentiTabella(adempimenti) {
 
   // ── Ordine alfabetico per nome ─────────────────────────────
   const adempimentiOrdinati = [...adempimenti].sort((a, b) =>
-    a.nome.localeCompare(b.nome, "it", { sensitivity: "base" })
+    a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }),
   );
 
   const cards = adempimentiOrdinati
@@ -309,7 +309,14 @@ function openAdpModal(r) {
   setVal("adp-imp-acc2", formattaNumeroItaliano(r.importo_acconto2));
 
   // ── Colora subito tutti gli input importo all'apertura ────
-  ["adp-importo", "adp-imp-iva", "adp-imp-cont", "adp-imp-saldo", "adp-imp-acc1", "adp-imp-acc2"].forEach((id) => {
+  [
+    "adp-importo",
+    "adp-imp-iva",
+    "adp-imp-cont",
+    "adp-imp-saldo",
+    "adp-imp-acc1",
+    "adp-imp-acc2",
+  ].forEach((id) => {
     coloraInputImporto(document.getElementById(id));
   });
 
@@ -340,8 +347,7 @@ function openAdpModal(r) {
   // ── Impostazione valori contabilità pura ──────────────────
   if (isCont && !isCbx) {
     const contCheck = document.getElementById("adp-cont-completata");
-    if (contCheck)
-      contCheck.checked = parseInt(r.cont_completata) === 1;
+    if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriContabilita(r);
   }
 
@@ -408,7 +414,9 @@ function _aggiornaColoriContabilita(r) {
   const hasIva = ivaVal != null && ivaVal !== "";
 
   const contCheck = document.getElementById("adp-cont-completata");
-  const contDone = contCheck ? contCheck.checked : parseInt(r?.cont_completata) === 1;
+  const contDone = contCheck
+    ? contCheck.checked
+    : parseInt(r?.cont_completata) === 1;
 
   let colorIva = "";
   let colorCont = "";
@@ -436,10 +444,7 @@ function onContabilitaImportoChange() {
 // ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
 function coloraInputImporto(input) {
   if (!input) return;
-  const raw = (input.value || "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .trim();
+  const raw = (input.value || "").replace(/\./g, "").replace(",", ".").trim();
   const num = parseFloat(raw);
   if (!input.value || isNaN(num)) {
     input.style.color = "";
@@ -479,7 +484,9 @@ function formattaNumeroConColore(valore, elemento) {
     return "";
   }
   const _sc = String(valore);
-  const numero = parseFloat(_sc.includes(",") ? _sc.replace(/\./g, "").replace(",", ".") : _sc);
+  const numero = parseFloat(
+    _sc.includes(",") ? _sc.replace(/\./g, "").replace(",", ".") : _sc,
+  );
   if (isNaN(numero)) {
     if (elemento) {
       elemento.textContent = valore;
@@ -498,9 +505,7 @@ function formattaNumeroConColore(valore, elemento) {
 // ─── HELPER: converte stringa italiana in numero JS ──────────
 function parseItalianoFloat(str) {
   if (str === null || str === undefined || str === "") return null;
-  const n = parseFloat(
-    String(str).replace(/\./g, "").replace(",", ".")
-  );
+  const n = parseFloat(String(str).replace(/\./g, "").replace(",", "."));
   return isNaN(n) ? null : n;
 }
 
@@ -518,7 +523,8 @@ function formattaInputConSeparatori(input) {
 
   const parti = pulito.split(",");
   let intero = parti[0];
-  let decimale = parti.length > 1 ? parti.slice(1).join("").substring(0, 2) : null;
+  let decimale =
+    parti.length > 1 ? parti.slice(1).join("").substring(0, 2) : null;
 
   intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
@@ -529,7 +535,9 @@ function formattaInputConSeparatori(input) {
     input.value = formattato;
     const delta = formattato.length - lunghezzaOriginale;
     const nuovaPos = Math.max(0, posCursore + delta);
-    try { input.setSelectionRange(nuovaPos, nuovaPos); } catch (e) {}
+    try {
+      input.setSelectionRange(nuovaPos, nuovaPos);
+    } catch (e) {}
   }
 }
 
@@ -558,7 +566,8 @@ function convertiVirgolaInPunto(input) {
 
   const parti = pulito.split(",");
   let intero = parti[0] || "0";
-  let decimale = parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
+  let decimale =
+    parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
 
   intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
@@ -625,13 +634,17 @@ function saveAdpStato() {
     data.importo_iva = parseItalianoFloat(getVal("adp-imp-iva"));
     data.importo_contabilita = parseItalianoFloat(getVal("adp-imp-cont"));
     data.cont_completata = document.getElementById("adp-cont-completata")
-      ?.checked ? 1 : 0;
+      ?.checked
+      ? 1
+      : 0;
   } else if (isRate) {
     data.importo_saldo = parseItalianoFloat(getVal("adp-imp-saldo"));
     data.importo_acconto1 = parseItalianoFloat(getVal("adp-imp-acc1"));
     data.importo_acconto2 = parseItalianoFloat(getVal("adp-imp-acc2"));
     data.cont_completata = document.getElementById("adp-rate-cont-completata")
-      ?.checked ? 1 : 0;
+      ?.checked
+      ? 1
+      : 0;
   } else {
     data.importo = parseItalianoFloat(getVal("adp-importo"));
   }

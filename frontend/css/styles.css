@@ -349,12 +349,12 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .glob-cliente-card {
     min-width: 320px;
     flex-shrink: 0;
   }
-  
+
   .glob-cliente-periodi.periodi-mensili {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
@@ -566,7 +566,7 @@ body {
   border: 1px solid var(--b1);
   border-radius: var(--r-sm);
   padding: 10px 14px;
-  color: #1a1f2e;          /* nero — sovrascrivibile da JS */
+  color: #1a1f2e; /* nero — sovrascrivibile da JS */
   font-family: var(--sans);
   font-size: 14px;
   width: 100%;
@@ -2533,7 +2533,9 @@ tr.clickable:hover td {
   width: 100%;
   color: #1a1f2e;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .ss-trigger:hover {
   border-color: var(--accent) !important;
@@ -2808,13 +2810,18 @@ select {
 }
 
 .adempimento-filter-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   transition: left 0.5s;
 }
 
@@ -2848,7 +2855,7 @@ select {
   .adempimenti-buttons-grid {
     gap: 6px;
   }
-  
+
   .adempimento-filter-btn {
     font-size: 11px;
     padding: 5px 10px;
@@ -2962,7 +2969,7 @@ select {
   box-shadow: 0 2px 8px rgba(25, 103, 210, 0.2);
 }
 .tip-percorso-chip.tip-active::before {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: 2px;
   right: 4px;

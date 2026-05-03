@@ -338,28 +338,30 @@ function changeAnno(d) {
 function setupDecimalInputs() {
   // Setup all existing number inputs
   document.querySelectorAll('input[type="number"]').forEach(setupDecimalInput);
-  
+
   // Setup new inputs when they are added to the DOM
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
           // Check if the added node is a number input
-          if (node.tagName === 'INPUT' && node.type === 'number') {
+          if (node.tagName === "INPUT" && node.type === "number") {
             setupDecimalInput(node);
           }
           // Check if the added node contains number inputs
           if (node.querySelectorAll) {
-            node.querySelectorAll('input[type="number"]').forEach(setupDecimalInput);
+            node
+              .querySelectorAll('input[type="number"]')
+              .forEach(setupDecimalInput);
           }
         }
       });
     });
   });
-  
+
   // Start observing the document body for added nodes
   observer.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
   });
 }

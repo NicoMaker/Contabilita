@@ -115,7 +115,7 @@
   },
 
   "periodicitaIva": [
-    { "value": "mensile",     "label": "📅 Mensile",     "color": "#22d3ee" },
+    { "value": "mensile", "label": "📅 Mensile", "color": "#22d3ee" },
     { "value": "trimestrale", "label": "📆 Trimestrale", "color": "#a78bfa" }
   ],
 
@@ -124,31 +124,31 @@
   ],
 
   "tipologie": {
-    "PF":  { "color": "#5b8df6", "desc": "Persona Fisica",        "icon": "👤" },
-    "SP":  { "color": "#a78bfa", "desc": "Società di Persone",    "icon": "🤝" },
-    "SC":  { "color": "#34d399", "desc": "Società di Capitali",   "icon": "🏢" },
-    "ASS": { "color": "#fbbf24", "desc": "Associazione",          "icon": "🏛️" }
+    "PF": { "color": "#5b8df6", "desc": "Persona Fisica", "icon": "👤" },
+    "SP": { "color": "#a78bfa", "desc": "Società di Persone", "icon": "🤝" },
+    "SC": { "color": "#34d399", "desc": "Società di Capitali", "icon": "🏢" },
+    "ASS": { "color": "#fbbf24", "desc": "Associazione", "icon": "🏛️" }
   },
 
   "col2Colors": {
-    "Privato":            "#5b8df6",
-    "Socio":              "#a78bfa",
-    "Ditta Individuale":  "#fb923c",
-    "Professionista":     "#34d399"
+    "Privato": "#5b8df6",
+    "Socio": "#a78bfa",
+    "Ditta Individuale": "#fb923c",
+    "Professionista": "#34d399"
   },
 
   "col3Colors": {
-    "Ordinario":   "#5b8df6",
-    "Ordinaria":   "#5b8df6",
-    "Semplificato":"#22d3ee",
-    "Semplificata":"#22d3ee",
+    "Ordinario": "#5b8df6",
+    "Ordinaria": "#5b8df6",
+    "Semplificato": "#22d3ee",
+    "Semplificata": "#22d3ee",
     "Forfettario": "#fbbf24"
   },
 
   "sepColors": {
-    "PRIVATO":           "#5b8df6",
-    "SOCIO":             "#a78bfa",
+    "PRIVATO": "#5b8df6",
+    "SOCIO": "#a78bfa",
     "DITTA INDIVIDUALE": "#fb923c",
-    "PROFESSIONISTA":    "#34d399"
+    "PROFESSIONISTA": "#34d399"
   }
 }

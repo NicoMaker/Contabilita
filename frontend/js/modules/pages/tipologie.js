@@ -75,7 +75,7 @@ async function renderTipologiePage() {
 
       // Codice univoco finale
       parts.push(
-        `<span class="tp-codice" style="background:${tipColor}12;color:${tipColor};border:1px solid ${tipColor}30">${p.codice}</span>`
+        `<span class="tp-codice" style="background:${tipColor}12;color:${tipColor};border:1px solid ${tipColor}30">${p.codice}</span>`,
       );
 
       html += `<div class="tp-row">${parts.join("")}</div>`;
@@ -93,13 +93,13 @@ async function renderTipologiePage() {
     <div class="tp-grid">`;
 
   Object.entries(PERCORSI).forEach(([tipCodice, percorsi]) => {
-    const tip      = tipologie[tipCodice];
+    const tip = tipologie[tipCodice];
     const tipColor = tip.color;
 
     // Conteggio totale righe generate
     const totalLines = percorsi.reduce((acc, p) => {
       if (p.isForfettario) return acc + 1;
-      if (p.hasPer)        return acc + 2;
+      if (p.hasPer) return acc + 2;
       return acc + 1;
     }, 0);
 
