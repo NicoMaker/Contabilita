@@ -1,6 +1,4 @@
 const { runQuery, runQueryAndGetId, queryAll, queryOne } = require("../database");
-const ANNO_MIN_GESTIONE = 2026;
-const ANNO_DELETE_MARKER = "__ANNO_ELIMINATO__";
 
 function getConfigClientePerAnno(id_cliente, anno) {
   const sql = `
@@ -20,18 +18,17 @@ function getConfigClientePerAnno(id_cliente, anno) {
 }
 
 function getConfigCorrente(id_cliente, anno = new Date().getFullYear()) {
-  const lastConfig = queryOne(
-    `SELECT anno, col2_value
-     FROM clienti_config_annuale
-     WHERE id_cliente = ? AND anno <= ?
-     ORDER BY anno DESC
-     LIMIT 1`,
-    [id_cliente, anno],
-  );
-  if (!lastConfig || lastConfig.col2_value === ANNO_DELETE_MARKER) {
-    return null;
+  let config = getConfigClientePerAnno(id_cliente, anno);
+  if (!config) {
+    const lastConfig = queryOne(
+      `SELECT * FROM clienti_config_annuale WHERE id_cliente = ? AND anno <= ? ORDER BY anno DESC LIMIT 1`,
+      [id_cliente, anno],
+    );
+    if (lastConfig) {
+      config = getConfigClientePerAnno(id_cliente, lastConfig.anno);
+    }
   }
-  return getConfigClientePerAnno(id_cliente, lastConfig.anno);
+  return config;
 }
 
 function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
@@ -67,54 +64,29 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
       t.colore as tipologia_colore,
       s.codice as sottotipologia_codice,
       s.nome as sottotipologia_nome
-    FROM clienti c
-    LEFT JOIN clienti_config_annuale cfg
-      ON cfg.id = (
-        SELECT c2.id
-        FROM clienti_config_annuale c2
-        WHERE c2.id_cliente = c.id AND c2.anno <= ?
-        ORDER BY c2.anno DESC
-        LIMIT 1
-      )
+    FROM clienti c 
+    LEFT JOIN clienti_config_annuale cfg ON c.id = cfg.id_cliente AND cfg.anno = ?
     LEFT JOIN tipologie_cliente t ON cfg.id_tipologia = t.id
     LEFT JOIN sottotipologie s ON cfg.id_sottotipologia = s.id
-    WHERE c.attivo = 1 AND (cfg.id IS NULL OR IFNULL(cfg.col2_value, '') != ?)
+    WHERE c.attivo = 1
   `;
-  const params = [anno, ANNO_DELETE_MARKER];
+  const params = [anno];
 
-  const toArray = (v) => {
-    if (!v) return [];
-    if (Array.isArray(v)) return v.filter(Boolean);
-    if (typeof v === "string") {
-      return v
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean);
-    }
-    return [];
-  };
-
-  const tipologie = toArray(filtri.tipologia);
-  const col2Values = toArray(filtri.col2);
-  const col3Values = toArray(filtri.col3);
-  const periodicitaValues = toArray(filtri.periodicita);
-
-  // Apply filters only if we have configurations, otherwise show all clients
-  if (tipologie.length > 0) {
-    sql += ` AND (t.codice IS NULL OR t.codice IN (${tipologie.map(() => "?").join(",")}))`;
-    params.push(...tipologie);
+  if (filtri.tipologia) {
+    sql += ` AND t.codice = ?`;
+    params.push(filtri.tipologia);
   }
-  if (col2Values.length > 0) {
-    sql += ` AND (cfg.col2_value IS NULL OR cfg.col2_value IN (${col2Values.map(() => "?").join(",")}))`;
-    params.push(...col2Values);
+  if (filtri.col2) {
+    sql += ` AND cfg.col2_value = ?`;
+    params.push(filtri.col2);
   }
-  if (col3Values.length > 0) {
-    sql += ` AND (cfg.col3_value IS NULL OR cfg.col3_value IN (${col3Values.map(() => "?").join(",")}))`;
-    params.push(...col3Values);
+  if (filtri.col3) {
+    sql += ` AND cfg.col3_value = ?`;
+    params.push(filtri.col3);
   }
-  if (periodicitaValues.length > 0) {
-    sql += ` AND (cfg.periodicita IS NULL OR cfg.periodicita IN (${periodicitaValues.map(() => "?").join(",")}))`;
-    params.push(...periodicitaValues);
+  if (filtri.periodicita) {
+    sql += ` AND cfg.periodicita = ?`;
+    params.push(filtri.periodicita);
   }
   if (filtri.search?.trim()) {
     const s = `%${filtri.search.trim()}%`;
@@ -123,7 +95,28 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
   }
 
   sql += ` ORDER BY c.nome`;
-  return queryAll(sql, params);
+  const results = queryAll(sql, params);
+
+  for (const c of results) {
+    if (!c.id_tipologia) {
+      const lastConfig = getConfigCorrente(c.id, anno);
+      if (lastConfig) {
+        c.id_tipologia = lastConfig.id_tipologia;
+        c.tipologia_codice = lastConfig.tipologia_codice;
+        c.tipologia_nome = lastConfig.tipologia_nome;
+        c.tipologia_colore = lastConfig.tipologia_colore;
+        c.id_sottotipologia = lastConfig.id_sottotipologia;
+        c.sottotipologia_codice = lastConfig.sottotipologia_codice;
+        c.sottotipologia_nome = lastConfig.sottotipologia_nome;
+        c.col2_value = lastConfig.col2_value;
+        c.col3_value = lastConfig.col3_value;
+        c.periodicita = lastConfig.periodicita;
+        c.config_anno = lastConfig.anno;
+      }
+    }
+  }
+
+  return results;
 }
 
 function getClienteConDettagli(id, anno = new Date().getFullYear()) {
@@ -137,20 +130,22 @@ function getClienteConDettagli(id, anno = new Date().getFullYear()) {
       cfg.col2_value, cfg.col3_value, cfg.periodicita,
       t.codice as tipologia_codice, t.nome as tipologia_nome, t.colore as tipologia_colore,
       s.codice as sottotipologia_codice, s.nome as sottotipologia_nome
-    FROM clienti c
-    INNER JOIN clienti_config_annuale cfg
-      ON cfg.id = (
-        SELECT c2.id
-        FROM clienti_config_annuale c2
-        WHERE c2.id_cliente = c.id AND c2.anno <= ?
-        ORDER BY c2.anno DESC
-        LIMIT 1
-      )
+    FROM clienti c 
+    LEFT JOIN clienti_config_annuale cfg ON c.id = cfg.id_cliente AND cfg.anno = ?
     LEFT JOIN tipologie_cliente t ON cfg.id_tipologia = t.id
     LEFT JOIN sottotipologie s ON cfg.id_sottotipologia = s.id
-    WHERE c.id = ? AND c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?
+    WHERE c.id = ? AND c.attivo = 1
   `;
-  return queryOne(sql, [anno, id, ANNO_DELETE_MARKER]);
+  let result = queryOne(sql, [anno, id]);
+
+  if (!result || !result.id_tipologia) {
+    const lastConfig = getConfigCorrente(id, anno);
+    if (lastConfig) {
+      result = { ...result, ...lastConfig };
+    }
+  }
+
+  return result;
 }
 
 function getConfigStoricoCliente(id_cliente) {
@@ -182,9 +177,6 @@ function saveConfigCliente(data) {
   if (isNaN(anno)) {
     console.error("❌ Anno non valido:", data.anno);
     throw new Error("Anno non valido");
-  }
-  if (anno < ANNO_MIN_GESTIONE) {
-    throw new Error(`Anno non valido: minimo ${ANNO_MIN_GESTIONE}`);
   }
 
   const exists = queryOne(
@@ -275,11 +267,6 @@ function getClienteAttivoByNome(nome) {
 // ⭐ MODIFICATA: createCliente con controllo nome duplicato
 function createCliente(data) {
   const anno = data.anno || new Date().getFullYear();
-  if (anno < ANNO_MIN_GESTIONE) {
-    throw new Error(
-      `ANNO_NON_VALIDO: Il primo anno disponibile per i clienti è ${ANNO_MIN_GESTIONE}`,
-    );
-  }
   console.log("📝 createCliente con anno:", anno, "data:", data);
 
   // Controllo nome duplicato
@@ -443,60 +430,17 @@ function updateClienteAnagrafica(data) {
   );
 }
 
-function deleteCliente(id, anno = null, deleteAll = false) {
-  if (deleteAll || !anno) {
-    // Se è una cancellazione completa, controlla se ci sono adempimenti in QUALSIASI anno
-    const count = queryOne(
-      `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
-      [id],
-    );
-    if (count.cnt > 0) {
-      throw new Error(
-        `Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati. Prima elimina tutti gli adempimenti.`,
-      );
-    }
-    runQuery(`DELETE FROM clienti_config_annuale WHERE id_cliente = ?`, [id]);
-    runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
-    return;
-  }
-
-  // Per cancellazione anno-specifica, controlla solo gli adempimenti di quell'anno
-  const countAnno = queryOne(
-    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`,
-    [id, anno],
+function deleteCliente(id) {
+  const count = queryOne(
+    `SELECT COUNT(*) as cnt FROM adempimenti_cliente WHERE id_cliente = ?`,
+    [id],
   );
-  if (countAnno.cnt > 0) {
+  if (count.cnt > 0) {
     throw new Error(
-      `Impossibile eliminare il cliente dal ${anno}: ha ${countAnno.cnt} adempimenti associati per questo anno.`,
+      `Impossibile eliminare il cliente: ha ${count.cnt} adempimenti associati.`,
     );
   }
-
-  // Elimina la configurazione per l'anno specifico
-  runQuery(`DELETE FROM clienti_config_annuale WHERE id_cliente = ? AND anno = ?`, [
-    id,
-    anno,
-  ]);
-  runQuery(`DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND anno = ?`, [
-    id,
-    anno,
-  ]);
-  
-  // Inserisci un marker di eliminazione per quell'anno
-  runQuery(
-    `INSERT INTO clienti_config_annuale 
-      (id_cliente, anno, id_tipologia, id_sottotipologia, col2_value, col3_value, periodicita)
-     VALUES (?,?,?,?,?,?,?)`,
-    [id, anno, null, null, ANNO_DELETE_MARKER, null, null],
-  );
-
-  // Verifica se ci sono ancora configurazioni per questo cliente
-  const configResidue = queryOne(
-    `SELECT COUNT(*) as cnt FROM clienti_config_annuale WHERE id_cliente = ? AND IFNULL(col2_value, '') != ?`,
-    [id, ANNO_DELETE_MARKER],
-  );
-  if (!configResidue || configResidue.cnt === 0) {
-    runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
-  }
+  runQuery(`UPDATE clienti SET attivo = 0 WHERE id = ?`, [id]);
 }
 
 function canDeleteCliente(id) {
@@ -623,23 +567,6 @@ function copiaTuttiClientiAnno(anno_da, anno_a) {
   return risultati;
 }
 
-// ⭐ NUOVA FUNZIONE: Copia tutti i clienti da un anno all'altro
-function copiaClientiDaAnno(anno_da, anno_a) {
-  // Verifica che ci siano clienti da copiare
-  const clientida = queryAll(
-    `SELECT DISTINCT c.id, c.nome FROM clienti c 
-     INNER JOIN clienti_config_annuale cfg ON c.id = cfg.id_cliente 
-     WHERE c.attivo = 1 AND cfg.anno = ? AND IFNULL(cfg.col2_value, '') != ?`,
-    [anno_da, ANNO_DELETE_MARKER]
-  );
-  
-  if (clientida.length === 0) {
-    throw new Error(`Nessun cliente trovato con configurazione per l'anno ${anno_da}`);
-  }
-  
-  return copiaTuttiClientiAnno(anno_da, anno_a);
-}
-
 module.exports = {
   getClientiConDettagli,
   getClienteConDettagli,
@@ -652,6 +579,5 @@ module.exports = {
   canDeleteCliente,
   copiaConfigClienteAnno,
   copiaTuttiClientiAnno,
-  copiaClientiDaAnno,
   checkNomeExists,
 };

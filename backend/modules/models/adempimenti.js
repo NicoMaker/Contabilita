@@ -1,5 +1,4 @@
 const { runQuery, queryAll, queryOne } = require("../database");
-const ANNO_DELETE_MARKER = "__ANNO_ELIMINATO__";
 
 function getAdempimenti() {
   return queryAll(`SELECT * FROM adempimenti WHERE attivo = 1 ORDER BY nome`);
@@ -435,20 +434,7 @@ function generaAdempimentoPerTutti(id_adp, anno) {
   let mantenuti = 0;
   const dettagli = [];
   
-  const clienti = queryAll(
-    `SELECT c.id, c.nome
-     FROM clienti c
-     INNER JOIN clienti_config_annuale cfg
-       ON cfg.id = (
-         SELECT c2.id
-         FROM clienti_config_annuale c2
-         WHERE c2.id_cliente = c.id AND c2.anno <= ?
-         ORDER BY c2.anno DESC
-         LIMIT 1
-       )
-     WHERE c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?`,
-    [anno, ANNO_DELETE_MARKER],
-  );
+  const clienti = queryAll(`SELECT id, nome FROM clienti WHERE attivo = 1`);
   clienti.forEach((c) => {
     const risultato = inserisciAdempimentoSeAssenteConDettagli(c.id, a, anno);
     inseriti += risultato.inseriti;
@@ -469,20 +455,7 @@ function rigeneraAdempimentoPerTutti(id_adp, anno) {
   const a = queryOne(`SELECT * FROM adempimenti WHERE id = ?`, [id_adp]);
   if (!a) return 0;
   let tot = 0;
-  queryAll(
-    `SELECT c.id
-     FROM clienti c
-     INNER JOIN clienti_config_annuale cfg
-       ON cfg.id = (
-         SELECT c2.id
-         FROM clienti_config_annuale c2
-         WHERE c2.id_cliente = c.id AND c2.anno <= ?
-         ORDER BY c2.anno DESC
-         LIMIT 1
-       )
-     WHERE c.attivo = 1 AND IFNULL(cfg.col2_value, '') != ?`,
-    [anno, ANNO_DELETE_MARKER],
-  ).forEach((c) => {
+  queryAll(`SELECT id FROM clienti WHERE attivo = 1`).forEach((c) => {
     tot += inserisciAdempimentoForzato(c.id, a, anno);
   });
   return tot;

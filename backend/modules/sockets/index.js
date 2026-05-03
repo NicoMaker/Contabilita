@@ -83,17 +83,14 @@ module.exports = function setupSocketHandlers(io) {
       }
     });
 
-    socket.on("delete:cliente", ({ id, anno = null, deleteAll = false }) => {
+    socket.on("delete:cliente", ({ id }) => {
       try {
-        clientiModel.deleteCliente(id, anno, deleteAll);
+        clientiModel.deleteCliente(id);
         io.emit("broadcast:clienti_updated");
         socket.emit("res:delete:cliente", { success: true });
         socket.emit("notify", {
           type: "success",
-          msg:
-            anno && !deleteAll
-              ? `Cliente eliminato per l'anno ${anno}`
-              : "Cliente eliminato con successo",
+          msg: "Cliente eliminato con successo",
         });
       } catch (e) {
         socket.emit("res:delete:cliente", { success: false, error: e.message });
@@ -399,38 +396,6 @@ module.exports = function setupSocketHandlers(io) {
         socket.emit("res:stats", { success: true, data });
       } catch (e) {
         socket.emit("res:stats", { success: false, error: e.message });
-      }
-    });
-
-    socket.on("copia:clienti_da_anno", ({ anno_da, anno_a }) => {
-      try {
-        const risultati = clientiModel.copiaClientiDaAnno(anno_da, anno_a);
-        const successCount = risultati.filter((r) => r.success).length;
-        const errorCount = risultati.filter((r) => !r.success).length;
-
-        io.emit("broadcast:clienti_updated");
-        socket.emit("res:copia:clienti_da_anno", {
-          success: true,
-          risultati,
-        });
-
-        if (errorCount === 0) {
-          socket.emit("notify", {
-            type: "success",
-            msg: `✅ Copiati con successo ${successCount} clienti dall'anno ${anno_da} al ${anno_a}`,
-          });
-        } else {
-          socket.emit("notify", {
-            type: "warning",
-            msg: `⚠️ Copiati ${successCount} clienti da ${anno_da} a ${anno_a}, ${errorCount} errori`,
-          });
-        }
-      } catch (e) {
-        socket.emit("res:copia:clienti_da_anno", {
-          success: false,
-          error: e.message,
-        });
-        socket.emit("notify", { type: "error", msg: e.message });
       }
     });
 
