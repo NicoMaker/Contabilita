@@ -31,7 +31,7 @@ function renderGlobaleFilterPanel() {
   const activeCount = typeof _activeFiltroKeys !== 'undefined' ? _activeFiltroKeys.size : 0;
   
   let html = `<div class="glob-tip-filtro-wrap">
-    <div class="glob-tip-filtro-header" onclick="toggleGlobTipFiltroPanel()">
+    <div class="glob-tip-filtro-header" onclick="toggleGlobTipFiltroPanel(event)">
       <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtro Tipologie Clienti</span>
       <span id="glob-tip-filtro-count" style="display:${activeCount>0?'inline-flex':'none'};align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--accent);color:#fff;border-radius:10px;font-size:11px;font-weight:700">${activeCount||''}</span>
       <span id="glob-tip-filtro-toggle-icon" style="color:var(--t3);font-size:12px;margin-left:auto">▼ espandi</span>
@@ -43,16 +43,28 @@ function renderGlobaleFilterPanel() {
   return html;
 }
 
-function toggleGlobTipFiltroPanel() {
+function toggleGlobTipFiltroPanel(event) {
   const container = document.getElementById('glob-tip-filtro-container');
   const icon = document.getElementById('glob-tip-filtro-toggle-icon');
   if (!container) return;
   const isOpen = container.style.display !== 'none';
   container.style.display = isOpen ? 'none' : 'block';
   if (icon) icon.textContent = isOpen ? '▼ espandi' : '▲ chiudi';
+  
+  // Prevent event bubbling when clicking on header
+  if (event) {
+    event.stopPropagation();
+  }
 }
 
 function renderGlobalePage() {
+  // Initialize tipologie filter with all types selected on first load
+  if (typeof _activeFiltroKeys !== 'undefined' && _activeFiltroKeys.size === 0) {
+    if (typeof initializeTipologieFilter === 'function') {
+      initializeTipologieFilter();
+    }
+  }
+  
   document.getElementById("topbar-actions").innerHTML = `
     <div class="year-sel">
       <button onclick="changeAnnoGlobale(-1)" title="Anno precedente">&#9664;</button>
@@ -129,12 +141,9 @@ function resetGlobaleFiltri() {
     }
   });
   
-  // Reset tipologie filter
-  if (typeof _activeFiltroKeys !== 'undefined') {
-    _activeFiltroKeys.clear ? _activeFiltroKeys.clear() : (_activeFiltroKeys = new Set());
-  }
-  if (typeof _filtriTipologie !== 'undefined') {
-    _filtriTipologie = { tipologia: new Set(), col2: new Set(), col3: new Set(), periodicita: new Set() };
+  // Reset tipologie filter to all selected by default
+  if (typeof initializeTipologieFilter === 'function') {
+    initializeTipologieFilter();
   }
   
   // Update panel UI

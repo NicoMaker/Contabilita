@@ -62,8 +62,9 @@ function renderTipologieFiltroPanel() {
     <div class="tip-filtro-header">
       <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia</span>
       <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-        <button class="tip-btn-all" onclick="selezionaTuttiTipFiltro()" title="Seleziona tutto">✦ Tutti</button>
-        <button class="tip-btn-none" onclick="deselezionaTuttiTipFiltro()" title="Deseleziona tutto">✕ Nessuno</button>
+        <button class="tip-btn-all" onclick="selezionaTuttiTipFiltro(event)" title="Seleziona tutto">✦ Tutti</button>
+        <button class="tip-btn-none" onclick="deselezionaTuttiTipFiltro(event)" title="Deseleziona tutto">✕ Nessuno</button>
+        <span id="tip-filtro-toggle-icon" style="color:var(--t3);font-size:12px;margin-left:8px;cursor:pointer" onclick="toggleTipFiltroPanel(event)" title="Espandi/Chiudi">▼ espandi</span>
       </div>
     </div>
     <div class="tip-filtro-body">`;
@@ -71,7 +72,7 @@ function renderTipologieFiltroPanel() {
   Object.entries(TIPOLOGIE_PERCORSI_DATA).forEach(([tipCod, tip]) => {
     const allSelected = _isTipCodSelected(tipCod);
     html += `<div class="tip-gruppo">
-      <div class="tip-gruppo-header" onclick="toggleTipologiaGruppo('${tipCod}')" style="border-color:${tip.color}44;background:${tip.color}0d">
+      <div class="tip-gruppo-header" onclick="toggleTipologiaGruppo(event, '${tipCod}')" style="border-color:${tip.color}44;background:${tip.color}0d">
         <span class="tip-gruppo-badge" style="background:${tip.color}22;color:${tip.color};border-color:${tip.color}44">${tip.icon} ${tipCod}</span>
         <span class="tip-gruppo-desc">${tip.desc}</span>
         <span class="tip-gruppo-selall" style="color:${tip.color}" title="Seleziona tutti ${tipCod}">
@@ -89,7 +90,7 @@ function renderTipologieFiltroPanel() {
         const perColor = per === 'mensile' ? '#22d3ee' : per === 'trimestrale' ? '#a78bfa' : per === 'annuale' ? '#94a3b8' : '#6b7399';
         html += `<button 
           class="tip-percorso-chip${isActive ? ' tip-active' : ''}" 
-          onclick="toggleFiltroPercorso('${tipCod}','${p.col2||''}','${p.col3||''}','${per === '—' ? '' : per}')"
+          onclick="toggleFiltroPercorso(event, '${tipCod}','${p.col2||''}','${p.col3||''}','${per === '—' ? '' : per}')"
           style="${isActive ? `background:${tip.color}22;border-color:${tip.color};color:${tip.color}` : ''}"
           title="${p.codice}">
           <span class="tip-chip-codice">${p.codice}</span>
@@ -128,7 +129,19 @@ function _isFiltroKeyActive(key) {
 
 let _activeFiltroKeys = new Set();
 
-function toggleFiltroPercorso(tipCod, col2, col3, per) {
+// Initialize with all client types selected by default
+function initializeTipologieFilter() {
+  _activeFiltroKeys = new Set();
+  Object.entries(TIPOLOGIE_PERCORSI_DATA).forEach(([tipCod, tip]) => {
+    tip.percorsi.forEach(p => {
+      const perList = p.isForf ? ['annuale'] : p.hasPer ? ['mensile','trimestrale'] : [''];
+      perList.forEach(per => _activeFiltroKeys.add(_buildFiltroKey(tipCod, p.col2, p.col3, per)));
+    });
+  });
+  _aggiornaFiltriDaKeys();
+}
+
+function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
   const key = _buildFiltroKey(tipCod, col2, col3, per);
   if (_activeFiltroKeys.has(key)) {
     _activeFiltroKeys.delete(key);
@@ -138,9 +151,15 @@ function toggleFiltroPercorso(tipCod, col2, col3, per) {
   _aggiornaFiltriDaKeys();
   _aggiornaTipFiltroUI();
   applyClientiFiltriDB();
+  
+  // Prevent event bubbling to keep panel open
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
 }
 
-function toggleTipologiaGruppo(tipCod) {
+function toggleTipologiaGruppo(event, tipCod) {
   const tip = TIPOLOGIE_PERCORSI_DATA[tipCod];
   if (!tip) return;
   
@@ -161,9 +180,21 @@ function toggleTipologiaGruppo(tipCod) {
   _aggiornaFiltriDaKeys();
   _aggiornaTipFiltroUI();
   applyClientiFiltriDB();
+  
+  // Prevent event bubbling to keep panel open
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
 }
 
-function selezionaTuttiTipFiltro() {
+function selezionaTuttiTipFiltro(event) {
+  // Prevent event bubbling to keep panel open
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  
   _activeFiltroKeys = new Set();
   Object.entries(TIPOLOGIE_PERCORSI_DATA).forEach(([tipCod, tip]) => {
     tip.percorsi.forEach(p => {
@@ -173,13 +204,21 @@ function selezionaTuttiTipFiltro() {
   });
   _aggiornaFiltriDaKeys();
   _aggiornaTipFiltroUI();
+  _aggiornaTipFiltroCounter();
   applyClientiFiltriDB();
 }
 
-function deselezionaTuttiTipFiltro() {
+function deselezionaTuttiTipFiltro(event) {
+  // Prevent event bubbling to keep panel open
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  
   _activeFiltroKeys = new Set();
   _filtriTipologie = { tipologia: new Set(), col2: new Set(), col3: new Set(), periodicita: new Set() };
   _aggiornaTipFiltroUI();
+  _aggiornaTipFiltroCounter();
   applyClientiFiltriDB();
 }
 
@@ -214,6 +253,10 @@ function _aggiornaTipFiltroUI() {
   newPanel.innerHTML = renderTipologieFiltroPanel();
   const newContent = newPanel.firstChild;
   panel.parentNode.replaceChild(newContent, panel);
+  
+  // No internal event listener - let buttons work naturally
+  
+  // Panel will only close via toggle button - no auto-close
   
   // Update counter badge
   _aggiornaTipFiltroCounter();
@@ -300,9 +343,8 @@ function resetClientiFiltri() {
   const annoSelect = document.getElementById("filter-anno");
   if (annoSelect) annoSelect.value = new Date().getFullYear();
   
-  // Reset tipologie filter
-  _activeFiltroKeys = new Set();
-  _filtriTipologie = { tipologia: new Set(), col2: new Set(), col3: new Set(), periodicita: new Set() };
+  // Reset tipologie filter to all selected by default
+  initializeTipologieFilter();
   _aggiornaTipFiltroUI();
   
   if (typeof socket !== "undefined")
@@ -311,6 +353,10 @@ function resetClientiFiltri() {
 
 // ─── RENDER LISTA ─────────────────────────────────────────────
 function renderClientiPage() {
+  // Initialize tipologie filter with all types selected on first load
+  if (_activeFiltroKeys.size === 0) {
+    initializeTipologieFilter();
+  }
   renderClientiTabella(state.clienti);
 }
 
@@ -437,13 +483,18 @@ function renderClientiTabella(clienti) {
   document.getElementById("content").innerHTML = html;
 }
 
-function toggleTipFiltroPanel() {
+function toggleTipFiltroPanel(event) {
   const container = document.getElementById('tip-filtro-container');
   const icon = document.getElementById('tip-filtro-toggle-icon');
   if (!container) return;
   const isOpen = container.style.display !== 'none';
   container.style.display = isOpen ? 'none' : 'block';
   if (icon) icon.textContent = isOpen ? '▼ espandi' : '▲ chiudi';
+  
+  // Prevent event bubbling when clicking on toggle button
+  if (event) {
+    event.stopPropagation();
+  }
 }
 
 // ─── DETTAGLIO CLIENTE ────────────────────────────────────────
@@ -1301,4 +1352,5 @@ window.toggleTipFiltroPanel = toggleTipFiltroPanel;
 window.toggleFiltroPercorso = toggleFiltroPercorso;
 window.toggleTipologiaGruppo = toggleTipologiaGruppo;
 window.selezionaTuttiTipFiltro = selezionaTuttiTipFiltro;
+window.initializeTipologieFilter = initializeTipologieFilter;
 window.deselezionaTuttiTipFiltro = deselezionaTuttiTipFiltro;
