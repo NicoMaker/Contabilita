@@ -48,6 +48,36 @@ const TIPOLOGIE_PERCORSI_DATA = {
   }
 };
 
+// ─── MAPPE LABEL ↔ DB ────────────────────────────────────────
+// Label display (usate nelle chiavi filtro) → valore DB (lowercase)
+const COL2_LABEL_TO_DB = {
+  'Privato':           'privato',
+  'Ditta Individuale': 'ditta',
+  'Socio':             'socio',
+  'Professionista':    'professionista',
+};
+// Valore DB → label display
+const COL2_DB_TO_LABEL = {
+  'privato':        'Privato',
+  'ditta':          'Ditta Individuale',
+  'socio':          'Socio',
+  'professionista': 'Professionista',
+};
+const COL3_LABEL_TO_DB = {
+  'Ordinario':    'ordinario',
+  'Ordinaria':    'ordinaria',
+  'Semplificato': 'semplificato',
+  'Semplificata': 'semplificata',
+  'Forfettario':  'forfettario',
+};
+const COL3_DB_TO_LABEL = {
+  'ordinario':    'Ordinario',
+  'ordinaria':    'Ordinaria',
+  'semplificato': 'Semplificato',
+  'semplificata': 'Semplificata',
+  'forfettario':  'Forfettario',
+};
+
 // ─── STATO FILTRO ─────────────────────────────────────────────
 // Set di chiavi attive: "TIP|col2|col3|per"
 let _activeFiltroKeys = new Set();
@@ -71,7 +101,12 @@ function _getAllKeys() {
 
 function initializeTipologieFilter() {
   _activeFiltroKeys = new Set(_getAllKeys());
+  // Sincronizza la variabile globale esposta
+  window._activeFiltroKeys = _activeFiltroKeys;
 }
+
+// ─── FIX: Inizializza subito al caricamento del modulo ───────
+initializeTipologieFilter();
 
 function _isTipCodAllSelected(tipCod) {
   const tip = TIPOLOGIE_PERCORSI_DATA[tipCod];
@@ -167,7 +202,6 @@ function _aggiornaTipFiltroPanelVisibility() {
   const headerRow = document.getElementById('tip-filtro-header-row');
   if (!container) return;
   container.style.display = _tipFiltroPanelOpen ? 'block' : 'none';
-  // Aggiorna bottone header
   if (headerRow) {
     const btn = headerRow.querySelector('.tip-filtro-toggle-btn');
     if (btn) {
@@ -187,6 +221,8 @@ function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
   } else {
     _activeFiltroKeys.add(key);
   }
+  // Sincronizza globale
+  window._activeFiltroKeys = _activeFiltroKeys;
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
 }
@@ -206,6 +242,8 @@ function toggleTipologiaGruppo(event, tipCod) {
   } else {
     allKeys.forEach(k => _activeFiltroKeys.add(k));
   }
+  // Sincronizza globale
+  window._activeFiltroKeys = _activeFiltroKeys;
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
 }
@@ -213,6 +251,7 @@ function toggleTipologiaGruppo(event, tipCod) {
 function selezionaTuttiTipFiltro(event) {
   if (event) { event.stopPropagation(); event.preventDefault(); }
   _activeFiltroKeys = new Set(_getAllKeys());
+  window._activeFiltroKeys = _activeFiltroKeys;
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
 }
@@ -220,6 +259,7 @@ function selezionaTuttiTipFiltro(event) {
 function deselezionaTuttiTipFiltro(event) {
   if (event) { event.stopPropagation(); event.preventDefault(); }
   _activeFiltroKeys = new Set();
+  window._activeFiltroKeys = _activeFiltroKeys;
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
 }
@@ -227,14 +267,11 @@ function deselezionaTuttiTipFiltro(event) {
 function _refreshTipFiltroPanel() {
   const container = document.getElementById('tip-filtro-container');
   if (!container) return;
-  // Ridisegna solo il contenuto del pannello, non il contenitore
   const tmp = document.createElement('div');
   tmp.innerHTML = renderTipologieFiltroPanel();
   container.innerHTML = '';
   container.appendChild(tmp.firstChild);
-  // Aggiorna counter nel header
   _aggiornaTipFiltroCounter();
-  // Mantieni lo stato visibilità
   container.style.display = _tipFiltroPanelOpen ? 'block' : 'none';
 }
 
@@ -247,7 +284,9 @@ function _aggiornaTipFiltroCounter() {
   }
 }
 
-// Costruisce i filtri per la richiesta al server
+// ─── FIX PRINCIPALE: Costruisce i filtri per la richiesta al server ──
+// Le chiavi usano label display (es. "Ditta Individuale") ma il DB
+// salva valori raw lowercase (es. "ditta"). Convertiamo correttamente.
 function getFiltriPerRequest() {
   // Se nessun filtro attivo → ritorna filtro vuoto (mostrerà 0 clienti)
   if (_activeFiltroKeys.size === 0) {
@@ -268,8 +307,15 @@ function getFiltriPerRequest() {
   _activeFiltroKeys.forEach(key => {
     const [tip, col2, col3, per] = key.split('|');
     if (tip) tipologie.add(tip);
-    if (col2) col2Values.add(col2.toLowerCase());
-    if (col3) col3Values.add(col3.toLowerCase());
+    // FIX: converti label display → valore db (lowercase)
+    if (col2) {
+      const dbVal = COL2_LABEL_TO_DB[col2] || col2.toLowerCase();
+      col2Values.add(dbVal);
+    }
+    if (col3) {
+      const dbVal = COL3_LABEL_TO_DB[col3] || col3.toLowerCase();
+      col3Values.add(dbVal);
+    }
     if (per) periodicitaValues.add(per);
     chiavi.push(key);
   });
@@ -333,6 +379,7 @@ function resetClientiFiltri() {
 
 // ─── RENDER LISTA ─────────────────────────────────────────────
 function renderClientiPage() {
+  // FIX: assicura sempre che i filtri siano inizializzati
   if (_activeFiltroKeys.size === 0 && _getAllKeys().length > 0) {
     initializeTipologieFilter();
   }
@@ -1050,3 +1097,8 @@ window.renderTipologieFiltroPanel = renderTipologieFiltroPanel;
 window.getFiltriPerRequest = getFiltriPerRequest;
 window.TIPOLOGIE_PERCORSI_DATA = TIPOLOGIE_PERCORSI_DATA;
 window._activeFiltroKeys = _activeFiltroKeys;
+// Esporta le mappe per uso in globale.js
+window.COL2_DB_TO_LABEL = COL2_DB_TO_LABEL;
+window.COL3_DB_TO_LABEL = COL3_DB_TO_LABEL;
+window.COL2_LABEL_TO_DB = COL2_LABEL_TO_DB;
+window.COL3_LABEL_TO_DB = COL3_LABEL_TO_DB;

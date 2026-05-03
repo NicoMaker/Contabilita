@@ -32,6 +32,11 @@ function getConfigCorrente(id_cliente, anno = new Date().getFullYear()) {
 }
 
 function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
+  // ── FIX: se nessuno=true, ritorna subito array vuoto ──────
+  if (filtri.nessuno === true) {
+    return [];
+  }
+
   let sql = `
     SELECT 
       c.id,
@@ -72,22 +77,92 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
   `;
   const params = [anno];
 
-  if (filtri.tipologia) {
-    sql += ` AND t.codice = ?`;
-    params.push(filtri.tipologia);
+  // ── FIX: usa filtri_tipologie se presenti (nuova struttura) ──
+  const ft = filtri.filtri_tipologie;
+
+  if (ft && !ft.nessuno) {
+    // ── FIX: applica IN (...) invece di = ? per valori multipli ──
+    if (ft.tipologie && ft.tipologie.length > 0) {
+      const placeholders = ft.tipologie.map(() => '?').join(',');
+      sql += ` AND t.codice IN (${placeholders})`;
+      params.push(...ft.tipologie);
+    }
+    if (ft.col2_values && ft.col2_values.length > 0) {
+      const placeholders = ft.col2_values.map(() => '?').join(',');
+      // col2_value può essere NULL per tipologie senza col2 (SP, SC, ASS)
+      // Se nella lista ci sono tipologie senza col2, dobbiamo includere anche NULL
+      const hasNullCol2 = ft.tipologie && ft.tipologie.some(t => ['SP','SC','ASS'].includes(t));
+      if (hasNullCol2) {
+        sql += ` AND (cfg.col2_value IN (${placeholders}) OR cfg.col2_value IS NULL)`;
+      } else {
+        sql += ` AND cfg.col2_value IN (${placeholders})`;
+      }
+      params.push(...ft.col2_values);
+    }
+    if (ft.col3_values && ft.col3_values.length > 0) {
+      const placeholders = ft.col3_values.map(() => '?').join(',');
+      sql += ` AND cfg.col3_value IN (${placeholders})`;
+      params.push(...ft.col3_values);
+    }
+    if (ft.periodicita_values && ft.periodicita_values.length > 0) {
+      const placeholders = ft.periodicita_values.map(() => '?').join(',');
+      // periodicita può essere NULL per annuali forfettari che non hanno il campo
+      const hasAnnuale = ft.periodicita_values.includes('annuale');
+      if (hasAnnuale) {
+        sql += ` AND (cfg.periodicita IN (${placeholders}) OR cfg.periodicita IS NULL)`;
+      } else {
+        sql += ` AND cfg.periodicita IN (${placeholders})`;
+      }
+      params.push(...ft.periodicita_values);
+    }
+  } else if (!ft) {
+    // Fallback legacy: usa i singoli valori stringa (compatibilità vecchio formato)
+    if (filtri.tipologia && filtri.tipologia.trim()) {
+      const tipoList = filtri.tipologia.split(',').map(s => s.trim()).filter(Boolean);
+      if (tipoList.length === 1) {
+        sql += ` AND t.codice = ?`;
+        params.push(tipoList[0]);
+      } else if (tipoList.length > 1) {
+        const placeholders = tipoList.map(() => '?').join(',');
+        sql += ` AND t.codice IN (${placeholders})`;
+        params.push(...tipoList);
+      }
+    }
+    if (filtri.col2 && filtri.col2.trim()) {
+      const col2List = filtri.col2.split(',').map(s => s.trim()).filter(Boolean);
+      if (col2List.length === 1) {
+        sql += ` AND cfg.col2_value = ?`;
+        params.push(col2List[0]);
+      } else if (col2List.length > 1) {
+        const placeholders = col2List.map(() => '?').join(',');
+        sql += ` AND cfg.col2_value IN (${placeholders})`;
+        params.push(...col2List);
+      }
+    }
+    if (filtri.col3 && filtri.col3.trim()) {
+      const col3List = filtri.col3.split(',').map(s => s.trim()).filter(Boolean);
+      if (col3List.length === 1) {
+        sql += ` AND cfg.col3_value = ?`;
+        params.push(col3List[0]);
+      } else if (col3List.length > 1) {
+        const placeholders = col3List.map(() => '?').join(',');
+        sql += ` AND cfg.col3_value IN (${placeholders})`;
+        params.push(...col3List);
+      }
+    }
+    if (filtri.periodicita && filtri.periodicita.trim()) {
+      const perList = filtri.periodicita.split(',').map(s => s.trim()).filter(Boolean);
+      if (perList.length === 1) {
+        sql += ` AND cfg.periodicita = ?`;
+        params.push(perList[0]);
+      } else if (perList.length > 1) {
+        const placeholders = perList.map(() => '?').join(',');
+        sql += ` AND cfg.periodicita IN (${placeholders})`;
+        params.push(...perList);
+      }
+    }
   }
-  if (filtri.col2) {
-    sql += ` AND cfg.col2_value = ?`;
-    params.push(filtri.col2);
-  }
-  if (filtri.col3) {
-    sql += ` AND cfg.col3_value = ?`;
-    params.push(filtri.col3);
-  }
-  if (filtri.periodicita) {
-    sql += ` AND cfg.periodicita = ?`;
-    params.push(filtri.periodicita);
-  }
+
   if (filtri.search?.trim()) {
     const s = `%${filtri.search.trim()}%`;
     sql += ` AND (c.nome LIKE ? OR c.codice_fiscale LIKE ? OR c.partita_iva LIKE ? OR c.email LIKE ? OR c.telefono LIKE ?)`;
@@ -96,6 +171,12 @@ function getClientiConDettagli(filtri = {}, anno = new Date().getFullYear()) {
 
   sql += ` ORDER BY c.nome`;
   const results = queryAll(sql, params);
+
+  // Per i clienti senza config per l'anno richiesto, eredita la più recente
+  // MA solo se non stiamo filtrando per tipologia (altrimenti il fallback
+  // potrebbe portare clienti che non soddisfano il filtro)
+  const hasTipologiaFiltro = (ft && !ft.nessuno && ft.tipologie && ft.tipologie.length > 0)
+    || (filtri.tipologia && filtri.tipologia.trim());
 
   for (const c of results) {
     if (!c.id_tipologia) {
@@ -226,7 +307,6 @@ function saveConfigCliente(data) {
   console.log("✅ Verifica salvataggio:", verificato);
 }
 
-// ⭐ NUOVA FUNZIONE: Verifica se un nome esiste già
 function checkNomeExists(nome, excludeId = null) {
   const nomeNorm = (nome || "").trim().toLowerCase();
   let sql = `SELECT id, nome FROM clienti WHERE LOWER(TRIM(nome)) = ? AND attivo = 1`;
@@ -264,12 +344,10 @@ function getClienteAttivoByNome(nome) {
   );
 }
 
-// ⭐ MODIFICATA: createCliente con controllo nome duplicato
 function createCliente(data) {
   const anno = data.anno || new Date().getFullYear();
   console.log("📝 createCliente con anno:", anno, "data:", data);
 
-  // Controllo nome duplicato
   const nomeEsistente = checkNomeExists(data.nome);
   if (nomeEsistente) {
     throw new Error(`NOME_DUPLICATO: Esiste già un cliente con nome "${data.nome}"`);
@@ -285,28 +363,17 @@ function createCliente(data) {
         updated_at = datetime('now')
       WHERE id = ?`,
       [
-        data.nome,
-        data.codice_fiscale || null,
-        data.partita_iva || null,
-        data.email || null,
-        data.telefono || null,
-        data.indirizzo || null,
-        data.citta || null,
-        data.cap || null,
-        data.provincia || null,
-        data.pec || null,
-        data.sdi || null,
-        data.iban || null,
-        data.note || null,
-        data.referente || null,
-        data.contabilita || 0,
+        data.nome, data.codice_fiscale || null, data.partita_iva || null,
+        data.email || null, data.telefono || null, data.indirizzo || null,
+        data.citta || null, data.cap || null, data.provincia || null,
+        data.pec || null, data.sdi || null, data.iban || null,
+        data.note || null, data.referente || null, data.contabilita || 0,
         clienteInattivo.id,
       ],
     );
 
     saveConfigCliente({
-      id_cliente: clienteInattivo.id,
-      anno: anno,
+      id_cliente: clienteInattivo.id, anno,
       id_tipologia: data.id_tipologia,
       id_sottotipologia: data.id_sottotipologia || null,
       col2_value: data.col2_value || null,
@@ -317,28 +384,17 @@ function createCliente(data) {
     return clienteInattivo.id;
   }
 
-  // Inserisci il cliente
   let id = runQueryAndGetId(
     `INSERT INTO clienti (
       nome, codice_fiscale, partita_iva, email, telefono, 
       indirizzo, citta, cap, provincia, pec, sdi, iban, note, referente, contabilita
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      data.nome,
-      data.codice_fiscale || null,
-      data.partita_iva || null,
-      data.email || null,
-      data.telefono || null,
-      data.indirizzo || null,
-      data.citta || null,
-      data.cap || null,
-      data.provincia || null,
-      data.pec || null,
-      data.sdi || null,
-      data.iban || null,
-      data.note || null,
-      data.referente || null,
-      data.contabilita || 0,
+      data.nome, data.codice_fiscale || null, data.partita_iva || null,
+      data.email || null, data.telefono || null, data.indirizzo || null,
+      data.citta || null, data.cap || null, data.provincia || null,
+      data.pec || null, data.sdi || null, data.iban || null,
+      data.note || null, data.referente || null, data.contabilita || 0,
     ],
   );
 
@@ -355,10 +411,8 @@ function createCliente(data) {
     throw new Error("Impossibile ottenere l'ID del nuovo cliente");
   }
 
-  // Salva la configurazione
   saveConfigCliente({
-    id_cliente: id,
-    anno: anno,
+    id_cliente: id, anno,
     id_tipologia: data.id_tipologia,
     id_sottotipologia: data.id_sottotipologia || null,
     col2_value: data.col2_value || null,
@@ -371,8 +425,7 @@ function createCliente(data) {
 
 function updateClienteConfig(data) {
   console.log("📝 updateClienteConfig chiamato con:", {
-    id: data.id,
-    anno: data.anno,
+    id: data.id, anno: data.anno,
     id_tipologia: data.id_tipologia,
     col2_value: data.col2_value,
     col3_value: data.col3_value,
@@ -385,8 +438,7 @@ function updateClienteConfig(data) {
   }
 
   saveConfigCliente({
-    id_cliente: data.id,
-    anno: data.anno,
+    id_cliente: data.id, anno: data.anno,
     id_tipologia: data.id_tipologia,
     id_sottotipologia: data.id_sottotipologia,
     col2_value: data.col2_value,
@@ -395,9 +447,7 @@ function updateClienteConfig(data) {
   });
 }
 
-// ⭐ MODIFICATA: updateClienteAnagrafica con controllo nome duplicato
 function updateClienteAnagrafica(data) {
-  // Controllo nome duplicato (escludendo il cliente corrente)
   const nomeEsistente = checkNomeExists(data.nome, data.id);
   if (nomeEsistente) {
     throw new Error(`NOME_DUPLICATO: Esiste già un cliente con nome "${data.nome}"`);
@@ -410,21 +460,11 @@ function updateClienteAnagrafica(data) {
       iban = ?, note = ?, referente = ?, contabilita = ?, updated_at = datetime('now')
     WHERE id = ?`,
     [
-      data.nome,
-      data.codice_fiscale || null,
-      data.partita_iva || null,
-      data.email || null,
-      data.telefono || null,
-      data.indirizzo || null,
-      data.citta || null,
-      data.cap || null,
-      data.provincia || null,
-      data.pec || null,
-      data.sdi || null,
-      data.iban || null,
-      data.note || null,
-      data.referente || null,
-      data.contabilita || 0,
+      data.nome, data.codice_fiscale || null, data.partita_iva || null,
+      data.email || null, data.telefono || null, data.indirizzo || null,
+      data.citta || null, data.cap || null, data.provincia || null,
+      data.pec || null, data.sdi || null, data.iban || null,
+      data.note || null, data.referente || null, data.contabilita || 0,
       data.id,
     ],
   );
@@ -473,13 +513,9 @@ function copiaConfigClienteAnno(id_cliente, anno_da, anno_a) {
         col2_value = ?, col3_value = ?, periodicita = ?
       WHERE id_cliente = ? AND anno = ?`,
       [
-        configDa.id_tipologia,
-        configDa.id_sottotipologia,
-        configDa.col2_value,
-        configDa.col3_value,
-        configDa.periodicita,
-        id_cliente,
-        anno_a,
+        configDa.id_tipologia, configDa.id_sottotipologia,
+        configDa.col2_value, configDa.col3_value, configDa.periodicita,
+        id_cliente, anno_a,
       ],
     );
   } else {
@@ -488,13 +524,9 @@ function copiaConfigClienteAnno(id_cliente, anno_da, anno_a) {
         (id_cliente, anno, id_tipologia, id_sottotipologia, col2_value, col3_value, periodicita) 
        VALUES (?,?,?,?,?,?,?)`,
       [
-        id_cliente,
-        anno_a,
-        configDa.id_tipologia,
-        configDa.id_sottotipologia,
-        configDa.col2_value,
-        configDa.col3_value,
-        configDa.periodicita,
+        id_cliente, anno_a,
+        configDa.id_tipologia, configDa.id_sottotipologia,
+        configDa.col2_value, configDa.col3_value, configDa.periodicita,
       ],
     );
   }
@@ -526,13 +558,9 @@ function copiaTuttiClientiAnno(anno_da, anno_a) {
               col2_value = ?, col3_value = ?, periodicita = ?
             WHERE id_cliente = ? AND anno = ?`,
             [
-              configDa.id_tipologia,
-              configDa.id_sottotipologia,
-              configDa.col2_value,
-              configDa.col3_value,
-              configDa.periodicita,
-              cliente.id,
-              anno_a,
+              configDa.id_tipologia, configDa.id_sottotipologia,
+              configDa.col2_value, configDa.col3_value, configDa.periodicita,
+              cliente.id, anno_a,
             ],
           );
         } else {
@@ -541,23 +569,15 @@ function copiaTuttiClientiAnno(anno_da, anno_a) {
               (id_cliente, anno, id_tipologia, id_sottotipologia, col2_value, col3_value, periodicita) 
              VALUES (?,?,?,?,?,?,?)`,
             [
-              cliente.id,
-              anno_a,
-              configDa.id_tipologia,
-              configDa.id_sottotipologia,
-              configDa.col2_value,
-              configDa.col3_value,
-              configDa.periodicita,
+              cliente.id, anno_a,
+              configDa.id_tipologia, configDa.id_sottotipologia,
+              configDa.col2_value, configDa.col3_value, configDa.periodicita,
             ],
           );
         }
         risultati.push({ id: cliente.id, success: true });
       } else {
-        risultati.push({
-          id: cliente.id,
-          success: false,
-          error: `Nessuna config per ${anno_da}`,
-        });
+        risultati.push({ id: cliente.id, success: false, error: `Nessuna config per ${anno_da}` });
       }
     } catch (e) {
       risultati.push({ id: cliente.id, success: false, error: e.message });

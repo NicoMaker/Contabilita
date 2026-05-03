@@ -32,7 +32,6 @@ function _aggiornaGlobPanelVisibility() {
   const container = document.getElementById('glob-tip-filtro-container');
   if (!container) return;
   container.style.display = _globTipFiltroPanelOpen ? 'block' : 'none';
-  // Aggiorna bottone header
   const btn = document.getElementById('glob-tip-filtro-toggle-btn');
   if (btn) {
     btn.innerHTML = _globTipFiltroPanelOpen
@@ -44,8 +43,7 @@ function _aggiornaGlobPanelVisibility() {
 function _aggiornaGlobTipFiltroCounter() {
   const badge = document.getElementById('glob-tip-filtro-count');
   if (badge) {
-    // Accesso sicuro a _activeFiltroKeys (definita in clienti.js)
-    const keys = typeof window._activeFiltroKeys !== 'undefined' ? window._activeFiltroKeys : (typeof _activeFiltroKeys !== 'undefined' ? _activeFiltroKeys : new Set());
+    const keys = _getActiveFiltroKeys();
     const allKeys = typeof _getAllKeys === 'function' ? _getAllKeys() : [];
     const n = keys.size;
     const isAll = n === allKeys.length;
@@ -56,7 +54,14 @@ function _aggiornaGlobTipFiltroCounter() {
   }
 }
 
-// Refresh del pannello tipologie all'interno del globale (dopo toggle singolo chip)
+// ─── FIX: helper sicuro per accedere a _activeFiltroKeys ─────
+// Usa sempre window._activeFiltroKeys per garantire la versione aggiornata
+function _getActiveFiltroKeys() {
+  if (typeof window._activeFiltroKeys !== 'undefined') return window._activeFiltroKeys;
+  if (typeof _activeFiltroKeys !== 'undefined') return _activeFiltroKeys;
+  return new Set();
+}
+
 function _refreshGlobTipFiltroPanel() {
   const container = document.getElementById('glob-tip-filtro-container');
   if (!container || !_globTipFiltroPanelOpen) return;
@@ -70,14 +75,12 @@ function _refreshGlobTipFiltroPanel() {
   _aggiornaGlobTipFiltroCounter();
 }
 
-// ─── CHECK FILTRO TIPOLOGIE CLIENTE ──────────────────────────
+// ─── FIX PRINCIPALE: Check filtro tipologie cliente ──────────
+// Le chiavi filtro usano label display (es. "Ditta Individuale")
+// ma il DB salva valori raw lowercase (es. "ditta").
+// Questa funzione gestisce la traduzione in entrambe le direzioni.
 function clientePassaFiltroTipologie(c) {
-  // Accesso sicuro alla variabile definita in clienti.js
-  const activeFiltroKeys = typeof window._activeFiltroKeys !== 'undefined'
-    ? window._activeFiltroKeys
-    : (typeof _activeFiltroKeys !== 'undefined' ? _activeFiltroKeys : null);
-
-  if (!activeFiltroKeys) return true;
+  const activeFiltroKeys = _getActiveFiltroKeys();
 
   // Se nessuno selezionato → nessun cliente passa
   if (activeFiltroKeys.size === 0) return false;
@@ -88,23 +91,31 @@ function clientePassaFiltroTipologie(c) {
 
   const tipCod = c.tipologia_codice || '';
 
-  // Mappa i valori db alle etichette usate nelle chiavi filtro
-  const col2DbToLabel = {
-    'privato': 'Privato',
-    'ditta': 'Ditta Individuale',
-    'socio': 'Socio',
-    'professionista': 'Professionista',
-  };
-  const col3DbToLabel = {
-    'ordinario': 'Ordinario',
-    'ordinaria': 'Ordinaria',
-    'semplificato': 'Semplificato',
-    'semplificata': 'Semplificata',
-    'forfettario': 'Forfettario',
-  };
+  // Prendi le mappe dalla variabile globale (esportata da clienti.js)
+  // con fallback ai valori inline per sicurezza
+  const col2DbToLabel = (typeof window.COL2_DB_TO_LABEL !== 'undefined')
+    ? window.COL2_DB_TO_LABEL
+    : {
+        'privato':        'Privato',
+        'ditta':          'Ditta Individuale',
+        'socio':          'Socio',
+        'professionista': 'Professionista',
+      };
 
-  const col2Raw = (c.col2 || '').toLowerCase();
-  const col3Raw = (c.col3 || '').toLowerCase();
+  const col3DbToLabel = (typeof window.COL3_DB_TO_LABEL !== 'undefined')
+    ? window.COL3_DB_TO_LABEL
+    : {
+        'ordinario':    'Ordinario',
+        'ordinaria':    'Ordinaria',
+        'semplificato': 'Semplificato',
+        'semplificata': 'Semplificata',
+        'forfettario':  'Forfettario',
+      };
+
+  // Valore DB del cliente (lowercase, come salvato in DB)
+  const col2Raw = (c.col2 || '').toLowerCase().trim();
+  const col3Raw = (c.col3 || '').toLowerCase().trim();
+  // Label display corrispondente
   const col2Display = col2DbToLabel[col2Raw] || '';
   const col3Display = col3DbToLabel[col3Raw] || '';
   const per = c.periodicita || '';
@@ -116,13 +127,23 @@ function clientePassaFiltroTipologie(c) {
     // Tipologia deve corrispondere
     if (kTip !== tipCod) continue;
 
-    // Col2: se la chiave ha col2, il cliente deve averlo uguale
-    if (kCol2 && kCol2 !== col2Display) continue;
+    // FIX: confronta col2 sia con label display sia con valore db raw
+    // Le chiavi hanno la label display (es. "Ditta Individuale")
+    // il cliente ha il valore db (es. "ditta")
+    if (kCol2) {
+      const matchLabel = kCol2 === col2Display;
+      const matchRaw   = kCol2.toLowerCase() === col2Raw;
+      if (!matchLabel && !matchRaw) continue;
+    }
 
-    // Col3: se la chiave ha col3, il cliente deve averlo uguale
-    if (kCol3 && kCol3 !== col3Display) continue;
+    // FIX: stesso approccio per col3
+    if (kCol3) {
+      const matchLabel = kCol3 === col3Display;
+      const matchRaw   = kCol3.toLowerCase() === col3Raw;
+      if (!matchLabel && !matchRaw) continue;
+    }
 
-    // Periodicità: se la chiave ha per, il cliente deve averla uguale
+    // Periodicità: confronto diretto (già lowercase in entrambi)
     if (kPer && kPer !== per) continue;
 
     return true;
@@ -166,9 +187,9 @@ function _renderGlobaleClienteClassBadges(c) {
 
 // ─── RENDER PAGINA ────────────────────────────────────────────
 function renderGlobalePage() {
-  // Inizializza filtro se vuoto
-  const activeFiltroKeys = typeof _activeFiltroKeys !== 'undefined' ? _activeFiltroKeys : null;
-  if (activeFiltroKeys && activeFiltroKeys.size === 0 && typeof initializeTipologieFilter === 'function') {
+  // FIX: assicura che i filtri siano sempre inizializzati
+  const activeFiltroKeys = _getActiveFiltroKeys();
+  if (activeFiltroKeys.size === 0 && typeof initializeTipologieFilter === 'function') {
     initializeTipologieFilter();
   }
 
@@ -297,7 +318,7 @@ function renderGlobaleTabella(rawData) {
   const adpIdx = adpListaOrdinata.indexOf(adpFiltroAttivo);
 
   // ── Counter filtro tipologie ───────────────────────────────
-  const activeFiltroKeys = typeof _activeFiltroKeys !== 'undefined' ? _activeFiltroKeys : new Set();
+  const activeFiltroKeys = _getActiveFiltroKeys();
   const allKeysArr = typeof _getAllKeys === 'function' ? _getAllKeys() : [];
   const tipFiltroActiveCount = activeFiltroKeys.size;
   const tipFiltroIsAll = tipFiltroActiveCount === allKeysArr.length;
