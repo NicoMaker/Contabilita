@@ -30,6 +30,19 @@ function buildDashboardShell(stats) {
       </div>
     </div>
     
+    <!-- ⭐ FILTRO TIPOLOGIE CLIENTI (DASHBOARD) -->
+    <div class="dash-tip-filtro-wrap" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;" onclick="toggleDashTipFiltroPanel(event)">
+        <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia Clienti</span>
+        <span id="dash-tip-filtro-count" style="display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--red);color:#fff;border-radius:10px;font-size:11px;font-weight:700">0</span>
+        <span id="dash-tip-filtro-warning" style="font-size:11px;color:var(--red);font-weight:700;display:none">⚠️ Nessuno selezionato</span>
+        <div id="dash-tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">
+          <button class="btn btn-xs btn-secondary" onclick="toggleDashTipFiltroPanel(event)">▼ Espandi</button>
+        </div>
+      </div>
+      <div id="dash-tip-filtro-container" style="display:none;margin-top:8px"></div>
+    </div>
+
     <!-- ⭐ Applica Adempimenti Esistenti a Clienti -->
     <div class="table-wrap" style="margin-bottom:20px">
       <div class="table-header">
@@ -45,19 +58,6 @@ function buildDashboardShell(stats) {
         Gli adempimenti già presenti vengono conservati.
       </div>
     </div>
-    
-    <!-- ⭐ TIPOLOGIE FILTER PANEL -->
-    <div class="dash-tip-filtro-wrap" style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;" onclick="toggleDashTipFiltroPanel(event)">
-        <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia Clienti</span>
-        <span id="dash-tip-filtro-count" style="display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--red);color:#fff;border-radius:10px;font-size:11px;font-weight:700">0</span>
-        <span style="font-size:11px;color:var(--red);font-weight:700">⚠️ Nessuno selezionato</span>
-        <div id="dash-tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">
-          <button class="btn btn-xs btn-secondary" onclick="toggleDashTipFiltroPanel(event)">▼ Espandi</button>
-        </div>
-      </div>
-      <div id="dash-tip-filtro-container" style="display:none;margin-top:8px"></div>
-    </div>
 
     <div class="table-wrap">
       <div class="table-header no-print" style="flex-wrap:wrap;gap:10px">
@@ -70,9 +70,6 @@ function buildDashboardShell(stats) {
               <option value="in_corso">🔄 In corso</option>
               <option value="completato">✅ Completato</option>
               <option value="n_a">➖ N/A</option>
-            </select>
-            <select class="select" id="dash-filtro-tipo" style="width:155px;font-size:13px" onchange="applyDashFiltri()" title="Filtra per tipo cliente">
-              <option value="">👥 Tutti i tipi</option>
             </select>
             <div class="search-wrap" style="width:220px">
               <span class="search-icon">🔍</span>
@@ -428,33 +425,28 @@ function _aggiornaDashPanelVisibility() {
 
 function _aggiornaDashTipFiltroCounter() {
   var badge = document.getElementById("dash-tip-filtro-count");
+  var warning = document.getElementById("dash-tip-filtro-warning");
   if (!badge) return;
-  var keys = _getActiveFiltroKeys();
+  
+  var keys = typeof _getActiveFiltroKeys === "function" ? _getActiveFiltroKeys() : new Set();
   var allKeys = typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
-  var isNone = _isManualNessuno() || keys.size === 0;
+  var isNone = (typeof _isManualNessuno === "function" ? _isManualNessuno() : false) || keys.size === 0;
   var isAll = !isNone && keys.size === allKeys.length;
   
   if (isNone) {
     badge.textContent = "0";
     badge.style.display = "inline-flex";
     badge.style.background = "var(--red)";
+    if (warning) warning.style.display = "inline";
   } else if (isAll) {
     badge.textContent = "";
     badge.style.display = "none";
+    if (warning) warning.style.display = "none";
   } else {
     badge.textContent = keys.size;
     badge.style.display = "inline-flex";
     badge.style.background = "var(--accent)";
-  }
-  
-  // Update warning message
-  var warningMsg = document.querySelector(".dash-tip-filtro-wrap span[style*='color:var(--red)']");
-  if (warningMsg) {
-    if (isNone) {
-      warningMsg.style.display = "inline";
-    } else {
-      warningMsg.style.display = "none";
-    }
+    if (warning) warning.style.display = "none";
   }
 }
 
@@ -466,6 +458,15 @@ function _refreshDashTipFiltroPanel() {
     tmp.innerHTML = renderTipologieFiltroPanel();
     container.innerHTML = "";
     container.appendChild(tmp.firstChild);
+    
+    // Aggiungi event listener per i cambiamenti dei checkbox nel pannello
+    container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        setTimeout(function() {
+          if (state.dashStats) updateDashboardContent(state.dashStats);
+        }, 100);
+      });
+    });
   }
   container.style.display = "block";
   _aggiornaDashTipFiltroCounter();
@@ -476,30 +477,13 @@ function _refreshDashTipFiltroPanel() {
   }, 100);
 }
 
-function applyDashFiltri() {
-  var tipoEl = document.getElementById("dash-filtro-tipo");
-  if (tipoEl) {
-    state.dashFiltroTipo = tipoEl.value;
-  }
-  
-  // Refresh tipologie filter panel when filters change
-  if (typeof _refreshDashTipFiltroPanel === "function") {
-    _refreshDashTipFiltroPanel();
-  }
-  
-  if (state.dashStats) updateDashboardContent(state.dashStats);
-}
-
 function resetDashFiltri() {
   state.dashSearch = "";
   state.dashFiltroStatoAdp = "";
-  state.dashFiltroTipo = "";
   var searchEl = document.getElementById("dash-adp-search");
   if (searchEl) searchEl.value = "";
   var statoEl = document.getElementById("dash-filtro-stato-adp");
   if (statoEl) statoEl.value = "";
-  var tipoEl = document.getElementById("dash-filtro-tipo");
-  if (tipoEl) tipoEl.value = "";
   
   // Reset tipologie filter
   if (typeof initializeTipologieFilter === "function") initializeTipologieFilter();
@@ -520,47 +504,44 @@ function adempimentoPassaFiltroStato(a, ss) {
   return true;
 }
 
-function populateDashTipoFilter() {
-  var tipoSel = document.getElementById("dash-filtro-tipo");
-  if (!tipoSel) return;
+function clientePassaFiltroTipologieDashboard(adempimento) {
+  // Per la dashboard, controlliamo se l'adempimento ha clienti che passano il filtro
+  // Se non ci sono filtri attivi o sono tutti selezionati, passa tutto
+  var activeFiltroKeys = typeof _getActiveFiltroKeys === "function" ? _getActiveFiltroKeys() : new Set();
+  var allKeys = typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
+  var isNone = (typeof _isManualNessuno === "function" ? _isManualNessuno() : false) || activeFiltroKeys.size === 0;
+  var isAll = !isNone && activeFiltroKeys.size === allKeys.length;
   
-  var currentValue = tipoSel.value;
-  var options = '<option value="">👥 Tutti i tipi</option>';
+  if (isNone) return false;
+  if (isAll) return true;
   
-  // Get unique client types from dashboard data
-  var tipiSet = new Set();
-  if (state.dashStats && state.dashStats.clientiTipi) {
-    state.dashStats.clientiTipi.forEach(function(tipo) {
-      if (tipo) tipiSet.add(tipo);
-    });
+  // Se l'adempimento ha un cliente_tipologia_codice, verifichiamolo
+  if (adempimento.cliente_tipologia_codice) {
+    var tipCod = adempimento.cliente_tipologia_codice;
+    var keysArray = Array.from(activeFiltroKeys);
+    for (var i = 0; i < keysArray.length; i++) {
+      var key = keysArray[i];
+      var parts = key.split("|");
+      var kTip = parts[0];
+      if (kTip === tipCod) return true;
+    }
+    return false;
   }
   
-  var tipiArray = Array.from(tipiSet).sort();
-  for (var i = 0; i < tipiArray.length; i++) {
-    var tipo = tipiArray[i];
-    var selected = (currentValue === tipo) ? ' selected' : '';
-    options += '<option value="' + tipo + '"' + selected + '>' + tipo + '</option>';
-  }
-  
-  tipoSel.innerHTML = options;
+  return true;
 }
 
 function updateDashboardContent(stats) {
   var allAdp = stats.adempimentiStats || [];
   var sq = (state.dashSearch || "").toLowerCase();
   var ss = state.dashFiltroStatoAdp || "";
-  var st = state.dashFiltroTipo || "";
   
   var adpVis = [];
   for (var i = 0; i < allAdp.length; i++) {
     var a = allAdp[i];
     if (sq && a.nome.toLowerCase().indexOf(sq) === -1 && a.codice.toLowerCase().indexOf(sq) === -1) continue;
     if (!adempimentoPassaFiltroStato(a, ss)) continue;
-    if (st && a.cliente_tipologia !== st) continue;
-    
-    // Apply tipologie filter
-    if (a.cliente_tipologia && !clientePassaFiltroTipologieDash(a)) continue;
-    
+    if (!clientePassaFiltroTipologieDashboard(a)) continue;
     adpVis.push(a);
   }
   
@@ -625,15 +606,13 @@ function updateDashboardContent(stats) {
   grid.innerHTML = html;
 }
 
-function clientePassaFiltroTipologieDash(a) {
-  // Use the same function as globale.js for consistency
-  return clientePassaFiltroTipologie(a);
-}
-
 function renderDashboard(stats) {
   if (!state._dashRendered) buildDashboardShell(stats);
+  
+  // Store stats for tipologie filter
+  state.dashStats = stats;
+  
   updateDashboardContent(stats);
-  populateDashTipoFilter();
   
   // Initialize tipologie filter
   if (typeof initializeTipologieFilter === "function") {
@@ -661,23 +640,9 @@ if (typeof socket !== "undefined") {
       socket.emit("get:stats", { anno: state.anno });
       caricaClientiSenzaAdempimenti();
     } else {
-      showNotif("❌ Errore: " + data.error, "error");
+      showNotif("❌ Errore: " + (data.error || "Operazione fallita"), "error");
     }
   });
-}
-
-function goVistaGlobaleAdp(nome) {
-  var filterValue = nome;
-  state.globalePreFiltroAdp = filterValue;
-  
-  document.querySelectorAll(".nav-item").forEach(function(x) { x.classList.remove("active"); });
-  var globaleNavItem = document.querySelector('[data-page="scadenzario_globale"]');
-  if (globaleNavItem) globaleNavItem.classList.add("active");
-  
-  state.dashSearch = "";
-  state.dashFiltroStatoAdp = "";
-  
-  renderPage("scadenzario_globale");
 }
 
 // Esponi funzioni globali
@@ -692,7 +657,6 @@ window.goToClienteScadenzarioDiretto = goToClienteScadenzarioDiretto;
 window.caricaClientiSenzaAdempimenti = caricaClientiSenzaAdempimenti;
 window.goVistaGlobaleAdp = goVistaGlobaleAdp;
 window.onDashFiltroStatoAdp = onDashFiltroStatoAdp;
-window.applyDashFiltri = applyDashFiltri;
 window.resetDashFiltri = resetDashFiltri;
 window.onDashAdpSearch = onDashAdpSearch;
 window.toggleDashTipFiltroPanel = toggleDashTipFiltroPanel;

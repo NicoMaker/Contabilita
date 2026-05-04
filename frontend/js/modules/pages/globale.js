@@ -268,6 +268,10 @@ function renderGlobalePage() {
       '<span class="year-num">' + state.anno + '</span>' +
       '<button onclick="changeAnnoGlobale(1)" title="Anno successivo">&#9654;</button>' +
     '</div>' +
+    '<div class="search-wrap" style="width:220px">' +
+      '<span class="search-icon">🔍</span>' +
+      '<input class="input" id="glob-search-cliente" placeholder="Cerca cliente..." oninput="applyGlobaleFiltriDebounced()" style="font-size:13px">' +
+    '</div>' +
     '<select class="select topbar-select" id="glob-sel-cliente" onchange="onGlobaleClienteChange()" title="Seleziona il cliente" style="min-width:200px;max-width:260px">' +
       '<option value="">-- Seleziona Cliente --</option>' +
     '</select>' +
@@ -281,10 +285,6 @@ function renderGlobalePage() {
       '<option value="completato">✅ Completato</option>' +
       '<option value="n_a">➖ N/A</option>' +
     '</select>' +
-    '<div class="search-wrap" style="width:200px">' +
-      '<span class="search-icon">🔍</span>' +
-      '<input class="input" id="glob-search" placeholder="Cerca cliente..." oninput="applyGlobaleFiltriDebounced()" style="font-size:13px">' +
-    '</div>' +
     '<button class="btn btn-sm btn-primary" onclick="resetGlobaleFiltri()" title="Azzera tutti i filtri" style="font-size:13px">⟳ Tutti</button>' +
     '<button class="btn btn-print btn-sm" onclick="window.print()" style="font-size:13px">🖨️ Stampa</button>';
 
@@ -357,7 +357,6 @@ function onGlobaleClienteChange() {
   
   if (clienteId) {
     state.globaleSelectedCliente = clienteId;
-    // Apply client filter
     applyGlobaleFiltri();
   } else {
     state.globaleSelectedCliente = "";
@@ -369,12 +368,12 @@ function loadGlobale() {
   var filtri = {};
   var adpSel = document.getElementById("glob-filtro-adp");
   var statoSel = document.getElementById("glob-filtro-stato");
-  var search = document.getElementById("glob-search");
+  var clienteSearch = document.getElementById("glob-search-cliente");
   var clienteSel = document.getElementById("glob-sel-cliente");
   
   if (adpSel && adpSel.value) filtri.adempimento = adpSel.value;
   if (statoSel && statoSel.value) filtri.stato = statoSel.value;
-  if (search && search.value) filtri.search = search.value;
+  if (clienteSearch && clienteSearch.value) filtri.search = clienteSearch.value;
   if (clienteSel && clienteSel.value) filtri.cliente_id = parseInt(clienteSel.value);
   if (state.globalePreFiltroAdp && !filtri.adempimento) filtri.adempimento = state.globalePreFiltroAdp;
   
@@ -388,7 +387,7 @@ function applyGlobaleFiltriLocali() { if (state.scadGlobale) renderGlobaleTabell
 function resetGlobaleFiltri() {
   state.globalePreFiltroAdp = "";
   state.globaleSelectedCliente = "";
-  var ids = ["glob-filtro-adp","glob-filtro-stato","glob-filtro-tipo","glob-filtro-periodicita","glob-filtro-cliente-stato","glob-search","glob-sel-cliente"];
+  var ids = ["glob-filtro-adp","glob-filtro-stato","glob-search-cliente","glob-sel-cliente"];
   for (var i = 0; i < ids.length; i++) {
     var el = document.getElementById(ids[i]);
     if (el) { el.value = ""; if (el._ssRefresh) el._ssRefresh(); }
@@ -466,18 +465,27 @@ function navigaAdempimento(direzione) {
 
 function renderGlobaleTabella(rawData) {
   var st = state.globaleStats;
-  var filtroTipoEl = document.getElementById("glob-filtro-tipo");
-  var filtroPerEl = document.getElementById("glob-filtro-periodicita");
   var filtroClienteStatoEl = document.getElementById("glob-filtro-cliente-stato");
-  var filtroTipo = filtroTipoEl ? filtroTipoEl.value : "";
-  var filtroPer = filtroPerEl ? filtroPerEl.value : "";
   var filtroClienteStato = filtroClienteStatoEl ? filtroClienteStatoEl.value : "";
+  
+  // Applica filtro di ricerca clienti
+  var clienteSearch = document.getElementById("glob-search-cliente");
+  var searchTerm = clienteSearch ? clienteSearch.value.toLowerCase() : "";
   
   var data = [];
   for (var i = 0; i < rawData.length; i++) {
     var r = rawData[i];
-    if (filtroTipo && r.cliente_tipologia_codice !== filtroTipo) continue;
-    if (filtroPer && r.cliente_periodicita !== filtroPer) continue;
+    // Filtra per ricerca cliente
+    if (searchTerm) {
+      var clienteNome = (r.cliente_nome || "").toLowerCase();
+      var clienteCf = (r.cliente_cf || "").toLowerCase();
+      var clientePiva = (r.cliente_piva || "").toLowerCase();
+      if (clienteNome.indexOf(searchTerm) === -1 && 
+          clienteCf.indexOf(searchTerm) === -1 && 
+          clientePiva.indexOf(searchTerm) === -1) {
+        continue;
+      }
+    }
     data.push(r);
   }
   
@@ -500,10 +508,6 @@ function renderGlobaleTabella(rawData) {
     adpFiltroAttivo = state.globalePreFiltroAdp;
   }
   
-  var adpListaOrdinata = st.adempimenti ? Array.from(st.adempimenti) : [];
-  adpListaOrdinata.sort(function(a, b) { return a.localeCompare(b, "it", { sensitivity: "base" }); });
-  var adpIdx = adpListaOrdinata.indexOf(adpFiltroAttivo);
-  
   var filtroClienteStatoLabels = {
     con_in_corso: "🔄 Con almeno 1 in corso", senza_in_corso: "✅ Senza in corso",
     tutti_completati: "🏆 Tutto completato", con_da_fare: "⭕ Con almeno 1 da fare",
@@ -520,10 +524,20 @@ function renderGlobaleTabella(rawData) {
       '</div>';
   }
   
+  var searchBadge = "";
+  if (searchTerm) {
+    searchBadge = '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;margin-left:10px;padding:5px 12px;background:var(--accent)18;border:1px solid var(--accent)44;border-radius:20px;font-size:12px;color:var(--accent)">' +
+      '<span>🔍 Ricerca:</span>' +
+      '<strong>' + searchTerm + '</strong>' +
+      '<button onclick="document.getElementById(\'glob-search-cliente\').value=\'\';applyGlobaleFiltri()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Rimuovi filtro">✕</button>' +
+      '</div>';
+  }
+  
   var navAdpHtml = "";
-  if (adpFiltroAttivo && adpFiltroAttivo !== "" && adpListaOrdinata.length > 0) {
-    var displayName = adpFiltroAttivo;
-    var hasMultiple = adpListaOrdinata.length > 1;
+  if (adpFiltroAttivo && adpFiltroAttivo !== "" && st.adempimenti && st.adempimenti.length > 0) {
+    navAdpHtml = '<div class="glob-nav-adp" style="margin-top:14px;text-align:center">' +
+      '<span style="font-family:var(--mono);font-size:13px;color:var(--accent);background:var(--accent-d);padding:4px 12px;border-radius:20px">' + adpFiltroAttivo + '</span>' +
+      '</div>';
   }
   
   var tipFiltroHtml = "";
@@ -550,7 +564,10 @@ function renderGlobaleTabella(rawData) {
         '<div>' +
           '<div class="gpc-title">Vista Globale ' + state.anno + '</div>' +
           '<div class="gpc-sub">' + st.clienti + ' clienti · ' + st.adempimenti.length + ' tipi adempimenti</div>' +
-          filtroClienteStatoBadge +
+          '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px">' +
+            filtroClienteStatoBadge +
+            searchBadge +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div class="gpc-stats">' +
@@ -612,6 +629,7 @@ function renderGlobaleTabella(rawData) {
       var c = clientiArray[cIdx];
       if (!clientePassaFiltroStato(c.periodi, filtroClienteStato)) continue;
       if (!clientePassaFiltroTipologie(c)) continue;
+      // Filtro per ricerca già applicato a livello di dati
       clientiFiltrati.push(c);
     }
     clientiFiltrati.sort(function(a, b) { return a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }); });
@@ -699,7 +717,7 @@ function renderGlobaleTabella(rawData) {
   if (!content) {
     var msgVuoto = tipFiltroIsNone
       ? 'Nessun filtro tipologia selezionato — clicca <strong>✦ Tutti</strong> nel pannello Tipologie per vedere i clienti'
-      : (filtroClienteStato || hasFiltroTipologie
+      : (filtroClienteStato || hasFiltroTipologie || searchTerm
         ? 'Nessun cliente corrisponde ai filtri attivi per ' + state.anno
         : 'Nessun adempimento trovato per ' + state.anno);
     

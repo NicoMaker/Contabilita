@@ -5,15 +5,9 @@
 // ─── UTILITY ───────────────────────────────────────────────
 
 // ─── FORMATTAZIONE NUMERO IN FORMATO ITALIANO ────────────────
-// Converte un numero JS in stringa italiana: 1234567.89 → "1.234.567,89"
-// I negativi vengono restituiti con il segno meno: -1234.5 → "-1.234,50"
 function formattaNumeroItaliano(valore) {
   if (valore === null || valore === undefined || valore === "") return "";
   const s = String(valore);
-  // Se la stringa contiene una virgola è già in formato italiano ("1.000,25"):
-  // rimuovi i punti migliaia e converti la virgola in punto decimale.
-  // Altrimenti è un numero JS o stringa con punto decimale ("1000.25"):
-  // parseFloat lo legge direttamente senza toccare nulla.
   const normalizzato = s.includes(",")
     ? s.replace(/\./g, "").replace(",", ".")
     : s;
@@ -27,8 +21,6 @@ function formattaNumeroItaliano(valore) {
 }
 
 // ─── FORMATTA NUMERO CON COLORE PER DISPLAY ──────────────────
-// Scrive il numero formattato in un elemento DOM colorandolo:
-//   verde per positivi (e zero), rosso per negativi
 function formattaNumeroConColore(valore, elemento) {
   if (valore === null || valore === undefined || valore === "") {
     if (elemento) {
@@ -51,7 +43,6 @@ function formattaNumeroConColore(valore, elemento) {
   const formattato = formattaNumeroItaliano(numero);
   if (elemento) {
     elemento.textContent = formattato;
-    // Rosso per negativi, verde per zero e positivi
     elemento.style.color = numero < 0 ? "var(--red)" : "var(--green)";
   }
   return formattato;
@@ -82,8 +73,6 @@ function renderImportoCellCompact(r) {
     return `<span class="imp-empty">-</span>`;
   }
   if (isContabilita(r)) {
-    // I negativi vengono colorati in rosso inline tramite formattaNumeroItaliano
-    // (il segno meno è già incluso nella stringa restituita)
     const ivaNum =
       r.importo_iva != null && r.importo_iva !== ""
         ? parseFloat(r.importo_iva)
@@ -115,17 +104,19 @@ function renderImportoCellCompact(r) {
     try {
       if (r.rate_labels) lb = JSON.parse(r.rate_labels);
     } catch (e) {}
+    
+    // Conversione corretta in numeri
     const sNum =
       r.importo_saldo != null && r.importo_saldo !== ""
-        ? parseFloat(r.importo_saldo)
+        ? parseFloat(String(r.importo_saldo).replace(/\./g, "").replace(",", "."))
         : null;
     const a1Num =
       r.importo_acconto1 != null && r.importo_acconto1 !== ""
-        ? parseFloat(r.importo_acconto1)
+        ? parseFloat(String(r.importo_acconto1).replace(/\./g, "").replace(",", "."))
         : null;
     const a2Num =
       r.importo_acconto2 != null && r.importo_acconto2 !== ""
-        ? parseFloat(r.importo_acconto2)
+        ? parseFloat(String(r.importo_acconto2).replace(/\./g, "").replace(",", "."))
         : null;
 
     const s =
@@ -134,11 +125,11 @@ function renderImportoCellCompact(r) {
         : null;
     const a1 =
       a1Num !== null
-        ? `<span style="color:${a1Num < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(a1Num)}</span>`
+        ? `<span style="color:${a1Num < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(a1Num)}&euro;</span>`
         : null;
     const a2 =
       a2Num !== null
-        ? `<span style="color:${a2Num < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(a2Num)}</span>`
+        ? `<span style="color:${a2Num < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(a2Num)}&euro;</span>`
         : null;
 
     if (!s && !a1 && !a2) return `<span class="imp-empty">-</span>`;
@@ -150,19 +141,13 @@ function renderImportoCellCompact(r) {
   }
   // Importo normale
   if (r.importo != null && r.importo !== "") {
-    const impNum = parseFloat(r.importo);
+    const impNum = parseFloat(String(r.importo).replace(/\./g, "").replace(",", "."));
     return `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">&euro;</span><span class="imp-val" style="color:${impNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(impNum)}&euro;</span></div></div>`;
   }
   return `<span class="imp-empty">-</span>`;
 }
 
 // ─── COLORE PILLOLA ───────────────────────────────────────────
-//
-// CONTABILITÀ: verde = IVA + cont ✓ | blu = solo uno | rosso = niente
-// RATE:        verde = rate + cont  | blu = parziale  | rosso = 0 rate
-// CHECKBOX:    verde = completato   | grigio = n_a    | rosso = da fare
-// NORMALE:     verde = completato   | rosso = da fare
-//
 function getPillColor(r, stato) {
   const isCompletato = stato === "completato";
   const isNA = stato === "n_a";
@@ -174,7 +159,7 @@ function getPillColor(r, stato) {
   }
 
   if (isContabilita(r)) {
-    const hasIva = !!r.importo_iva;
+    const hasIva = !!r.importo_iva && parseFloat(r.importo_iva) !== 0;
     const contDone = parseInt(r.cont_completata) === 1;
     if (hasIva && contDone) return "var(--green)";
     if (hasIva || contDone) return "var(--accent)";
@@ -182,12 +167,13 @@ function getPillColor(r, stato) {
   }
 
   if (hasRate(r)) {
-    const filled = [
-      r.importo_saldo,
-      r.importo_acconto1,
-      r.importo_acconto2,
-    ].filter(
-      (v) => v != null && v !== "" && v !== 0 && parseFloat(v) > 0,
+    // Conversione corretta dei valori in numeri per verificare se > 0 o < 0
+    const sNum = r.importo_saldo != null && r.importo_saldo !== "" ? parseFloat(String(r.importo_saldo).replace(/\./g, "").replace(",", ".")) : null;
+    const a1Num = r.importo_acconto1 != null && r.importo_acconto1 !== "" ? parseFloat(String(r.importo_acconto1).replace(/\./g, "").replace(",", ".")) : null;
+    const a2Num = r.importo_acconto2 != null && r.importo_acconto2 !== "" ? parseFloat(String(r.importo_acconto2).replace(/\./g, "").replace(",", ".")) : null;
+    
+    const filled = [sNum, a1Num, a2Num].filter(
+      (v) => v !== null && v !== 0
     ).length;
     const contDone = parseInt(r.cont_completata) === 1;
     const hasAnyRate = filled >= 1;
@@ -254,12 +240,13 @@ function renderPeriodoPill(r) {
   // Icona e label stato
   let statoIcon, statoLabel;
   if (hasRate(r)) {
-    const filled = [
-      r.importo_saldo,
-      r.importo_acconto1,
-      r.importo_acconto2,
-    ].filter(
-      (v) => v != null && v !== "" && v !== 0 && parseFloat(v) > 0,
+    // Conversione corretta dei valori per i rate
+    const sNum = r.importo_saldo != null && r.importo_saldo !== "" ? parseFloat(String(r.importo_saldo).replace(/\./g, "").replace(",", ".")) : null;
+    const a1Num = r.importo_acconto1 != null && r.importo_acconto1 !== "" ? parseFloat(String(r.importo_acconto1).replace(/\./g, "").replace(",", ".")) : null;
+    const a2Num = r.importo_acconto2 != null && r.importo_acconto2 !== "" ? parseFloat(String(r.importo_acconto2).replace(/\./g, "").replace(",", ".")) : null;
+    
+    const filled = [sNum, a1Num, a2Num].filter(
+      (v) => v !== null && v !== 0
     ).length;
     statoIcon = filled >= 3 ? "✅" : filled >= 1 ? "🔄" : "⭕";
     statoLabel =
@@ -331,7 +318,8 @@ function renderPeriodoPill(r) {
 
 // ─── HELPER: label con checkbox per contabilità ───────────────
 function _buildContabilitaLabel(r, pillColor) {
-  const hasIva = !!r.importo_iva;
+  const ivaNum = r.importo_iva != null && r.importo_iva !== "" ? parseFloat(String(r.importo_iva).replace(/\./g, "").replace(",", ".")) : null;
+  const hasIva = ivaNum !== null && ivaNum !== 0;
   const contDone = parseInt(r.cont_completata) === 1;
 
   let cIva, cCont;
@@ -343,10 +331,9 @@ function _buildContabilitaLabel(r, pillColor) {
     cIva = cCont = "var(--red)";
   }
 
-  const ivaNum = hasIva ? parseFloat(r.importo_iva) : null;
   const ivaVal =
-    ivaNum !== null
-      ? `<span style="color:${ivaNum < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(ivaNum)}</span>`
+    hasIva
+      ? `<span style="color:${ivaNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(ivaNum)}&euro;</span>`
       : "&mdash;";
 
   return `<div class="pp-cont-labels">
@@ -363,18 +350,21 @@ function _buildContabilitaLabel(r, pillColor) {
   </div>`;
 }
 
-// ─── HELPER: label con checkbox per rate ─────────────────────
+// ─── HELPER: label con checkbox per rate (CORRETTO PER NEGATIVI) ─────
 function _buildRateLabel(r, pillColor) {
   let lb = ["Saldo", "1°Acc.", "2°Acc."];
   try {
     if (r.rate_labels) lb = JSON.parse(r.rate_labels);
   } catch (e) {}
 
-  const vals = [r.importo_saldo, r.importo_acconto1, r.importo_acconto2];
+  // Conversione corretta dei valori in numeri
+  const sNum = r.importo_saldo != null && r.importo_saldo !== "" ? parseFloat(String(r.importo_saldo).replace(/\./g, "").replace(",", ".")) : null;
+  const a1Num = r.importo_acconto1 != null && r.importo_acconto1 !== "" ? parseFloat(String(r.importo_acconto1).replace(/\./g, "").replace(",", ".")) : null;
+  const a2Num = r.importo_acconto2 != null && r.importo_acconto2 !== "" ? parseFloat(String(r.importo_acconto2).replace(/\./g, "").replace(",", ".")) : null;
+  
   const icons = ["💰", "📥", "📥"];
-  const filled = vals.filter(
-    (v) => v != null && v !== "" && parseFloat(v) > 0,
-  ).length;
+  
+  const filled = [sNum, a1Num, a2Num].filter(v => v !== null && v !== 0).length;
   const allDone = filled >= 3;
   const contDone = parseInt(r.cont_completata) === 1;
   const hasAnyRate = filled >= 1;
@@ -388,20 +378,21 @@ function _buildRateLabel(r, pillColor) {
     cRate = cCont = "var(--red)";
   }
 
-  const rows = vals
-    .map((v, i) => {
-      const done = v != null && v !== "" && parseFloat(v) > 0;
-      const num = done ? parseFloat(v) : null;
-      const display = done
-        ? `<span style="color:${num < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(num)}</span>`
-        : "&mdash;";
-      return `<div class="pp-cont-row">
+  const rows = [
+    { num: sNum, icon: icons[0], label: lb[0] },
+    { num: a1Num, icon: icons[1], label: lb[1] },
+    { num: a2Num, icon: icons[2], label: lb[2] }
+  ].map(item => {
+    const done = item.num !== null && item.num !== 0;
+    const display = done
+      ? `<span style="color:${item.num < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(item.num)}&euro;</span>`
+      : "&mdash;";
+    return `<div class="pp-cont-row">
       <span class="pp-cont-check" style="color:${cRate}">${done ? "✓" : "✗"}</span>
-      <span class="pp-cont-lbl"   style="color:${cRate}">${icons[i]} ${lb[i]}</span>
+      <span class="pp-cont-lbl"   style="color:${cRate}">${item.icon} ${item.label}</span>
       <span class="pp-cont-val"   style="color:${cRate}">${display}</span>
     </div>`;
-    })
-    .join("");
+  }).join("");
 
   const contRow = `<div class="pp-cont-row">
     <span class="pp-cont-check" style="color:${cCont}">${contDone ? "✓" : "✗"}</span>

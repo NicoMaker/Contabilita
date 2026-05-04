@@ -513,13 +513,13 @@ function parseItalianoFloat(str) {
 function formattaInputConSeparatori(input) {
   if (!input) return;
   const raw = input.value;
-  if (!raw || raw === "-") return;
+  if (!raw) return;
 
   const posCursore = input.selectionStart;
   const lunghezzaOriginale = raw.length;
 
   const negativo = raw.startsWith("-");
-  let pulito = raw.replace(/[^0-9,]/g, "");
+  let pulito = raw.replace(/[^0-9,-]/g, "");
 
   const parti = pulito.split(",");
   let intero = parti[0];
@@ -562,7 +562,7 @@ function convertiVirgolaInPunto(input) {
   }
 
   const negativo = raw.startsWith("-");
-  let pulito = raw.replace(/[^0-9,]/g, "");
+  let pulito = raw.replace(/[^0-9,-]/g, "");
 
   const parti = pulito.split(",");
   let intero = parti[0] || "0";
@@ -657,4 +657,632 @@ function deleteAdpCliente() {
   if (!confirm("Rimuovere questo adempimento dallo scadenzario?")) return;
   const id = parseInt(getVal("adp-id"));
   socket.emit("delete:adempimento_cliente", { id });
+}
+
+// ─── VALIDAZIONE INPUT NUMERICO (PERMETTE NEGATIVI) ──────────────
+function validaInputNumerico(input) {
+  let value = input.value;
+  if (!value) {
+    coloraInputImporto(input);
+    return;
+  }
+  
+  // Permetti il segno meno all'inizio
+  let negativo = false;
+  if (value.startsWith("-")) {
+    negativo = true;
+    value = value.substring(1);
+  }
+  
+  // Sostituisci virgole con punti
+  value = value.replace(/,/g, ".");
+  
+  // Rimuovi tutto tranne numeri e punto
+  value = value.replace(/[^0-9.]/g, "");
+  
+  // Assicura un solo punto decimale
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts.slice(1).join("");
+  }
+  
+  // Riaggiungi il segno meno se necessario e se c'è un numero
+  if (negativo && value !== "") {
+    value = "-" + value;
+  }
+  
+  input.value = value;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTAZIONE FINALE AL BLUR (CONVERTI VIRGOLA IN PUNTO E FORMATTA) ──
+function convertiVirgolaInPunto(input) {
+  let raw = input.value.trim();
+  if (!raw || raw === "-") {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+
+  // Sostituisci virgole con punti e rimuovi caratteri non numerici tranne punto
+  let pulito = raw.replace(/,/g, ".");
+  pulito = pulito.replace(/[^0-9.]/g, "");
+  
+  const parti = pulito.split(".");
+  let intero = parti[0] || "0";
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
+  
+  // Rimuovi zeri non significativi dall'intero per evitare "000" → "0"
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta l'intero con i separatori delle migliaia
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  
+  // Ricostruisci il valore
+  let risultato = intero + "," + decimale;
+  if (negativo && parseFloat(intero.replace(/\./g, "")) > 0) {
+    risultato = "-" + risultato;
+  }
+  
+  input.value = risultato;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTA INPUT CON SEPARATORI MIGLIAIA (DURANTE DIGITAZIONE) ─────
+function formattaInputConSeparatori(input) {
+  let raw = input.value;
+  if (!raw) return;
+  
+  // Salva posizione cursore
+  const posCursore = input.selectionStart;
+  const lunghezzaOriginale = raw.length;
+  
+  // Gestisci segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Pulisci: rimuovi tutto tranne numeri e virgola/punto
+  let pulito = raw.replace(/[^0-9,.]/g, "");
+  
+  // Sostituisci virgole con punti per parsing
+  pulito = pulito.replace(/,/g, ".");
+  
+  const parti = pulito.split(".");
+  let intero = parti[0];
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2) : null;
+  
+  // Rimuovi zeri non significativi dall'intero
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta intero con separatori migliaia
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  
+  let formattato = negativo ? "-" + intero : intero;
+  if (decimale !== null) {
+    formattato += "," + decimale;
+  }
+  
+  if (raw !== formattato) {
+    input.value = formattato;
+    // Aggiusta posizione cursore
+    const delta = formattato.length - lunghezzaOriginale;
+    const nuovaPos = Math.max(0, posCursore + delta);
+    try {
+      input.setSelectionRange(nuovaPos, nuovaPos);
+    } catch (e) {}
+  }
+}
+
+// ─── BLOCCA PUNTO (non blocca il segno meno) ─────────────────────
+function bloccaPuntoInput(e) {
+  // Permetti il segno meno
+  if (e.key === ".") {
+    e.preventDefault();
+  }
+  // Permetti il segno meno solo all'inizio
+  if (e.key === "-") {
+    const input = e.target;
+    if (input.selectionStart !== 0 || input.value.includes("-")) {
+      e.preventDefault();
+    }
+  }
+}
+
+// ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
+function coloraInputImporto(input) {
+  if (!input) return;
+  let raw = input.value;
+  if (!raw) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Converti formato italiano in numero
+  let normalized = raw.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(normalized);
+  
+  if (isNaN(num)) {
+    input.style.color = "";
+    input.style.borderColor = "";
+  } else if (negativo || num < 0) {
+    input.style.color = "var(--red)";
+    input.style.borderColor = "";
+  } else {
+    input.style.color = "var(--green)";
+    input.style.borderColor = "";
+  }
+}
+
+// ─── HELPER: converte stringa italiana in numero JS ──────────
+function parseItalianoFloat(str) {
+  if (str === null || str === undefined || str === "") return null;
+  // Gestisci il segno meno
+  let negativo = false;
+  let cleanStr = String(str);
+  if (cleanStr.startsWith("-")) {
+    negativo = true;
+    cleanStr = cleanStr.substring(1);
+  }
+  // Sostituisci punto migliaia e virgola decimale
+  const numStr = cleanStr.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(numStr);
+  if (isNaN(num)) return null;
+  return negativo ? -num : num;
+}
+
+// ─── VALIDAZIONE INPUT NUMERICO (PERMETTE NEGATIVI) ──────────────
+function validaInputNumerico(input) {
+  let value = input.value;
+  if (!value) {
+    coloraInputImporto(input);
+    return;
+  }
+  
+  // Permetti il segno meno all'inizio
+  let negativo = false;
+  if (value.startsWith("-")) {
+    negativo = true;
+    value = value.substring(1);
+  }
+  
+  // Sostituisci virgole con punti
+  value = value.replace(/,/g, ".");
+  
+  // Rimuovi tutto tranne numeri e punto
+  value = value.replace(/[^0-9.]/g, "");
+  
+  // Assicura un solo punto decimale
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts.slice(1).join("");
+  }
+  
+  // Riaggiungi il segno meno se necessario e se c'è un numero
+  if (negativo && value !== "" && value !== ".") {
+    value = "-" + value;
+  }
+  
+  input.value = value;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTAZIONE FINALE AL BLUR ────────────────────────────
+function convertiVirgolaInPunto(input) {
+  let raw = input.value.trim();
+  if (!raw || raw === "-") {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+
+  // Sostituisci virgole con punti e rimuovi caratteri non numerici tranne punto
+  let pulito = raw.replace(/,/g, ".");
+  pulito = pulito.replace(/[^0-9.]/g, "");
+  
+  if (!pulito || pulito === ".") {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+  
+  const parti = pulito.split(".");
+  let intero = parti[0] || "0";
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
+  
+  // Rimuovi zeri non significativi dall'intero
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta l'intero con i separatori delle migliaia
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  
+  // Ricostruisci il valore
+  let risultato = intero + "," + decimale;
+  if (negativo) {
+    risultato = "-" + risultato;
+  }
+  
+  input.value = risultato;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTA INPUT CON SEPARATORI MIGLIAIA ──────────────────
+function formattaInputConSeparatori(input) {
+  let raw = input.value;
+  if (!raw) return;
+  
+  // Salva posizione cursore
+  const posCursore = input.selectionStart;
+  const lunghezzaOriginale = raw.length;
+  
+  // Gestisci segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Pulisci: rimuovi tutto tranne numeri e virgola/punto
+  let pulito = raw.replace(/[^0-9,.]/g, "");
+  
+  // Sostituisci virgole con punti per parsing
+  pulito = pulito.replace(/,/g, ".");
+  
+  if (!pulito || pulito === ".") {
+    return;
+  }
+  
+  const parti = pulito.split(".");
+  let intero = parti[0];
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2) : null;
+  
+  // Rimuovi zeri non significativi dall'intero
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta intero con separatori migliaia
+  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  
+  let formattato = negativo ? "-" + intero : intero;
+  if (decimale !== null && decimale !== "") {
+    formattato += "," + decimale;
+  }
+  
+  if (raw !== formattato) {
+    input.value = formattato;
+    // Aggiusta posizione cursore
+    const delta = formattato.length - lunghezzaOriginale;
+    const nuovaPos = Math.max(0, posCursore + delta);
+    try {
+      input.setSelectionRange(nuovaPos, nuovaPos);
+    } catch (e) {}
+  }
+}
+
+// ─── BLOCCA PUNTO (NON BLOCCA IL SEGNO MENO) ─────────────────
+function bloccaPuntoInput(e) {
+  // Permetti il segno meno
+  if (e.key === "-") {
+    const input = e.target;
+    // Permetti il meno solo se è all'inizio e non c'è già un meno
+    if (input.selectionStart !== 0 || input.value.includes("-")) {
+      e.preventDefault();
+    }
+    return;
+  }
+  // Blocca il punto (virgola già gestita separatamente)
+  if (e.key === ".") {
+    e.preventDefault();
+  }
+}
+
+// ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
+function coloraInputImporto(input) {
+  if (!input) return;
+  let raw = input.value;
+  if (!raw) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Se dopo il meno non c'è niente, non colorare
+  if (!raw) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  // Converti formato italiano in numero
+  let normalized = raw.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(normalized);
+  
+  if (isNaN(num)) {
+    input.style.color = "";
+    input.style.borderColor = "";
+  } else if (negativo) {
+    input.style.color = "var(--red)";
+    input.style.borderColor = "";
+  } else {
+    input.style.color = "var(--green)";
+    input.style.borderColor = "";
+  }
+}
+
+// ─── HELPER: converte stringa italiana in numero JS ──────────
+function parseItalianoFloat(str) {
+  if (str === null || str === undefined || str === "") return null;
+  // Gestisci il segno meno
+  let negativo = false;
+  let cleanStr = String(str).trim();
+  if (cleanStr.startsWith("-")) {
+    negativo = true;
+    cleanStr = cleanStr.substring(1);
+  }
+  // Se dopo il meno non c'è niente, restituisci null
+  if (!cleanStr) return null;
+  // Sostituisci punto migliaia e virgola decimale
+  const numStr = cleanStr.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(numStr);
+  if (isNaN(num)) return null;
+  return negativo ? -num : num;
+}
+
+// ─── BLOCCA PUNTO MA PERMETTE IL SEGNO MENO ─────────────────────
+function bloccaPuntoInput(e) {
+  // Permetti il segno meno (deve poterlo scrivere)
+  if (e.key === "-") {
+    const input = e.target;
+    // Permetti il meno solo se è all'inizio (posizione 0) e non c'è già un meno
+    if (input.selectionStart !== 0 || input.value.includes("-")) {
+      e.preventDefault();
+    }
+    return; // Non bloccare il meno
+  }
+  
+  // Blocca il punto (usa la virgola come separatore decimale)
+  if (e.key === ".") {
+    e.preventDefault();
+  }
+}
+
+// ─── VALIDAZIONE INPUT NUMERICO (PERMETTE NEGATIVI) ──────────────
+function validaInputNumerico(input) {
+  let value = input.value;
+  if (!value) {
+    coloraInputImporto(input);
+    return;
+  }
+  
+  // Permetti il segno meno all'inizio
+  let negativo = false;
+  if (value.startsWith("-")) {
+    negativo = true;
+    value = value.substring(1);
+  }
+  
+  // Sostituisci virgole con punti
+  value = value.replace(/,/g, ".");
+  
+  // Rimuovi tutto tranne numeri e punto
+  value = value.replace(/[^0-9.]/g, "");
+  
+  // Assicura un solo punto decimale
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts.slice(1).join("");
+  }
+  
+  // Riaggiungi il segno meno se necessario e se c'è un numero
+  if (negativo && value !== "" && value !== "." && value !== "0") {
+    value = "-" + value;
+  }
+  
+  input.value = value;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTAZIONE FINALE AL BLUR ────────────────────────────
+function convertiVirgolaInPunto(input) {
+  let raw = input.value.trim();
+  if (!raw || raw === "-") {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Se dopo il meno non c'è niente
+  if (!raw) {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+
+  // Sostituisci virgole con punti e rimuovi caratteri non numerici tranne punto
+  let pulito = raw.replace(/,/g, ".");
+  pulito = pulito.replace(/[^0-9.]/g, "");
+  
+  if (!pulito || pulito === ".") {
+    input.value = "";
+    coloraInputImporto(input);
+    return;
+  }
+  
+  const parti = pulito.split(".");
+  let intero = parti[0] || "0";
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
+  
+  // Rimuovi zeri non significativi dall'intero
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta l'intero con i separatori delle migliaia (SOLO se è lungo > 3)
+  if (intero.length > 3) {
+    intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+  
+  // Ricostruisci il valore
+  let risultato = intero + "," + decimale;
+  if (negativo && parseFloat(intero.replace(/\./g, "")) !== 0) {
+    risultato = "-" + risultato;
+  }
+  
+  input.value = risultato;
+  coloraInputImporto(input);
+}
+
+// ─── FORMATTA INPUT CON SEPARATORI MIGLIAIA ──────────────────
+function formattaInputConSeparatori(input) {
+  let raw = input.value;
+  if (!raw) return;
+  
+  // Salva posizione cursore
+  const posCursore = input.selectionStart;
+  const lunghezzaOriginale = raw.length;
+  
+  // Gestisci segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Se c'è solo il meno, non formattare
+  if (!raw) return;
+  
+  // Pulisci: rimuovi tutto tranne numeri e virgola/punto
+  let pulito = raw.replace(/[^0-9,.]/g, "");
+  
+  // Sostituisci virgole con punti per parsing
+  pulito = pulito.replace(/,/g, ".");
+  
+  if (!pulito || pulito === ".") {
+    return;
+  }
+  
+  const parti = pulito.split(".");
+  let intero = parti[0];
+  let decimale = parti.length > 1 ? parti[1].substring(0, 2) : null;
+  
+  // Rimuovi zeri non significativi dall'intero
+  intero = intero.replace(/^0+/, "");
+  if (intero === "") intero = "0";
+  
+  // Formatta intero con separatori migliaia
+  if (intero.length > 3) {
+    intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+  
+  let formattato = negativo ? "-" + intero : intero;
+  if (decimale !== null && decimale !== "") {
+    formattato += "," + decimale;
+  }
+  
+  if (raw !== formattato) {
+    input.value = formattato;
+    // Aggiusta posizione cursore
+    const delta = formattato.length - lunghezzaOriginale;
+    const nuovaPos = Math.max(0, posCursore + delta);
+    try {
+      input.setSelectionRange(nuovaPos, nuovaPos);
+    } catch (e) {}
+  }
+}
+
+// ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
+function coloraInputImporto(input) {
+  if (!input) return;
+  let raw = input.value;
+  if (!raw) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  // Gestisci il segno meno
+  let negativo = false;
+  if (raw.startsWith("-")) {
+    negativo = true;
+    raw = raw.substring(1);
+  }
+  
+  // Se dopo il meno non c'è niente, non colorare
+  if (!raw) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  // Converti formato italiano in numero
+  let normalized = raw.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(normalized);
+  
+  if (isNaN(num)) {
+    input.style.color = "";
+    input.style.borderColor = "";
+  } else if (negativo) {
+    input.style.color = "var(--red)";
+  } else {
+    input.style.color = "var(--green)";
+  }
+}
+
+// ─── HELPER: converte stringa italiana in numero JS ──────────
+function parseItalianoFloat(str) {
+  if (str === null || str === undefined || str === "") return null;
+  // Gestisci il segno meno
+  let negativo = false;
+  let cleanStr = String(str).trim();
+  if (cleanStr.startsWith("-")) {
+    negativo = true;
+    cleanStr = cleanStr.substring(1);
+  }
+  // Se dopo il meno non c'è niente, restituisci null
+  if (!cleanStr) return null;
+  // Sostituisci punto migliaia e virgola decimale
+  const numStr = cleanStr.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(numStr);
+  if (isNaN(num)) return null;
+  return negativo ? -num : num;
 }
