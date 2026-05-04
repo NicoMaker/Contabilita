@@ -268,6 +268,9 @@ function renderGlobalePage() {
       '<span class="year-num">' + state.anno + '</span>' +
       '<button onclick="changeAnnoGlobale(1)" title="Anno successivo">&#9654;</button>' +
     '</div>' +
+    '<select class="select topbar-select" id="glob-sel-cliente" onchange="onGlobaleClienteChange()" title="Seleziona il cliente" style="min-width:200px;max-width:260px">' +
+      '<option value="">-- Seleziona Cliente --</option>' +
+    '</select>' +
     '<select class="select" id="glob-filtro-adp" style="width:210px;font-size:13px" onchange="applyGlobaleFiltri()" title="Filtra per tipo di adempimento">' +
       '<option value="">📋 Tutti adempimenti</option>' +
     '</select>' +
@@ -287,6 +290,8 @@ function renderGlobalePage() {
 
   setTimeout(function() {
     initSearchableSelect("glob-filtro-adp");
+    initSearchableSelect("glob-sel-cliente");
+    populateGlobaleClienti();
     
     if (state.globalePreFiltroAdp && state.globalePreFiltroAdp !== "") {
       var filterValue = state.globalePreFiltroAdp;
@@ -312,15 +317,67 @@ function changeAnnoGlobale(d) {
   loadGlobale();
 }
 
+function populateGlobaleClienti() {
+  if (!state.clienti || state.clienti.length === 0) {
+    socket.emit("get:clienti", { anno: state.anno });
+    socket.once("res:clienti", function(data) {
+      if (data.success) {
+        state.clienti = data.data;
+        renderGlobaleClientiSelect();
+      }
+    });
+  } else {
+    renderGlobaleClientiSelect();
+  }
+}
+
+function renderGlobaleClientiSelect() {
+  var clienteSel = document.getElementById("glob-sel-cliente");
+  if (!clienteSel) return;
+  
+  var currentValue = clienteSel.value;
+  var opts = (state.clienti || [])
+    .map(function(c) {
+      return '<option value="' + c.id + '"' + (currentValue == c.id ? ' selected' : '') + '>[' + (c.tipologia_codice || "?") + '] ' + c.nome + '</option>';
+    })
+    .join("");
+
+  clienteSel.innerHTML = '<option value="">-- Seleziona Cliente --</option>' + opts;
+  
+  if (!clienteSel.dataset.ssinit) {
+    initSearchableSelect("glob-sel-cliente");
+  } else if (clienteSel._ssRefresh) {
+    clienteSel._ssRefresh();
+  }
+}
+
+function onGlobaleClienteChange() {
+  var clienteSel = document.getElementById("glob-sel-cliente");
+  var clienteId = clienteSel ? clienteSel.value : "";
+  
+  if (clienteId) {
+    state.globaleSelectedCliente = clienteId;
+    // Apply client filter
+    applyGlobaleFiltri();
+  } else {
+    state.globaleSelectedCliente = "";
+    applyGlobaleFiltri();
+  }
+}
+
 function loadGlobale() {
   var filtri = {};
   var adpSel = document.getElementById("glob-filtro-adp");
   var statoSel = document.getElementById("glob-filtro-stato");
   var search = document.getElementById("glob-search");
+  var clienteSel = document.getElementById("glob-sel-cliente");
+  
   if (adpSel && adpSel.value) filtri.adempimento = adpSel.value;
   if (statoSel && statoSel.value) filtri.stato = statoSel.value;
   if (search && search.value) filtri.search = search.value;
+  if (clienteSel && clienteSel.value) filtri.cliente_id = parseInt(clienteSel.value);
   if (state.globalePreFiltroAdp && !filtri.adempimento) filtri.adempimento = state.globalePreFiltroAdp;
+  
   socket.emit("get:scadenzario_globale", { anno: state.anno, filtri: filtri });
 }
 
@@ -330,7 +387,8 @@ function applyGlobaleFiltriLocali() { if (state.scadGlobale) renderGlobaleTabell
 
 function resetGlobaleFiltri() {
   state.globalePreFiltroAdp = "";
-  var ids = ["glob-filtro-adp","glob-filtro-stato","glob-filtro-tipo","glob-filtro-periodicita","glob-filtro-cliente-stato","glob-search"];
+  state.globaleSelectedCliente = "";
+  var ids = ["glob-filtro-adp","glob-filtro-stato","glob-filtro-tipo","glob-filtro-periodicita","glob-filtro-cliente-stato","glob-search","glob-sel-cliente"];
   for (var i = 0; i < ids.length; i++) {
     var el = document.getElementById(ids[i]);
     if (el) { el.value = ""; if (el._ssRefresh) el._ssRefresh(); }
@@ -672,3 +730,6 @@ window.applyGlobaleFiltriLocali = applyGlobaleFiltriLocali;
 window.applyGlobaleFiltriDebounced = applyGlobaleFiltriDebounced;
 window.navigaAdempimento = navigaAdempimento;
 window.changeAnnoGlobale = changeAnnoGlobale;
+window.populateGlobaleClienti = populateGlobaleClienti;
+window.renderGlobaleClientiSelect = renderGlobaleClientiSelect;
+window.onGlobaleClienteChange = onGlobaleClienteChange;

@@ -46,6 +46,19 @@ function buildDashboardShell(stats) {
       </div>
     </div>
     
+    <!-- ⭐ TIPOLOGIE FILTER PANEL -->
+    <div class="dash-tip-filtro-wrap" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;" onclick="toggleDashTipFiltroPanel(event)">
+        <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia Clienti</span>
+        <span id="dash-tip-filtro-count" style="display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--red);color:#fff;border-radius:10px;font-size:11px;font-weight:700">0</span>
+        <span style="font-size:11px;color:var(--red);font-weight:700">⚠️ Nessuno selezionato</span>
+        <div id="dash-tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">
+          <button class="btn btn-xs btn-secondary" onclick="toggleDashTipFiltroPanel(event)">▼ Espandi</button>
+        </div>
+      </div>
+      <div id="dash-tip-filtro-container" style="display:none;margin-top:8px"></div>
+    </div>
+
     <div class="table-wrap">
       <div class="table-header no-print" style="flex-wrap:wrap;gap:10px">
         <h3 id="dash-adp-count-title">Adempimenti ${stats.anno}</h3>
@@ -57,6 +70,9 @@ function buildDashboardShell(stats) {
               <option value="in_corso">🔄 In corso</option>
               <option value="completato">✅ Completato</option>
               <option value="n_a">➖ N/A</option>
+            </select>
+            <select class="select" id="dash-filtro-tipo" style="width:155px;font-size:13px" onchange="applyDashFiltri()" title="Filtra per tipo cliente">
+              <option value="">👥 Tutti i tipi</option>
             </select>
             <div class="search-wrap" style="width:220px">
               <span class="search-icon">🔍</span>
@@ -71,6 +87,15 @@ function buildDashboardShell(stats) {
   
   state._dashRendered = true;
   caricaClientiSenzaAdempimenti();
+  
+  // Initialize tipologie filter after dashboard is built
+  setTimeout(function() {
+    if (typeof initializeTipologieFilter === "function") {
+      initializeTipologieFilter();
+    }
+    _refreshDashTipFiltroPanel();
+    _aggiornaDashTipFiltroCounter();
+  }, 100);
 }
 
 // ⭐ CARICA CLIENTI SENZA ADEMPIMENTI
@@ -374,13 +399,113 @@ function onDashFiltroStatoAdp() {
   if (state.dashStats) updateDashboardContent(state.dashStats);
 }
 
+// ⭐ TIPOLOGIE FILTER PANEL FUNCTIONS
+var _dashTipFiltroPanelOpen = false;
+
+function toggleDashTipFiltroPanel(event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  _dashTipFiltroPanelOpen = !_dashTipFiltroPanelOpen;
+  _aggiornaDashPanelVisibility();
+}
+
+function closeDashTipFiltroPanel(event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  _dashTipFiltroPanelOpen = false;
+  _aggiornaDashPanelVisibility();
+}
+
+function _aggiornaDashPanelVisibility() {
+  var container = document.getElementById("dash-tip-filtro-container");
+  if (!container) return;
+  container.style.display = _dashTipFiltroPanelOpen ? "block" : "none";
+  var btn = document.getElementById("dash-tip-filtro-toggle-btn");
+  if (btn) {
+    btn.innerHTML = _dashTipFiltroPanelOpen
+      ? '<button class="btn btn-xs btn-secondary" onclick="closeDashTipFiltroPanel(event)">✕ Chiudi</button>'
+      : '<button class="btn btn-xs btn-secondary" onclick="toggleDashTipFiltroPanel(event)">▼ Espandi</button>';
+  }
+}
+
+function _aggiornaDashTipFiltroCounter() {
+  var badge = document.getElementById("dash-tip-filtro-count");
+  if (!badge) return;
+  var keys = _getActiveFiltroKeys();
+  var allKeys = typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
+  var isNone = _isManualNessuno() || keys.size === 0;
+  var isAll = !isNone && keys.size === allKeys.length;
+  
+  if (isNone) {
+    badge.textContent = "0";
+    badge.style.display = "inline-flex";
+    badge.style.background = "var(--red)";
+  } else if (isAll) {
+    badge.textContent = "";
+    badge.style.display = "none";
+  } else {
+    badge.textContent = keys.size;
+    badge.style.display = "inline-flex";
+    badge.style.background = "var(--accent)";
+  }
+  
+  // Update warning message
+  var warningMsg = document.querySelector(".dash-tip-filtro-wrap span[style*='color:var(--red)']");
+  if (warningMsg) {
+    if (isNone) {
+      warningMsg.style.display = "inline";
+    } else {
+      warningMsg.style.display = "none";
+    }
+  }
+}
+
+function _refreshDashTipFiltroPanel() {
+  var container = document.getElementById("dash-tip-filtro-container");
+  if (!container || !_dashTipFiltroPanelOpen) return;
+  if (typeof renderTipologieFiltroPanel === "function") {
+    var tmp = document.createElement("div");
+    tmp.innerHTML = renderTipologieFiltroPanel();
+    container.innerHTML = "";
+    container.appendChild(tmp.firstChild);
+  }
+  container.style.display = "block";
+  _aggiornaDashTipFiltroCounter();
+  
+  // Apply dashboard filters after tipologie change
+  setTimeout(function() {
+    if (state.dashStats) updateDashboardContent(state.dashStats);
+  }, 100);
+}
+
+function applyDashFiltri() {
+  var tipoEl = document.getElementById("dash-filtro-tipo");
+  if (tipoEl) {
+    state.dashFiltroTipo = tipoEl.value;
+  }
+  
+  // Refresh tipologie filter panel when filters change
+  if (typeof _refreshDashTipFiltroPanel === "function") {
+    _refreshDashTipFiltroPanel();
+  }
+  
+  if (state.dashStats) updateDashboardContent(state.dashStats);
+}
+
 function resetDashFiltri() {
   state.dashSearch = "";
   state.dashFiltroStatoAdp = "";
+  state.dashFiltroTipo = "";
   var searchEl = document.getElementById("dash-adp-search");
   if (searchEl) searchEl.value = "";
   var statoEl = document.getElementById("dash-filtro-stato-adp");
   if (statoEl) statoEl.value = "";
+  var tipoEl = document.getElementById("dash-filtro-tipo");
+  if (tipoEl) tipoEl.value = "";
+  
+  // Reset tipologie filter
+  if (typeof initializeTipologieFilter === "function") initializeTipologieFilter();
+  _refreshDashTipFiltroPanel();
+  _aggiornaDashTipFiltroCounter();
+  
   if (state.dashStats) updateDashboardContent(state.dashStats);
 }
 
@@ -395,16 +520,47 @@ function adempimentoPassaFiltroStato(a, ss) {
   return true;
 }
 
+function populateDashTipoFilter() {
+  var tipoSel = document.getElementById("dash-filtro-tipo");
+  if (!tipoSel) return;
+  
+  var currentValue = tipoSel.value;
+  var options = '<option value="">👥 Tutti i tipi</option>';
+  
+  // Get unique client types from dashboard data
+  var tipiSet = new Set();
+  if (state.dashStats && state.dashStats.clientiTipi) {
+    state.dashStats.clientiTipi.forEach(function(tipo) {
+      if (tipo) tipiSet.add(tipo);
+    });
+  }
+  
+  var tipiArray = Array.from(tipiSet).sort();
+  for (var i = 0; i < tipiArray.length; i++) {
+    var tipo = tipiArray[i];
+    var selected = (currentValue === tipo) ? ' selected' : '';
+    options += '<option value="' + tipo + '"' + selected + '>' + tipo + '</option>';
+  }
+  
+  tipoSel.innerHTML = options;
+}
+
 function updateDashboardContent(stats) {
   var allAdp = stats.adempimentiStats || [];
   var sq = (state.dashSearch || "").toLowerCase();
   var ss = state.dashFiltroStatoAdp || "";
+  var st = state.dashFiltroTipo || "";
   
   var adpVis = [];
   for (var i = 0; i < allAdp.length; i++) {
     var a = allAdp[i];
     if (sq && a.nome.toLowerCase().indexOf(sq) === -1 && a.codice.toLowerCase().indexOf(sq) === -1) continue;
     if (!adempimentoPassaFiltroStato(a, ss)) continue;
+    if (st && a.cliente_tipologia !== st) continue;
+    
+    // Apply tipologie filter
+    if (a.cliente_tipologia && !clientePassaFiltroTipologieDash(a)) continue;
+    
     adpVis.push(a);
   }
   
@@ -469,9 +625,22 @@ function updateDashboardContent(stats) {
   grid.innerHTML = html;
 }
 
+function clientePassaFiltroTipologieDash(a) {
+  // Use the same function as globale.js for consistency
+  return clientePassaFiltroTipologie(a);
+}
+
 function renderDashboard(stats) {
   if (!state._dashRendered) buildDashboardShell(stats);
   updateDashboardContent(stats);
+  populateDashTipoFilter();
+  
+  // Initialize tipologie filter
+  if (typeof initializeTipologieFilter === "function") {
+    initializeTipologieFilter();
+  }
+  _refreshDashTipFiltroPanel();
+  _aggiornaDashTipFiltroCounter();
 }
 
 function onDashAdpSearch(val) { 
@@ -523,5 +692,11 @@ window.goToClienteScadenzarioDiretto = goToClienteScadenzarioDiretto;
 window.caricaClientiSenzaAdempimenti = caricaClientiSenzaAdempimenti;
 window.goVistaGlobaleAdp = goVistaGlobaleAdp;
 window.onDashFiltroStatoAdp = onDashFiltroStatoAdp;
+window.applyDashFiltri = applyDashFiltri;
 window.resetDashFiltri = resetDashFiltri;
 window.onDashAdpSearch = onDashAdpSearch;
+window.toggleDashTipFiltroPanel = toggleDashTipFiltroPanel;
+window.closeDashTipFiltroPanel = closeDashTipFiltroPanel;
+window._aggiornaDashPanelVisibility = _aggiornaDashPanelVisibility;
+window._aggiornaDashTipFiltroCounter = _aggiornaDashTipFiltroCounter;
+window._refreshDashTipFiltroPanel = _refreshDashTipFiltroPanel;

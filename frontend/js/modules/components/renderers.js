@@ -96,11 +96,11 @@ function renderImportoCellCompact(r) {
 
     const iva =
       ivaNum !== null
-        ? `<span style="color:${ivaNum < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(ivaNum)}</span>`
+        ? `<span style="color:${ivaNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(ivaNum)}&euro;</span>`
         : null;
     const acc2 =
       acc2Num !== null
-        ? `<span style="color:${acc2Num < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(acc2Num)}</span>`
+        ? `<span style="color:${acc2Num < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(acc2Num)}&euro;</span>`
         : null;
 
     if (!iva && !acc2 && !contDone) return `<span class="imp-empty">-</span>`;
@@ -130,7 +130,7 @@ function renderImportoCellCompact(r) {
 
     const s =
       sNum !== null
-        ? `<span style="color:${sNum < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(sNum)}</span>`
+        ? `<span style="color:${sNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(sNum)}&euro;</span>`
         : null;
     const a1 =
       a1Num !== null
@@ -151,7 +151,7 @@ function renderImportoCellCompact(r) {
   // Importo normale
   if (r.importo != null && r.importo !== "") {
     const impNum = parseFloat(r.importo);
-    return `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">&euro;</span><span class="imp-val" style="color:${impNum < 0 ? "var(--red)" : "var(--green)"}">&euro;${formattaNumeroItaliano(impNum)}</span></div></div>`;
+    return `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">&euro;</span><span class="imp-val" style="color:${impNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(impNum)}&euro;</span></div></div>`;
   }
   return `<span class="imp-empty">-</span>`;
 }
