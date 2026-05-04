@@ -262,15 +262,16 @@ function renderGlobalePage() {
     initializeTipologieFilter();
   }
 
+  // ⭐ FIX: inizializza globaleSelectedCliente se non esiste
+  if (typeof state.globaleSelectedCliente === "undefined") {
+    state.globaleSelectedCliente = "";
+  }
+
   document.getElementById("topbar-actions").innerHTML = 
     '<div class="year-sel">' +
       '<button onclick="changeAnnoGlobale(-1)" title="Anno precedente">&#9664;</button>' +
       '<span class="year-num">' + state.anno + '</span>' +
       '<button onclick="changeAnnoGlobale(1)" title="Anno successivo">&#9654;</button>' +
-    '</div>' +
-    '<div class="search-wrap" style="width:220px">' +
-      '<span class="search-icon">🔍</span>' +
-      '<input class="input" id="glob-search-cliente" placeholder="Cerca cliente..." oninput="applyGlobaleFiltriDebounced()" style="font-size:13px">' +
     '</div>' +
     '<select class="select topbar-select" id="glob-sel-cliente" onchange="onGlobaleClienteChange()" title="Seleziona il cliente" style="min-width:200px;max-width:260px">' +
       '<option value="">-- Seleziona Cliente --</option>' +
@@ -335,15 +336,22 @@ function renderGlobaleClientiSelect() {
   var clienteSel = document.getElementById("glob-sel-cliente");
   if (!clienteSel) return;
   
-  var currentValue = clienteSel.value;
+  // ⭐ FIX: usa state.globaleSelectedCliente come fonte di verità, non il DOM
+  var currentValue = state.globaleSelectedCliente || "";
+
   var opts = (state.clienti || [])
     .map(function(c) {
-      return '<option value="' + c.id + '"' + (currentValue == c.id ? ' selected' : '') + '>[' + (c.tipologia_codice || "?") + '] ' + c.nome + '</option>';
+      return '<option value="' + c.id + '"' + (String(c.id) === String(currentValue) ? ' selected' : '') + '>[' + (c.tipologia_codice || "?") + '] ' + c.nome + '</option>';
     })
     .join("");
 
   clienteSel.innerHTML = '<option value="">-- Seleziona Cliente --</option>' + opts;
-  
+
+  // ⭐ FIX: ripristina il valore nel select nativo prima di fare _ssRefresh
+  if (currentValue) {
+    clienteSel.value = currentValue;
+  }
+
   if (!clienteSel.dataset.ssinit) {
     initSearchableSelect("glob-sel-cliente");
   } else if (clienteSel._ssRefresh) {
@@ -353,15 +361,10 @@ function renderGlobaleClientiSelect() {
 
 function onGlobaleClienteChange() {
   var clienteSel = document.getElementById("glob-sel-cliente");
+  // ⭐ FIX: salva sempre in state, che è la fonte di verità
   var clienteId = clienteSel ? clienteSel.value : "";
-  
-  if (clienteId) {
-    state.globaleSelectedCliente = clienteId;
-    applyGlobaleFiltri();
-  } else {
-    state.globaleSelectedCliente = "";
-    applyGlobaleFiltri();
-  }
+  state.globaleSelectedCliente = clienteId;
+  applyGlobaleFiltri();
 }
 
 function loadGlobale() {
@@ -369,12 +372,16 @@ function loadGlobale() {
   var adpSel = document.getElementById("glob-filtro-adp");
   var statoSel = document.getElementById("glob-filtro-stato");
   var clienteSearch = document.getElementById("glob-search-cliente");
-  var clienteSel = document.getElementById("glob-sel-cliente");
-  
+
   if (adpSel && adpSel.value) filtri.adempimento = adpSel.value;
   if (statoSel && statoSel.value) filtri.stato = statoSel.value;
   if (clienteSearch && clienteSearch.value) filtri.search = clienteSearch.value;
-  if (clienteSel && clienteSel.value) filtri.cliente_id = parseInt(clienteSel.value);
+
+  // ⭐ FIX: leggi sempre da state, non dal DOM (il DOM può essere sfasato)
+  if (state.globaleSelectedCliente && state.globaleSelectedCliente !== "") {
+    filtri.cliente_id = parseInt(state.globaleSelectedCliente);
+  }
+
   if (state.globalePreFiltroAdp && !filtri.adempimento) filtri.adempimento = state.globalePreFiltroAdp;
   
   socket.emit("get:scadenzario_globale", { anno: state.anno, filtri: filtri });
@@ -468,13 +475,21 @@ function renderGlobaleTabella(rawData) {
   var filtroClienteStatoEl = document.getElementById("glob-filtro-cliente-stato");
   var filtroClienteStato = filtroClienteStatoEl ? filtroClienteStatoEl.value : "";
   
-  // Applica filtro di ricerca clienti
   var clienteSearch = document.getElementById("glob-search-cliente");
   var searchTerm = clienteSearch ? clienteSearch.value.toLowerCase() : "";
-  
+
+  // ⭐ FIX: filtro per cliente selezionato — leggi da state, non dal DOM
+  var selectedClienteId = (state.globaleSelectedCliente && state.globaleSelectedCliente !== "")
+    ? parseInt(state.globaleSelectedCliente)
+    : null;
+
   var data = [];
   for (var i = 0; i < rawData.length; i++) {
     var r = rawData[i];
+
+    // Filtra per cliente selezionato (doppio filtro: server + client per sicurezza)
+    if (selectedClienteId && r.cliente_id !== selectedClienteId) continue;
+
     // Filtra per ricerca cliente
     if (searchTerm) {
       var clienteNome = (r.cliente_nome || "").toLowerCase();
@@ -523,7 +538,26 @@ function renderGlobaleTabella(rawData) {
       '<button onclick="document.getElementById(\'glob-filtro-cliente-stato\').value=\'\';applyGlobaleFiltriLocali()" style="background:none;border:none;color:var(--yellow);cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Rimuovi filtro">✕</button>' +
       '</div>';
   }
-  
+
+  // ⭐ FIX: badge per cliente selezionato nel dropdown
+  var clienteSelBadge = "";
+  if (selectedClienteId && state.clienti) {
+    var clienteTrovato = null;
+    for (var ci = 0; ci < state.clienti.length; ci++) {
+      if (parseInt(state.clienti[ci].id) === selectedClienteId) {
+        clienteTrovato = state.clienti[ci];
+        break;
+      }
+    }
+    if (clienteTrovato) {
+      clienteSelBadge = '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;margin-left:10px;padding:5px 12px;background:var(--accent)18;border:1px solid var(--accent)44;border-radius:20px;font-size:12px;color:var(--accent)">' +
+        '<span>👤 Cliente:</span>' +
+        '<strong>' + escAttr(clienteTrovato.nome) + '</strong>' +
+        '<button onclick="state.globaleSelectedCliente=\'\';resetGlobaleClienteSel();applyGlobaleFiltri()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Rimuovi filtro cliente">✕</button>' +
+        '</div>';
+    }
+  }
+
   var searchBadge = "";
   if (searchTerm) {
     searchBadge = '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;margin-left:10px;padding:5px 12px;background:var(--accent)18;border:1px solid var(--accent)44;border-radius:20px;font-size:12px;color:var(--accent)">' +
@@ -566,6 +600,7 @@ function renderGlobaleTabella(rawData) {
           '<div class="gpc-sub">' + st.clienti + ' clienti · ' + st.adempimenti.length + ' tipi adempimenti</div>' +
           '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px">' +
             filtroClienteStatoBadge +
+            clienteSelBadge +
             searchBadge +
           '</div>' +
         '</div>' +
@@ -629,7 +664,6 @@ function renderGlobaleTabella(rawData) {
       var c = clientiArray[cIdx];
       if (!clientePassaFiltroStato(c.periodi, filtroClienteStato)) continue;
       if (!clientePassaFiltroTipologie(c)) continue;
-      // Filtro per ricerca già applicato a livello di dati
       clientiFiltrati.push(c);
     }
     clientiFiltrati.sort(function(a, b) { return a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }); });
@@ -717,7 +751,7 @@ function renderGlobaleTabella(rawData) {
   if (!content) {
     var msgVuoto = tipFiltroIsNone
       ? 'Nessun filtro tipologia selezionato — clicca <strong>✦ Tutti</strong> nel pannello Tipologie per vedere i clienti'
-      : (filtroClienteStato || hasFiltroTipologie || searchTerm
+      : (filtroClienteStato || hasFiltroTipologie || searchTerm || selectedClienteId
         ? 'Nessun cliente corrisponde ai filtri attivi per ' + state.anno
         : 'Nessun adempimento trovato per ' + state.anno);
     
@@ -730,9 +764,18 @@ function renderGlobaleTabella(rawData) {
   
   document.getElementById("content").innerHTML = headerCard + content;
   
-  // ⭐ Resetta il filtro preimpostato dopo il render
   if (state.globalePreFiltroAdp) {
     state.globalePreFiltroAdp = "";
+  }
+}
+
+// ⭐ FIX: helper per resettare il select cliente nel DOM e nel searchable select
+function resetGlobaleClienteSel() {
+  state.globaleSelectedCliente = "";
+  var el = document.getElementById("glob-sel-cliente");
+  if (el) {
+    el.value = "";
+    if (el._ssRefresh) el._ssRefresh();
   }
 }
 
@@ -743,6 +786,7 @@ function renderGlobaleTabella(rawData) {
 window.toggleGlobTipFiltroPanel = toggleGlobTipFiltroPanel;
 window.closeGlobTipFiltroPanel = closeGlobTipFiltroPanel;
 window.resetGlobaleFiltri = resetGlobaleFiltri;
+window.resetGlobaleClienteSel = resetGlobaleClienteSel;
 window.applyGlobaleFiltri = applyGlobaleFiltri;
 window.applyGlobaleFiltriLocali = applyGlobaleFiltriLocali;
 window.applyGlobaleFiltriDebounced = applyGlobaleFiltriDebounced;
