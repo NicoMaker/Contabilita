@@ -13,6 +13,8 @@ let lastClienteFormValues = {
 };
 
 // ─── CARICAMENTO CONFIG JSON ──────────────────────────────────
+// _TIPOLOGIE_DATA è null finché il fetch non completa.
+// _cfgReady è una Promise che si risolve appena i dati sono disponibili.
 let _TIPOLOGIE_DATA = null;
 
 const _cfgReady = (async () => {
@@ -20,7 +22,9 @@ const _cfgReady = (async () => {
     const res  = await fetch("json/tipologie-data.json");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     _TIPOLOGIE_DATA = await res.json();
+    // Esponi anche globalmente per globale.js (caricato separatamente)
     window.TIPOLOGIE_CONFIG = _TIPOLOGIE_DATA;
+    // Ora che i dati ci sono, inizializza i filtri e le mappe
     initializeTipologieFilter();
     _syncGlobalFiltroKeys();
   } catch (e) {
@@ -30,14 +34,23 @@ const _cfgReady = (async () => {
   }
 })();
 
+// Accessor sincrono — restituisce l'oggetto già caricato oppure {}
+// (tutte le funzioni che lo usano vengono chiamate dopo il DOM ready,
+//  quindi _TIPOLOGIE_DATA è già popolato quando servono)
 function _cfg() {
-  if (!_TIPOLOGIE_DATA) return window.TIPOLOGIE_CONFIG || {};
+  if (!_TIPOLOGIE_DATA) {
+    // Caso raro: chiamata prima che il fetch completi
+    return window.TIPOLOGIE_CONFIG || {};
+  }
   return _TIPOLOGIE_DATA;
 }
 
+// Espone una funzione per attendere il caricamento (usabile da altri moduli)
 window._cfgReady = _cfgReady;
 
 // ─── COSTRUISCE TIPOLOGIE_PERCORSI_DATA DAL JSON ──────────────
+// Shape identica alla versione hardcoded, così il resto del codice
+// continua a funzionare senza modifiche.
 function _buildTipologiePercorsiData() {
   const cfg = _cfg();
   if (!cfg.percorsi || !cfg.tipologie) return {};
@@ -60,11 +73,14 @@ function _buildTipologiePercorsiData() {
   return out;
 }
 
+// Getter lazy: si ricalcola dal JSON ogni volta, così un hot-reload
+// del JSON viene recepito immediatamente.
 function _getTipologiePercorsiData() {
   return _buildTipologiePercorsiData();
 }
 
 // ─── MAPPE LABEL ↔ DB ─────────────────────────────────────────
+// Costruite dinamicamente dal JSON invece di essere hardcoded.
 function _buildCol2Maps() {
   const cfg = _cfg();
   const label2db = {};
@@ -92,18 +108,23 @@ function _buildCol3Maps() {
   return { label2db, db2label };
 }
 
+// Esposti globalmente (usati anche da globale.js)
 function _col2LabelToDb() { return _buildCol2Maps().label2db; }
 function _col2DbToLabel() { return _buildCol2Maps().db2label; }
 function _col3LabelToDb() { return _buildCol3Maps().label2db; }
 function _col3DbToLabel() { return _buildCol3Maps().db2label; }
 
-// ─── STATO FILTRO — LOCALE A CLIENTI.JS ──────────────────────
-// FIX: stato separato da globale.js, non condiviso tramite window
+// ─── STATO FILTRO ─────────────────────────────────────────────
+// Set di chiavi attive: "TIP|col2Label|col3Label|periodicita"
+// NOTA: col2 e col3 nelle chiavi usano il *label display* (non il valore DB)
 let _activeFiltroKeys = new Set();
 let _tipFiltroPanelOpen = false;
-let _filtroManualeNessuno = false;
 
+// ─── COSTANTE SPECIALE ────────────────────────────────────────
+// Usata internamente per distinguere "nessuno selezionato manualmente"
+// da "tutti selezionati".
 const _FILTRO_NESSUNO = "__NESSUNO__";
+let _filtroManualeNessuno = false; // true = l'utente ha cliccato "Nessuno"
 
 function _buildFiltroKey(tipCod, col2, col3, per) {
   return `${tipCod}|${col2 || ""}|${col3 || ""}|${per || ""}`;
@@ -136,13 +157,15 @@ function initializeTipologieFilter() {
   _syncGlobalFiltroKeys();
 }
 
+// ─── NOTA: initializeTipologieFilter() viene chiamata automaticamente
+// dalla _cfgReady Promise appena il JSON è caricato. ─────────
+
 function _syncGlobalFiltroKeys() {
-  // NON condividere stato filtro con altre sezioni - mantenere indipendente
+  window._activeFiltroKeys      = _activeFiltroKeys;
   window.COL2_DB_TO_LABEL       = _col2DbToLabel();
   window.COL3_DB_TO_LABEL       = _col3DbToLabel();
   window.COL2_LABEL_TO_DB       = _col2LabelToDb();
   window.COL3_LABEL_TO_DB       = _col3LabelToDb();
-  window.TIPOLOGIE_CONFIG      = _TIPOLOGIE_DATA || {};
 }
 
 function _isTipCodAllSelected(tipCod) {
@@ -168,16 +191,18 @@ function renderTipologieFiltroPanel() {
   const annPer    = cfg.periodicitaAnnuale || [];
   const allKeys   = _getAllKeys();
   const totalKeys = allKeys.length;
+  // ── Counter: mostra numero effettivo solo se parziale ─────
   const activeCount = _filtroManualeNessuno ? 0 : _activeFiltroKeys.size;
   const isAll       = !_filtroManualeNessuno && activeCount === totalKeys;
   const isNone      = _filtroManualeNessuno || activeCount === 0;
-  const showBadge   = true;
-  const badgeNum    = isNone ? "0" : (isAll ? totalKeys.toString() : activeCount);
+  // Badge numerico: visibile solo se parziale (né tutto né niente)
+  const showBadge   = !isAll && !isNone;
+  const badgeNum    = isNone ? "" : (isAll ? "" : activeCount);
 
   let html = `<div class="tip-filtro-panel" id="tip-filtro-panel">
     <div class="tip-filtro-header">
       <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia</span>
-      <span style="font-size:11px;color:var(--t3);margin-left:4px">(${badgeNum}/${totalKeys} selezionati)</span>
+      <span style="font-size:11px;color:var(--t3);margin-left:4px">(${isNone ? 0 : (isAll ? totalKeys : activeCount)}/${totalKeys} selezionati)</span>
       <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
         <button class="tip-btn-all"  onclick="selezionaTuttiTipFiltro(event)"   title="Seleziona tutto">✦ Tutti</button>
         <button class="tip-btn-none" onclick="deselezionaTuttiTipFiltro(event)" title="Deseleziona tutto">✕ Nessuno</button>
@@ -225,7 +250,6 @@ function renderTipologieFiltroPanel() {
                       : per === "annuale" ? "🗓️"
                       : "";
 
-        // NON usare stopPropagation - permetti che il click si propaghi per chiudere il pannello
         html += `<button
           class="tip-percorso-chip${isActive ? " tip-active" : ""}"
           onclick="toggleFiltroPercorso(event,'${tipCod}','${p.col2 || ""}','${p.col3 || ""}','${per}')"
@@ -276,15 +300,17 @@ function _aggiornaTipFiltroPanelVisibility() {
 // ─── AZIONI FILTRO ────────────────────────────────────────────
 
 function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
-  if (event) { event.preventDefault(); }
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   const key = _buildFiltroKey(tipCod, col2, col3, per);
 
   if (_filtroManualeNessuno) {
+    // Prima selezione dopo "Nessuno": attiva solo questo chip
     _filtroManualeNessuno = false;
     _activeFiltroKeys     = new Set([key]);
   } else {
     if (_activeFiltroKeys.has(key)) {
       _activeFiltroKeys.delete(key);
+      // Se ora è vuoto → passa in stato "nessuno manuale"
       if (_activeFiltroKeys.size === 0) _filtroManualeNessuno = true;
     } else {
       _activeFiltroKeys.add(key);
@@ -297,7 +323,7 @@ function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
 }
 
 function toggleTipologiaGruppo(event, tipCod) {
-  if (event) { event.preventDefault(); }
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   const data   = _getTipologiePercorsiData();
   const tip    = data[tipCod];
   if (!tip) return;
@@ -314,6 +340,7 @@ function toggleTipologiaGruppo(event, tipCod) {
   });
 
   if (_filtroManualeNessuno) {
+    // Attiva tutto il gruppo partendo da zero
     _filtroManualeNessuno = false;
     allKeys.forEach((k) => _activeFiltroKeys.add(k));
   } else {
@@ -333,9 +360,9 @@ function toggleTipologiaGruppo(event, tipCod) {
 
 // ── "✦ Tutti": seleziona tutto (resetta flag nessuno) ────────
 function selezionaTuttiTipFiltro(event) {
-  if (event) { event.preventDefault(); }
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   _filtroManualeNessuno = false;
-  _activeFiltroKeys = new Set(_getAllKeys());
+  _activeFiltroKeys     = new Set(_getAllKeys());
   _syncGlobalFiltroKeys();
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
@@ -344,9 +371,9 @@ function selezionaTuttiTipFiltro(event) {
 // ── "✕ Nessuno": deseleziona tutto, rimane nessuno finché
 //    l'utente non clicca singolarmente o "Tutti"  ────────────
 function deselezionaTuttiTipFiltro(event) {
-  if (event) { event.preventDefault(); }
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   _filtroManualeNessuno = true;
-  _activeFiltroKeys = new Set();
+  _activeFiltroKeys     = new Set();
   _syncGlobalFiltroKeys();
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
@@ -355,34 +382,28 @@ function deselezionaTuttiTipFiltro(event) {
 function _refreshTipFiltroPanel() {
   const container = document.getElementById("tip-filtro-container");
   if (!container) return;
-  // FIX: salva stato display PRIMA di rifare innerHTML, poi ripristina
-  const wasVisible = _tipFiltroPanelOpen;
   const tmp = document.createElement("div");
   tmp.innerHTML = renderTipologieFiltroPanel();
   container.innerHTML = "";
   container.appendChild(tmp.firstChild);
   _aggiornaTipFiltroCounter();
-  // FIX: mantieni il pannello aperto se era aperto
-  container.style.display = wasVisible ? "block" : "none";
+  container.style.display = _tipFiltroPanelOpen ? "block" : "none";
 }
 
 function _aggiornaTipFiltroCounter() {
   const badge     = document.getElementById("tip-filtro-count");
   if (!badge) return;
   const allKeys   = _getAllKeys();
-  const totalKeys = allKeys.length; // Dovrebbe essere 22
   const isAll     = !_filtroManualeNessuno && _activeFiltroKeys.size === allKeys.length;
   const isNone    = _filtroManualeNessuno  || _activeFiltroKeys.size === 0;
-  
-  // Mostra sempre il numero (22) quando tutto è selezionato, altrimenti il conteggio attuale
+  // Mostra numero solo se parziale; se tutto → nasconde badge; se nessuno → "0" in rosso
   if (isNone) {
     badge.textContent   = "0";
     badge.style.display = "inline-flex";
     badge.style.background = "var(--red)";
   } else if (isAll) {
-    badge.textContent   = totalKeys.toString(); // Mostra sempre il totale (22)
-    badge.style.display = "inline-flex";
-    badge.style.background = "var(--accent)";
+    badge.textContent   = "";
+    badge.style.display = "none";
   } else {
     badge.textContent   = _activeFiltroKeys.size;
     badge.style.display = "inline-flex";
@@ -392,9 +413,11 @@ function _aggiornaTipFiltroCounter() {
 
 // ─── COSTRUISCE I FILTRI PER LA RICHIESTA AL SERVER ───────────
 function getFiltriPerRequest() {
+  // Nessuno selezionato manualmente → filtro vuoto (0 clienti)
   if (_filtroManualeNessuno || _activeFiltroKeys.size === 0) {
     return { nessuno: true };
   }
+  // Tutti selezionati → nessun filtro (mostra tutto)
   const allKeys = _getAllKeys();
   if (_activeFiltroKeys.size === allKeys.length) {
     return {};
@@ -486,15 +509,10 @@ function renderClientiTabella(clienti) {
 
   const currentAnno = parseInt(document.getElementById("filter-anno")?.value) || new Date().getFullYear();
   const allKeys     = _getAllKeys();
-  const totalKeys   = allKeys.length;
-  const isAll       = !_filtroManualeNessuno && _activeFiltroKeys.size === totalKeys;
+  const isAll       = !_filtroManualeNessuno && _activeFiltroKeys.size === allKeys.length;
   const isNone      = _filtroManualeNessuno  || _activeFiltroKeys.size === 0;
   const activeCount = isNone ? 0 : _activeFiltroKeys.size;
-
-  // Mostra sempre il badge - se tutto selezionato mostra il totale (22)
-  const showBadge   = isNone || activeCount > 0;
-  const badgeCount  = isNone ? "0" : (isAll ? totalKeys.toString() : activeCount);
-  const badgeBg     = isNone ? "var(--red)" : "var(--accent)";
+  const totalKeys   = allKeys.length;
 
   const filterBar = `
     <div class="filtri-avanzati no-print" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--surface2);border-radius:var(--r-sm);">
@@ -508,7 +526,7 @@ function renderClientiTabella(clienti) {
     <div style="margin-bottom:16px">
       <div id="tip-filtro-header-row" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;" onclick="toggleTipFiltroPanel(event)">
         <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtro Tipologie</span>
-        <span id="tip-filtro-count" style="display:${showBadge ? "inline-flex" : "none"};align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:${badgeBg};color:#fff;border-radius:10px;font-size:11px;font-weight:700">${badgeCount}</span>
+        <span id="tip-filtro-count" style="display:${isNone ? "inline-flex" : (!isAll ? "inline-flex" : "none")};align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:${isNone ? "var(--red)" : "var(--accent)"};color:#fff;border-radius:10px;font-size:11px;font-weight:700">${isNone ? "0" : activeCount}</span>
         ${isNone ? `<span style="font-size:11px;color:var(--red);font-weight:700">⚠️ Nessuno selezionato</span>` : ""}
         <div class="tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">
           ${_tipFiltroPanelOpen
@@ -1031,6 +1049,7 @@ function _aggiornCol4BasedOnCol3(tipCodice, col3Val) {
     badge.style.display = "";
   } else if (col3Val) {
     col4Wrap.style.display = "";
+    // Popola le opzioni IVA dal JSON
     if (col4Sel && col4Sel.tagName === "SELECT" && ivaPer.length > 0) {
       const current = col4Sel.value;
       col4Sel.innerHTML = `<option value="">— Seleziona —</option>` +
@@ -1226,8 +1245,13 @@ window.deselezionaTuttiTipFiltro    = deselezionaTuttiTipFiltro;
 window.initializeTipologieFilter    = initializeTipologieFilter;
 window.renderTipologieFiltroPanel   = renderTipologieFiltroPanel;
 window.getFiltriPerRequest          = getFiltriPerRequest;
-// Esposizioni per globale.js — solo config, NON lo stato filtro
-window.TIPOLOGIE_PERCORSI_DATA      = _getTipologiePercorsiData();
+// Esposizioni per globale.js
+window.TIPOLOGIE_PERCORSI_DATA      = _getTipologiePercorsiData(); // snapshot iniziale
 window._getAllKeys                   = _getAllKeys;
-// FIX: globale.js NON legge più _activeFiltroKeys e _filtroManualeNessuno da window
-// perché ha il proprio stato indipendente (vedi globale.js)
+window._getActiveFiltroKeys         = () => _activeFiltroKeys;
+window._filtroManualeNessuno        = false; // getter live sotto
+Object.defineProperty(window, "_filtroManualeNessuno", {
+  get: () => _filtroManualeNessuno,
+  set: (v) => { _filtroManualeNessuno = v; },
+  configurable: true,
+});

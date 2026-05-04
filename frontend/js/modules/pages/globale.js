@@ -83,9 +83,8 @@ function _aggiornaGlobTipFiltroCounter() {
     badge.style.display    = "inline-flex";
     badge.style.background = "var(--red)";
   } else if (isAll) {
-    badge.textContent   = allKeys.length.toString(); // Mostra sempre il totale (22)
-    badge.style.display = "inline-flex";
-    badge.style.background = "var(--accent)";
+    badge.textContent   = "";
+    badge.style.display = "none";
   } else {
     badge.textContent      = keys.size;
     badge.style.display    = "inline-flex";
@@ -337,8 +336,8 @@ function renderGlobaleTabella(rawData) {
   const hasFiltroTipologie = !isAll;
 
   // ── Badge counter ─────────────────────────────────────────
-  const tipFiltroCountDisplay = isNone ? "0" : (isAll ? allKeysArr.length.toString() : activeFiltroKeys.size);
-  const showTipBadge          = isNone || activeFiltroKeys.size > 0;
+  const tipFiltroCountDisplay = isNone ? "0" : (isAll ? "" : activeFiltroKeys.size);
+  const showTipBadge          = isNone || (!isAll && activeFiltroKeys.size > 0);
 
   const adpSel            = document.getElementById("glob-filtro-adp");
   const adpFiltroAttivo   = adpSel?.value || "";
