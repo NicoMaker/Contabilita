@@ -2,54 +2,6 @@
 // UTILS.JS — Funzioni di utilità generali
 // ═══════════════════════════════════════════════════════════════
 
-// ─── DECIMAL INPUT HANDLER ────────────────────────────────────────
-function normalizeDecimalInput(value) {
-  // Convert commas to dots for decimal separator
-  return value.replace(",", ".");
-}
-
-function setupDecimalInput(input) {
-  input.addEventListener("input", function (e) {
-    let value = e.target.value;
-
-    // Replace all commas with dots for internal processing
-    value = value.replace(/,/g, ".");
-
-    // Ensure only one decimal point
-    const parts = value.split(".");
-    if (parts.length > 2) {
-      value = parts[0] + "." + parts.slice(1).join("");
-    }
-
-    // Remove any non-numeric characters except dots
-    value = value.replace(/[^0-9.]/g, "");
-
-    e.target.value = value;
-  });
-
-  input.addEventListener("blur", function (e) {
-    let value = e.target.value;
-    if (value && value !== "") {
-      // Convert to number and format to 2 decimal places
-      const num = parseFloat(value);
-      if (!isNaN(num)) {
-        e.target.value = num.toFixed(2);
-      }
-    }
-  });
-
-  // Also handle paste events
-  input.addEventListener("paste", function (e) {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text");
-    const cleanedData = pastedData.replace(/,/g, ".");
-    const num = parseFloat(cleanedData);
-    if (!isNaN(num)) {
-      e.target.value = num.toFixed(2);
-    }
-  });
-}
-
 // ─── ROW STORE ────────────────────────────────────────────────
 const _rowStore = {};
 
@@ -410,247 +362,170 @@ function aprireDialogoNuovoAnno(annoNuovo, annoPrecedente) {
   openModal("modal-nuovo-anno");
 }
 
-// ─── VALIDAZIONE INPUT NUMERICO (PERMETTE NEGATIVI) ──────────────
-function validaInputNumerico(input) {
-  let value = input.value;
-  if (!value) {
-    coloraInputImporto(input);
-    return;
-  }
+// ═══════════════════════════════════════════════════════════════
+// GESTIONE INPUT NUMERICI - FUNZIONE UNIFICATA
+// ═══════════════════════════════════════════════════════════════
 
-  // Permetti il segno meno all'inizio
-  let negativo = false;
-  if (value.startsWith("-")) {
-    negativo = true;
-    value = value.substring(1);
-  }
-
-  // Sostituisci virgole con punti
-  value = value.replace(/,/g, ".");
-
-  // Rimuovi tutto tranne numeri e punto
-  value = value.replace(/[^0-9.]/g, "");
-
-  // Assicura un solo punto decimale
-  const parts = value.split(".");
-  if (parts.length > 2) {
-    value = parts[0] + "." + parts.slice(1).join("");
-  }
-
-  // Riaggiungi il segno meno se necessario e se c'è un numero
-  if (negativo && value !== "") {
-    value = "-" + value;
-  }
-
-  input.value = value;
-  coloraInputImporto(input);
+/**
+ * Converte numero internazionale (con punto) al formato italiano (con virgola)
+ * @param {number|string} num - Numero da formattare
+ * @returns {string} Numero formattato: "1.234,56"
+ */
+function formattaNumeroItaliano(num) {
+  if (!num && num !== 0) return "";
+  
+  const n = typeof num === "string" ? parseFloat(num.replace(/[^0-9.-]/g, "")) : num;
+  if (isNaN(n)) return "";
+  
+  const parts = n.toFixed(2).split(".");
+  const intero = parts[0];
+  const decimale = parts[1];
+  
+  // Formatta la parte intera con separatori migliaia
+  const interoFormattato = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  
+  return `${interoFormattato},${decimale}€`;
 }
 
-// ─── FORMATTAZIONE FINALE AL BLUR (CONVERTI VIRGOLA IN PUNTO E FORMATTA) ──
-function convertiVirgolaInPunto(input) {
-  let raw = input.value.trim();
-  if (!raw || raw === "-") {
-    input.value = "";
-    coloraInputImporto(input);
-    return;
-  }
-
-  // Gestisci il segno meno
-  let negativo = false;
-  if (raw.startsWith("-")) {
-    negativo = true;
-    raw = raw.substring(1);
-  }
-
-  // Sostituisci virgole con punti e rimuovi caratteri non numerici tranne punto
-  let pulito = raw.replace(/,/g, ".");
-  pulito = pulito.replace(/[^0-9.]/g, "");
-
-  const parti = pulito.split(".");
-  let intero = parti[0] || "0";
-  let decimale =
-    parti.length > 1 ? parti[1].substring(0, 2).padEnd(2, "0") : "00";
-
-  // Rimuovi zeri non significativi dall'intero per evitare "000" → "0"
-  intero = intero.replace(/^0+/, "");
-  if (intero === "") intero = "0";
-
-  // Formatta l'intero con i separatori delle migliaia
-  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  // Ricostruisci il valore
-  let risultato = intero + "," + decimale;
-  if (negativo && parseFloat(intero.replace(/\./g, "")) > 0) {
-    risultato = "-" + risultato;
-  }
-
-  input.value = risultato;
-  coloraInputImporto(input);
+/**
+ * Converte numero dal formato italiano al formato numerico
+ * @param {string} valore - Valore in formato italiano "1.234,56"
+ * @returns {number} Numero float: 1234.56
+ */
+function parseNumeroItaliano(valore) {
+  if (!valore) return 0;
+  
+  // Rimuovi il simbolo € se presente
+  let pulito = valore.replace("€", "").trim();
+  
+  // Sostituisci il separatore delle migliaia (punto) con niente
+  // e la virgola decimale con punto
+  pulito = pulito.replace(/\./g, "").replace(",", ".");
+  
+  const num = parseFloat(pulito);
+  return isNaN(num) ? 0 : num;
 }
 
-// ─── FORMATTA INPUT CON SEPARATORI MIGLIAIA (DURANTE DIGITAZIONE) ─────
-function formattaInputConSeparatori(input) {
-  let raw = input.value;
-  if (!raw) return;
-
-  // Salva posizione cursore
-  const posCursore = input.selectionStart;
-  const lunghezzaOriginale = raw.length;
-
-  // Gestisci segno meno
-  let negativo = false;
-  if (raw.startsWith("-")) {
-    negativo = true;
-    raw = raw.substring(1);
-  }
-
-  // Pulisci: rimuovi tutto tranne numeri e virgola/punto
-  let pulito = raw.replace(/[^0-9,.]/g, "");
-
-  // Sostituisci virgole con punti per parsing
-  pulito = pulito.replace(/,/g, ".");
-
-  const parti = pulito.split(".");
-  let intero = parti[0];
-  let decimale = parti.length > 1 ? parti[1].substring(0, 2) : null;
-
-  // Rimuovi zeri non significativi dall'intero
-  intero = intero.replace(/^0+/, "");
-  if (intero === "") intero = "0";
-
-  // Formatta intero con separatori migliaia
-  intero = intero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  let formattato = negativo ? "-" + intero : intero;
-  if (decimale !== null) {
-    formattato += "," + decimale;
-  }
-
-  if (raw !== formattato) {
-    input.value = formattato;
-    // Aggiusta posizione cursore
-    const delta = formattato.length - lunghezzaOriginale;
-    const nuovaPos = Math.max(0, posCursore + delta);
-    try {
-      input.setSelectionRange(nuovaPos, nuovaPos);
-    } catch (e) {}
-  }
-}
-
-// ─── BLOCCA PUNTO (non blocca il segno meno) ─────────────────────
-function bloccaPuntoInput(e) {
-  // Permetti il segno meno
-  if (e.key === ".") {
-    e.preventDefault();
-  }
-  // Permetti il segno meno solo all'inizio
-  if (e.key === "-") {
-    const input = e.target;
-    if (input.selectionStart !== 0 || input.value.includes("-")) {
-      e.preventDefault();
-    }
-  }
-}
-
-// ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
-function coloraInputImporto(input) {
-  if (!input) return;
-  let raw = input.value;
-  if (!raw) {
-    input.style.color = "";
-    input.style.borderColor = "";
-    return;
-  }
-
-  // Gestisci il segno meno
-  let negativo = false;
-  if (raw.startsWith("-")) {
-    negativo = true;
-    raw = raw.substring(1);
-  }
-
-  // Converti formato italiano in numero
-  let normalized = raw.replace(/\./g, "").replace(",", ".");
-  const num = parseFloat(normalized);
-
-  if (isNaN(num)) {
-    input.style.color = "";
-    input.style.borderColor = "";
-  } else if (negativo || num < 0) {
-    input.style.color = "var(--red)";
-    input.style.borderColor = "";
-  } else {
-    input.style.color = "var(--green)";
-    input.style.borderColor = "";
-  }
-}
-
+/**
+ * Setup completo per input numerici con formato italiano
+ * Gestisce: input, blur, paste, keydown
+ */
 function setupDecimalInput(input) {
-  // Rimuovi eventuali listener precedenti per evitare duplicati
+  if (!input) return;
+  
+  // Rimuovi eventuali listener precedenti clonando il nodo
   const newInput = input.cloneNode(true);
-  input.parentNode.replaceChild(newInput, input);
+  input.parentNode?.replaceChild(newInput, input);
   input = newInput;
-
+  
+  // ─── EVENT: INPUT (durante la digitazione) ─────────────────
   input.addEventListener("input", function (e) {
-    let value = e.target.value;
-
-    // Permetti il segno meno all'inizio
-    let negativo = false;
-    if (value.startsWith("-")) {
-      negativo = true;
+    let value = e.target.value.trim();
+    
+    // Campo vuoto
+    if (!value) {
+      e.target.value = "";
+      coloraInputImporto(input);
+      return;
+    }
+    
+    // Estrai il segno negativo
+    let negativo = value.startsWith("-");
+    if (negativo) {
       value = value.substring(1);
     }
-
-    // Sostituisci virgole con punti
+    
+    // Sostituisci virgole con punti per parsing
     value = value.replace(/,/g, ".");
-
+    
+    // Rimuovi tutto tranne numeri e punto
+    value = value.replace(/[^0-9.]/g, "");
+    
     // Assicura un solo punto decimale
     const parts = value.split(".");
     if (parts.length > 2) {
+      // Mantieni i primi due segmenti, unisci il resto come decimali
       value = parts[0] + "." + parts.slice(1).join("");
     }
-
-    // Rimuovi caratteri non numerici tranne il punto
-    value = value.replace(/[^0-9.]/g, "");
-
-    // Riaggiungi il segno meno se necessario
+    
+    // Limita i decimali a 2 cifre
+    const [intPart, decPart] = value.split(".");
+    if (decPart && decPart.length > 2) {
+      value = intPart + "." + decPart.substring(0, 2);
+    }
+    
+    // Riaggiungi il segno meno
     if (negativo && value !== "" && value !== ".") {
       value = "-" + value;
     }
-
+    
     e.target.value = value;
+    coloraInputImporto(input);
   });
-
+  
+  // ─── EVENT: BLUR (formattazione finale) ────────────────────
   input.addEventListener("blur", function (e) {
-    let value = e.target.value;
-    if (value && value !== "" && value !== "-") {
-      const num = parseFloat(value);
-      if (!isNaN(num)) {
-        e.target.value = num.toFixed(2);
-      }
-    } else if (value === "-") {
+    let value = e.target.value.trim();
+    
+    if (!value || value === "-") {
       e.target.value = "";
+      coloraInputImporto(input);
+      return;
     }
+    
+    const num = parseNumeroItaliano(value);
+    e.target.value = formattaNumeroItaliano(num);
+    coloraInputImporto(input);
   });
-
+  
+  // ─── EVENT: PASTE (quando incolli) ────────────────────────
   input.addEventListener("paste", function (e) {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
-    // Sostituisci virgola con punto e converti in numero
-    const cleanedData = pastedData.replace(/,/g, ".");
-    const num = parseFloat(cleanedData);
-    if (!isNaN(num)) {
-      e.target.value = num.toFixed(2);
-    }
+    const num = parseNumeroItaliano(pastedData);
+    e.target.value = formattaNumeroItaliano(num);
+    coloraInputImporto(input);
   });
-
-  // Aggiungi listener per il tasto meno
+  
+  // ─── EVENT: KEYDOWN (blocca caratteri non validi) ─────────
   input.addEventListener("keydown", function (e) {
+    // Blocca il punto/virgola nelle posizioni non decimali
+    if (e.key === ".") {
+      e.preventDefault();
+      return;
+    }
+    
+    // Permetti il meno solo all'inizio
     if (e.key === "-") {
-      // Permetti il meno solo all'inizio
       if (this.selectionStart !== 0 || this.value.includes("-")) {
         e.preventDefault();
       }
     }
   });
+}
+
+// ─── COLORAZIONE INPUT IN BASE AL SEGNO ──────────────────────
+function coloraInputImporto(input) {
+  if (!input) return;
+  
+  const value = input.value.trim();
+  
+  if (!value) {
+    input.style.color = "";
+    input.style.borderColor = "";
+    return;
+  }
+  
+  const num = parseNumeroItaliano(value);
+  
+  if (isNaN(num)) {
+    input.style.color = "";
+    input.style.borderColor = "";
+  } else if (num < 0) {
+    input.style.color = "var(--red)";
+  } else if (num > 0) {
+    input.style.color = "var(--green)";
+  } else {
+    input.style.color = "";
+  }
 }
