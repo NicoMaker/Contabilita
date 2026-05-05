@@ -357,6 +357,7 @@
               id="adp-importo"
               type="text"
               placeholder="0,00"
+              onkeydown="bloccaPuntoInput(event)"
               oninput="validaInputNumerico(this)"
               onblur="convertiVirgolaInPunto(this)"
               style="transition: color 0.2s"
@@ -382,6 +383,7 @@
                 id="adp-imp-iva"
                 type="text"
                 placeholder="0,00"
+                onkeydown="bloccaPuntoInput(event)"
                 oninput="
                   validaInputNumerico(this);
                   onContabilitaImportoChange();
@@ -432,6 +434,7 @@
                 id="adp-imp-saldo"
                 type="text"
                 placeholder="0,00"
+                onkeydown="bloccaPuntoInput(event)"
                 oninput="
                   validaInputNumerico(this);
                   onRateContabilitaChange();
@@ -450,6 +453,7 @@
                 id="adp-imp-acc1"
                 type="text"
                 placeholder="0,00"
+                onkeydown="bloccaPuntoInput(event)"
                 oninput="
                   validaInputNumerico(this);
                   onRateContabilitaChange();
@@ -468,6 +472,7 @@
                 id="adp-imp-acc2"
                 type="text"
                 placeholder="0,00"
+                onkeydown="bloccaPuntoInput(event)"
                 oninput="
                   validaInputNumerico(this);
                   onRateContabilitaChange();

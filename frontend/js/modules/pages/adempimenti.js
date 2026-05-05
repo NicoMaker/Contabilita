@@ -515,7 +515,7 @@ function formattaInputConSeparatori(input) {
   const posCursore = input.selectionStart;
   const lunghezzaOriginale = raw.length;
   const negativo = raw.startsWith("-");
-  let pulito = raw.replace(/[^0-9,-]/g, "");
+  let pulito = raw.replace(/\./g, "").replace(/[^0-9,-]/g, "");
   if (pulito.startsWith("-")) pulito = pulito.substring(1);
   const parti = pulito.split(",");
   let intero = parti[0];
@@ -535,7 +535,24 @@ function formattaInputConSeparatori(input) {
 }
 
 function bloccaPuntoInput(e) {
-  if (e.key === ".") e.preventDefault();
+  if (e.key === ".") {
+    e.preventDefault();
+    const input = e.target;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const val = input.value;
+    if (!val.includes(",")) {
+      input.value = val.substring(0, start) + "," + val.substring(end);
+      input.setSelectionRange(start + 1, start + 1);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+  if (e.key === "-") {
+    const input = e.target;
+    if (input.selectionStart !== 0 || input.value.includes("-")) {
+      e.preventDefault();
+    }
+  }
 }
 function validaInputNumerico(input) {
   formattaInputConSeparatori(input);
@@ -550,7 +567,7 @@ function convertiVirgolaInPunto(input) {
     return;
   }
   const negativo = raw.startsWith("-");
-  let pulito = raw.replace(/[^0-9,-]/g, "");
+  let pulito = raw.replace(/\./g, "").replace(/[^0-9,-]/g, "");
   if (pulito.startsWith("-")) pulito = pulito.substring(1);
   const parti = pulito.split(",");
   let intero = parti[0] || "0";
