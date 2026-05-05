@@ -371,16 +371,16 @@ function openAdpModal(r) {
     _aggiornaPulsantiCheckbox(r.stato || "da_fare");
   } else if (isCont) {
     if (sectCont) sectCont.style.display = "block";
-    setVal("adp-imp-iva", parseItalianoFloat(r.importo_iva) || "");
-    setVal("adp-imp-cont", parseItalianoFloat(r.importo_contabilita) || "");
+    setVal("adp-imp-iva", formattaNumeroItaliano(r.importo_iva));
+    setVal("adp-imp-cont", formattaNumeroItaliano(r.importo_contabilita));
     const contCheck = document.getElementById("adp-cont-completata");
     if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriContabilita(r);
   } else if (isRate) {
     if (sectRate) sectRate.style.display = "block";
-    setVal("adp-imp-saldo", parseItalianoFloat(r.importo_saldo) || "");
-    setVal("adp-imp-acc1", parseItalianoFloat(r.importo_acconto1) || "");
-    setVal("adp-imp-acc2", parseItalianoFloat(r.importo_acconto2) || "");
+    setVal("adp-imp-saldo", formattaNumeroItaliano(r.importo_saldo));
+    setVal("adp-imp-acc1", formattaNumeroItaliano(r.importo_acconto1));
+    setVal("adp-imp-acc2", formattaNumeroItaliano(r.importo_acconto2));
 
     let lb = ["Saldo", "1° Acconto", "2° Acconto"];
     try {
@@ -516,6 +516,7 @@ function formattaInputConSeparatori(input) {
   const lunghezzaOriginale = raw.length;
   const negativo = raw.startsWith("-");
   let pulito = raw.replace(/[^0-9,-]/g, "");
+  if (pulito.startsWith("-")) pulito = pulito.substring(1);
   const parti = pulito.split(",");
   let intero = parti[0];
   let decimale =
@@ -543,13 +544,14 @@ function validaInputNumerico(input) {
 
 function convertiVirgolaInPunto(input) {
   const raw = input.value.trim();
-  if (!raw) {
+  if (!raw || raw === "-") {
     input.value = "";
     coloraInputImporto(input);
     return;
   }
   const negativo = raw.startsWith("-");
   let pulito = raw.replace(/[^0-9,-]/g, "");
+  if (pulito.startsWith("-")) pulito = pulito.substring(1);
   const parti = pulito.split(",");
   let intero = parti[0] || "0";
   let decimale =
