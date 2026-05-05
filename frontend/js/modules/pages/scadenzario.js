@@ -24,20 +24,16 @@ function filtraScadPerAdp(idAdp) {
   const sel = document.getElementById("scad-filtro-adp");
   if (!sel) return;
 
-  // Update the select value
   sel.value = idAdp ? String(idAdp) : "";
   if (sel._ssRefresh) sel._ssRefresh();
 
-  // Apply the filter
   applyScadFiltriAdp();
 
-  // Scroll to scadenzario content
   const scadContent = document.getElementById("scad-content");
   if (scadContent) {
     scadContent.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // Update button styles to show active filter
   document.querySelectorAll(".adempimento-filter-btn").forEach((btn) => {
     const btnId = btn
       .getAttribute("onclick")
@@ -82,7 +78,6 @@ function aggiornaFiltroAdpScad(data) {
 }
 
 function renderScadenzarioPage() {
-  // Carica i clienti con la configurazione per l'anno corrente
   const annoCorrente = state.anno;
   if (typeof socket !== "undefined") {
     socket.emit("get:clienti", { anno: annoCorrente });
@@ -139,7 +134,6 @@ function renderScadenzarioSelect(clienti) {
 
 function onClienteChange() {
   const id = parseInt(document.getElementById("sel-cliente").value);
-  // Ricarica il cliente con la configurazione per l'anno corrente
   if (typeof socket !== "undefined") {
     socket.emit("get:cliente", { id, anno: state.anno });
     socket.once("res:cliente", ({ success, data }) => {
@@ -172,7 +166,6 @@ function changeAnnoScad(d) {
     .querySelectorAll(".year-num")
     .forEach((el) => (el.textContent = state.anno));
   if (state.selectedCliente) {
-    // Ricarica il cliente con la nuova configurazione per l'anno selezionato
     if (typeof socket !== "undefined") {
       socket.emit("get:cliente", {
         id: state.selectedCliente.id,
@@ -199,7 +192,6 @@ function loadScadenzario() {
       anno: state.anno,
       filtri: { search: sv, stato: st },
     });
-    // Load customer adempimenti for the buttons section
     socket.emit("get:adempimenti_cliente", {
       id_cliente: state.selectedCliente.id,
       anno: state.anno,
@@ -254,7 +246,6 @@ function resetScadFiltri() {
   if (searchInput) searchInput.value = "";
   if (adpFilterSearch) adpFilterSearch.value = "";
 
-  // Reset adempimenti button styles and show all buttons
   document.querySelectorAll(".adempimento-filter-btn").forEach((btn) => {
     btn.style.background = "var(--surface3)";
     btn.style.borderColor = "var(--border)";
@@ -265,7 +256,6 @@ function resetScadFiltri() {
   if (state.selectedCliente) loadScadenzario();
 }
 
-// ─── RENDER TABELLA ───────────────────────────────────────────
 // ─── RENDER TABELLA ───────────────────────────────────────────
 function renderScadenzarioTabella(data) {
   const c = state.selectedCliente;
@@ -334,7 +324,6 @@ function renderScadenzarioTabella(data) {
       </span>`
     : "";
 
-  // ⭐ Mostra l'anno corrente della configurazione
   const configAnnoInfo =
     c.config_anno && c.config_anno !== state.anno
       ? `<div class="infobox" style="margin-bottom:12px;font-size:12px;background:var(--yellow)18;color:var(--yellow)">
@@ -342,7 +331,6 @@ function renderScadenzarioTabella(data) {
        </div>`
       : "";
 
-  // Generate adempimenti buttons section with search functionality
   const adempimentiButtons =
     state.adempimentiCliente && state.adempimentiCliente.length > 0
       ? `
@@ -439,7 +427,7 @@ function renderScadenzarioTabella(data) {
   </div>
   ${adempimentiButtons}`;
 
-  // ⭐ Raggruppa per adempimento
+  // Raggruppa per adempimento
   const grouped = {};
   dataFiltrata.forEach((r) => {
     storeRow(r);
@@ -454,7 +442,7 @@ function renderScadenzarioTabella(data) {
     grouped[key].rows.push(r);
   });
 
-  // ⭐ ORDINA gli adempimenti per nome alfabetico (come in globale.js)
+  // ORDINA gli adempimenti per nome alfabetico
   const gruppiOrdinati = Object.values(grouped).sort((a, b) =>
     a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }),
   );
@@ -466,7 +454,29 @@ function renderScadenzarioTabella(data) {
     const pG = totG > 0 ? Math.round((compG / totG) * 100) : 0;
     const pgColorG =
       pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
-    const periodiHtml = g.rows.map((r) => renderPeriodoPill(r)).join("");
+    
+    // Ordina i periodi per data_scadenza (prima le date più vicine)
+    const rowsOrdinati = [...g.rows].sort((a, b) => {
+      // Se entrambe hanno data_scadenza, confronta le date
+      if (a.data_scadenza && b.data_scadenza) {
+        const dateA = new Date(a.data_scadenza);
+        const dateB = new Date(b.data_scadenza);
+        return dateA - dateB;
+      }
+      // Se solo una ha data_scadenza, quella con data va prima
+      if (a.data_scadenza) return -1;
+      if (b.data_scadenza) return 1;
+      // Se nessuna ha data_scadenza, mantieni l'ordine originale (periodo)
+      const getPeriodoValue = (r) => {
+        if (r.trimestre) return `T${r.trimestre}`;
+        if (r.semestre) return `S${r.semestre}`;
+        if (r.mese) return r.mese.toString().padStart(2, '0');
+        return "99";
+      };
+      return getPeriodoValue(a).localeCompare(getPeriodoValue(b));
+    });
+    
+    const periodiHtml = rowsOrdinati.map((r) => renderPeriodoPill(r)).join("");
     const isMensile = g.rows.length > 4;
     content += `<div class="adp-card">
       <div class="adp-card-header">
@@ -496,8 +506,6 @@ function renderScadenzarioTabella(data) {
 // ─── AZIONI ───────────────────────────────────────────────────
 function generaScadenzario() {
   if (!state.selectedCliente) return;
-
-  // Apri il modal di selezione adempimenti invece di generare direttamente
   openAddAdp(state.selectedCliente.id);
 }
 
@@ -545,12 +553,10 @@ function eseguiCopia() {
 function openGeneraTutti() {
   document.getElementById("genera-tutti-anno").value = state.anno;
 
-  // Assicura che gli adempimenti siano caricati prima di aprire il modal
   if (!state.adempimenti || state.adempimenti.length === 0) {
     if (typeof socket !== "undefined") {
       socket.emit("get:adempimenti");
     }
-    // Mostra caricamento mentre aspetta i dati
     const container = document.getElementById("genera-tutti-adempimenti-list");
     if (container) {
       container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
@@ -568,18 +574,13 @@ function renderAdempimentiSelection() {
   const container = document.getElementById("genera-tutti-adempimenti-list");
   if (!container) return;
 
-  // Controlla se gli adempimenti sono disponibili
   if (!state.adempimenti || state.adempimenti.length === 0) {
-    // Prova a caricare gli adempimenti se non disponibili
     if (typeof socket !== "undefined") {
       socket.emit("get:adempimenti");
     }
-    // Mostra caricamento mentre aspetta i dati
     container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
       <div>📋 Caricamento adempimenti...</div>
     </div>`;
-
-    // Retry dopo 2 secondi se i dati non sono ancora caricati
     setTimeout(() => {
       if (!state.adempimenti || state.adempimenti.length === 0) {
         renderAdempimentiSelection();
@@ -588,11 +589,10 @@ function renderAdempimentiSelection() {
     return;
   }
 
-  // Seleziona automaticamente tutti gli adempimenti
   const checkboxes = state.adempimenti
     .map((a) => {
-      const checked = localStorage.getItem(`gen_adp_${a.id}`) !== "false"; // Default a true
-      localStorage.setItem(`gen_adp_${a.id}`, checked); // Salva il default
+      const checked = localStorage.getItem(`gen_adp_${a.id}`) !== "false";
+      localStorage.setItem(`gen_adp_${a.id}`, checked);
       return `
       <label class="flag-chip" style="margin: 2px; padding: 6px 10px; font-size: 12px;">
         <input type="checkbox" 
@@ -607,8 +607,6 @@ function renderAdempimentiSelection() {
     .join("");
 
   container.innerHTML = checkboxes;
-
-  // Imposta lo stato del checkbox "Seleziona Tutti" in base a quanti sono selezionati
   updateSelectAllCheckbox();
 }
 
@@ -682,12 +680,10 @@ function openAddAdp(id_cliente) {
   document.getElementById("add-adp-cliente-id").value = id_cliente;
   document.getElementById("add-adp-anno").value = state.anno;
 
-  // Assicura che gli adempimenti siano caricati prima di aprire il modal
   if (!state.adempimenti || state.adempimenti.length === 0) {
     if (typeof socket !== "undefined") {
       socket.emit("get:adempimenti");
     }
-    // Mostra caricamento mentre aspetta i dati
     const container = document.getElementById("add-adp-list");
     if (container) {
       container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
@@ -709,18 +705,13 @@ function renderAddAdpSelection() {
   const container = document.getElementById("add-adp-list");
   if (!container) return;
 
-  // Controlla se gli adempimenti sono disponibili
   if (!state.adempimenti || state.adempimenti.length === 0) {
-    // Prova a caricare gli adempimenti se non disponibili
     if (typeof socket !== "undefined") {
       socket.emit("get:adempimenti");
     }
-    // Mostra caricamento mentre aspetta i dati
     container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text3);">
       <div>📋 Caricamento adempimenti...</div>
     </div>`;
-
-    // Retry dopo 2 secondi se i dati non sono ancora caricati
     setTimeout(() => {
       if (!state.adempimenti || state.adempimenti.length === 0) {
         renderAddAdpSelection();
@@ -729,11 +720,10 @@ function renderAddAdpSelection() {
     return;
   }
 
-  // Seleziona automaticamente tutti gli adempimenti
   const checkboxes = state.adempimenti
     .map((a) => {
-      const checked = localStorage.getItem(`add_adp_${a.id}`) !== "false"; // Default a true
-      localStorage.setItem(`add_adp_${a.id}`, checked); // Salva il default
+      const checked = localStorage.getItem(`add_adp_${a.id}`) !== "false";
+      localStorage.setItem(`add_adp_${a.id}`, checked);
       return `
       <label class="flag-chip" style="margin: 2px; padding: 6px 10px; font-size: 12px;">
         <input type="checkbox" 
@@ -748,8 +738,6 @@ function renderAddAdpSelection() {
     .join("");
 
   container.innerHTML = checkboxes;
-
-  // Imposta lo stato del checkbox "Seleziona Tutti" in base a quanti sono selezionati
   updateSelectAllAddAdpCheckbox();
 }
 
@@ -852,16 +840,8 @@ function eseguiAddAdp() {
     return;
   }
 
-  // Per ogni adempimento selezionato, aggiungilo
   selectedAdempimenti.forEach((id_adempimento) => {
     const data = { id_cliente, id_adempimento, anno };
-
-    // Il backend creerà automaticamente tutti i periodi necessari:
-    // - Mensili: 12 mesi (Gen-Dic)
-    // - Trimestrali: 4 trimestri
-    // - Semestrali: 2 semestri
-    // - Annuali: 12 mesi o 1 record a seconda del tipo
-
     if (typeof socket !== "undefined") {
       socket.emit("add:adempimento_cliente", data);
     }
@@ -870,64 +850,11 @@ function eseguiAddAdp() {
   closeModal("modal-add-adp");
 }
 
-// Esponi funzioni globali
-window.onClienteChange = onClienteChange;
-window.changeAnnoScad = changeAnnoScad;
-window.applyScadFiltriAdp = applyScadFiltriAdp;
-window.applyScadFiltri = applyScadFiltri;
-window.filterAdpButtons = filterAdpButtons;
-window.resetScadFiltri = resetScadFiltri;
-window.generaScadenzario = generaScadenzario;
 function openAdempimentoPersonalizzato() {
   document.getElementById("custom-adp-anno").value = state.anno;
   openModal("modal-adempimento-personalizzato");
 }
 
-function creaAdempimentoPersonalizzato() {
-  const nome = document.getElementById("custom-adp-nome").value.trim();
-  const descrizione = document
-    .getElementById("custom-adp-descrizione")
-    .value.trim();
-  const scadenzaTipo = document.getElementById(
-    "custom-adp-scadenza-tipo",
-  ).value;
-  const isContabilita = document.getElementById(
-    "custom-adp-is-contabilita",
-  ).checked;
-  const generaPer = document.getElementById("custom-adp-genera-per").value;
-  const anno = parseInt(document.getElementById("custom-adp-anno").value);
-
-  if (!nome) {
-    alert("Il nome dell'adempimento è obbligatorio");
-    return;
-  }
-
-  const data = {
-    nome,
-    descrizione,
-    scadenza_tipo: scadenzaTipo,
-    is_contabilita: isContabilita ? 1 : 0,
-    anno,
-    genera_immediatamente: generaPer !== "",
-  };
-
-  if (generaPer === "tutti") {
-    // Genera per tutti i clienti attivi
-    data.clienti_selezionati = null; // Il backend lo gestirà come "tutti"
-  } else if (generaPer === "selezionati") {
-    // TODO: Implementare selezione clienti
-    alert(
-      "Selezione clienti specifici non ancora implementata. Usa 'Tutti i clienti attivi' o 'Non generare ora'",
-    );
-    return;
-  }
-
-  if (typeof socket !== "undefined") {
-    socket.emit("create:adempimento_personalizzato", data);
-  }
-}
-
-// ⭐ Funzione per creare adempimento personalizzato (supporta anche cliente specifico)
 function creaAdempimentoPersonalizzato() {
   const nome = document.getElementById("custom-adp-nome").value.trim();
   const descrizione = document.getElementById("custom-adp-descrizione").value.trim();
@@ -966,7 +893,28 @@ function creaAdempimentoPersonalizzato() {
   }
 }
 
-// Nuova funzione: toggleClienteSelect (portata in scope globale)
+window.onClienteChange = onClienteChange;
+window.changeAnnoScad = changeAnnoScad;
+window.applyScadFiltriAdp = applyScadFiltriAdp;
+window.applyScadFiltri = applyScadFiltri;
+window.filterAdpButtons = filterAdpButtons;
+window.resetScadFiltri = resetScadFiltri;
+window.generaScadenzario = generaScadenzario;
+window.openCopia = openCopia;
+window.openCopiaTutti = openCopiaTutti;
+window.eseguiCopia = eseguiCopia;
+window.openGeneraTutti = openGeneraTutti;
+window.eseguiGeneraTutti = eseguiGeneraTutti;
+window.openAddAdp = openAddAdp;
+window.eseguiAddAdp = eseguiAddAdp;
+window.openAdempimentoPersonalizzato = openAdempimentoPersonalizzato;
+window.creaAdempimentoPersonalizzato = creaAdempimentoPersonalizzato;
+window.refreshAddAdpSelect = refreshAddAdpSelect;
+window.updatePeriodoOptions = updatePeriodoOptions;
+window.toggleSelezionaTuttiAdempimenti = toggleSelezionaTuttiAdempimenti;
+window.saveAdpSelection = saveAdpSelection;
+window.toggleSelezionaTuttiAddAdp = toggleSelezionaTuttiAddAdp;
+window.saveAddAdpSelection = saveAddAdpSelection;
 window.toggleClienteSelect = function() {
   const generaPer = document.getElementById("custom-adp-genera-per")?.value;
   const clienteDiv = document.getElementById("custom-adp-cliente-div");
@@ -974,8 +922,6 @@ window.toggleClienteSelect = function() {
     clienteDiv.style.display = generaPer === "selezionati" ? "block" : "none";
   }
 };
-
-// Nuova funzione: openAdempimentoPersonalizzatoFromDashboard
 window.openAdempimentoPersonalizzatoFromDashboard = function() {
   document.getElementById("custom-adp-anno").value = state.anno;
   
@@ -996,15 +942,3 @@ window.openAdempimentoPersonalizzatoFromDashboard = function() {
   window.toggleClienteSelect();
   openModal("modal-adempimento-personalizzato");
 };
-
-window.openCopia = openCopia;
-window.openCopiaTutti = openCopiaTutti;
-window.eseguiCopia = eseguiCopia;
-window.openGeneraTutti = openGeneraTutti;
-window.eseguiGeneraTutti = eseguiGeneraTutti;
-window.openAddAdp = openAddAdp;
-window.eseguiAddAdp = eseguiAddAdp;
-window.openAdempimentoPersonalizzato = openAdempimentoPersonalizzato;
-window.creaAdempimentoPersonalizzato = creaAdempimentoPersonalizzato;
-window.refreshAddAdpSelect = refreshAddAdpSelect;
-window.updatePeriodoOptions = updatePeriodoOptions;

@@ -516,116 +516,107 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- MODAL ADEMPIMENTO DEF                                   -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <div class="modal-overlay" id="modal-adp-def">
-      <div class="modal">
-        <div class="modal-title">
-          📋 <span id="modal-adp-def-title">Nuovo Adempimento</span>
-        </div>
-        <input type="hidden" id="adp-def-id" />
-        <div class="infobox" style="margin-bottom: 18px">
-          ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i
-          clienti.
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Codice *</label>
-            <input
-              class="input"
-              id="adp-def-codice"
-              placeholder="Es. IMU_2"
-              style="text-transform: uppercase"
-            />
-          </div>
-          <div class="form-group">
-            <label>Tipo Scadenza *</label>
-            <select class="select" id="adp-def-scadenza">
-              <option value="annuale">Annuale (1×/anno)</option>
-              <option value="semestrale">Semestrale (2×/anno)</option>
-              <option value="trimestrale">Trimestrale (4×/anno)</option>
-              <option value="mensile">Mensile (12×/anno)</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Nome *</label>
-          <input
-            class="input"
-            id="adp-def-nome"
-            placeholder="Es. Imposta Municipale Unica"
-          />
-        </div>
-        <div class="form-group">
-          <label>Descrizione</label>
-          <input
-            class="input"
-            id="adp-def-desc"
-            placeholder="Descrizione breve"
-          />
-        </div>
-        <div class="infobox" style="margin-bottom: 12px; font-size: 12px">
-          🔧 Scegli il tipo di adempimento (uno solo):
-        </div>
-        <div class="flags-row">
-          <label class="flag-chip">
-            <input
-              type="checkbox"
-              id="adp-def-contabilita"
-              onchange="onAdpFlagsChange()"
-            />
-            <span>📊 Contabilità (IVA + Adempimento Completati)</span>
-          </label>
-          <label class="flag-chip">
-            <input
-              type="checkbox"
-              id="adp-def-rate"
-              onchange="onAdpFlagsChange()"
-            />
-            <span>💰 Rate (Saldo + Acconti)</span>
-          </label>
-          <label class="flag-chip">
-            <input
-              type="checkbox"
-              id="adp-def-checkbox"
-              onchange="onAdpFlagsChange()"
-            />
-            <span>☑️ Checkbox (✓ / ✗)</span>
-          </label>
-        </div>
-        <div id="sect-rate-labels" style="display: none">
-          <div class="infobox" style="margin-bottom: 12px">
-            Personalizza le etichette delle rate:
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Label 1</label
-              ><input class="input" id="adp-rate-l1" value="Saldo" />
-            </div>
-            <div class="form-group">
-              <label>Label 2</label
-              ><input class="input" id="adp-rate-l2" value="1° Acconto" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Label 3</label
-            ><input class="input" id="adp-rate-l3" value="2° Acconto" />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-adp-def')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="saveAdpDef()">
-            💾 Salva
-          </button>
-        </div>
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL ADEMPIMENTO DEF                                   -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-adp-def">
+  <div class="modal">
+    <div class="modal-title">
+      📋 <span id="modal-adp-def-title">Nuovo Adempimento</span>
+    </div>
+    <input type="hidden" id="adp-def-id" />
+    <div class="infobox" style="margin-bottom: 18px">
+      ⚡ Il nuovo adempimento viene automaticamente assegnato a tutti i clienti.
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Codice *</label>
+        <input
+          class="input"
+          id="adp-def-codice"
+          placeholder="Es. IMU_2"
+          style="text-transform: uppercase"
+        />
+      </div>
+      <div class="form-group">
+        <label>Tipo Scadenza *</label>
+        <select class="select" id="adp-def-scadenza">
+          <option value="annuale">Annuale (1×/anno)</option>
+          <option value="semestrale">Semestrale (2×/anno)</option>
+          <option value="trimestrale">Trimestrale (4×/anno)</option>
+          <option value="mensile">Mensile (12×/anno)</option>
+        </select>
       </div>
     </div>
+    <div class="form-group">
+      <label>Nome *</label>
+      <input
+        class="input"
+        id="adp-def-nome"
+        placeholder="Es. Imposta Municipale Unica"
+      />
+    </div>
+    <div class="form-group">
+      <label>Descrizione</label>
+      <input
+        class="input"
+        id="adp-def-desc"
+        placeholder="Descrizione breve"
+      />
+    </div>
+    <div class="infobox" style="margin-bottom: 12px; font-size: 12px">
+      🔧 Scegli il tipo di adempimento (uno solo):
+    </div>
+    <div class="flags-row">
+      <label class="flag-chip">
+        <input type="radio" name="adp-tipo" id="adp-def-semplice" value="semplice" onchange="onAdpTipoChange()" checked />
+        <span>📅 Solo Scadenza (nessun importo)</span>
+      </label>
+      <label class="flag-chip">
+        <input type="radio" name="adp-tipo" id="adp-def-contabilita" value="contabilita" onchange="onAdpTipoChange()" />
+        <span>📊 Contabilità (IVA + Adempimento Completati)</span>
+      </label>
+      <label class="flag-chip">
+        <input type="radio" name="adp-tipo" id="adp-def-rate" value="rate" onchange="onAdpTipoChange()" />
+        <span>💰 Rate (Saldo + Acconti)</span>
+      </label>
+      <label class="flag-chip">
+        <input type="radio" name="adp-tipo" id="adp-def-checkbox" value="checkbox" onchange="onAdpTipoChange()" />
+        <span>☑️ Checkbox (✓ / ✗)</span>
+      </label>
+    </div>
+    <div id="sect-rate-labels" style="display: none">
+      <div class="infobox" style="margin-bottom: 12px">
+        Personalizza le etichette delle rate (solo per tipo Rate):
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Label 1</label
+          ><input class="input" id="adp-rate-l1" value="Saldo" />
+        </div>
+        <div class="form-group">
+          <label>Label 2</label
+          ><input class="input" id="adp-rate-l2" value="1° Acconto" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Label 3</label
+        ><input class="input" id="adp-rate-l3" value="2° Acconto" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button
+        class="btn btn-secondary"
+        onclick="closeModal('modal-adp-def')"
+      >
+        Annulla
+      </button>
+      <button class="btn btn-primary" onclick="saveAdpDef()">
+        💾 Salva
+      </button>
+    </div>
+  </div>
+</div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- MODAL COPIA SCADENZARIO                                 -->

@@ -20,7 +20,6 @@ function getAdempimentiCliente(id_cliente, anno) {
 }
 
 function createAdempimento(data) {
-  // Verifica se il codice esiste già
   const esistente = queryOne(
     `SELECT id FROM adempimenti WHERE codice = ? AND attivo = 1`,
     [data.codice],
@@ -90,7 +89,6 @@ function canDeleteAdempimento(id) {
 }
 
 function createAdempimentoPersonalizzato(data) {
-  // Genera un codice univoco basato sul nome
   const baseCodice = data.nome
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "_")
@@ -99,7 +97,6 @@ function createAdempimentoPersonalizzato(data) {
   let codiceUnivoco = baseCodice;
   let counter = 1;
 
-  // Controlla se il codice esiste già e genera uno univoco
   while (
     queryOne(`SELECT id FROM adempimenti WHERE codice = ? AND attivo = 1`, [
       codiceUnivoco,
@@ -127,7 +124,6 @@ function createAdempimentoPersonalizzato(data) {
 
   const newId = queryOne(`SELECT last_insert_rowid() as id`).id;
 
-  // Se specificato, genera immediatamente l'adempimento per i clienti selezionati
   if (
     data.genera_immediatamente &&
     data.clienti_selezionati
@@ -140,11 +136,9 @@ function createAdempimentoPersonalizzato(data) {
     let clientiDaProcessare = [];
 
     if (data.clienti_selezionati === "tutti") {
-      // Tutti i clienti attivi
       const tuttiClienti = queryAll(`SELECT id FROM clienti WHERE attivo = 1`);
       clientiDaProcessare = tuttiClienti.map(c => c.id);
     } else if (Array.isArray(data.clienti_selezionati) && data.clienti_selezionati.length > 0) {
-      // Clienti specifici
       clientiDaProcessare = data.clienti_selezionati;
     }
 
@@ -217,7 +211,6 @@ function checkAdempimentiClienteEsistenti(id_cliente, anno) {
         }
       }
     } else if (a.scadenza_tipo === "mensile") {
-      // Per i mensili crea 12 mesi da Gen a Dic
       status.totale = 12;
       for (let m = 1; m <= 12; m++) {
         const esiste = esistenti.find(
@@ -229,23 +222,7 @@ function checkAdempimentiClienteEsistenti(id_cliente, anno) {
           status.mancanti.push({ periodo: getMeseNome(m), mese: m });
         }
       }
-    } else if (a.scadenza_tipo === "annuale") {
-      // Per gli annuali crea 1 solo record
-      status.totale = 1;
-      const esiste = esistenti.find(
-        (e) =>
-          e.id_adempimento === a.id &&
-          e.mese === null &&
-          e.trimestre === null &&
-          e.semestre === null,
-      );
-      if (esiste) {
-        status.esistenti.push({ periodo: "Ann", id: esiste.id });
-      } else {
-        status.mancanti.push({ periodo: "Ann", mese: null });
-      }
     } else {
-      // Annuale semplice
       status.totale = 1;
       const esiste = esistenti.find(
         (e) =>
@@ -288,87 +265,43 @@ function getMeseNome(mese) {
 function inserisciAdempimentoSeAssente(id_cliente, adp, anno) {
   let inseriti = 0;
 
-  // Ottieni la periodicita del cliente
-  const clienteConfig = queryOne(
-    `SELECT periodicita FROM clienti_config_annuale WHERE id_cliente = ? AND anno = ?`,
-    [id_cliente, anno],
-  );
-
-  // Prima controlla se esistono già record per questo cliente/adempimento/anno
   const esistenti = queryAll(
     `SELECT id, mese, trimestre, semestre FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
     [id_cliente, adp.id, anno],
   );
 
   if (adp.scadenza_tipo === "trimestrale") {
-    console.log(
-      `DEBUG: Creazione trimestrale per cliente ${id_cliente}, adp ${adp.id}, anno ${anno}`,
-    );
-    console.log(`DEBUG: Record esistenti trovati:`, esistenti);
-
     for (let t = 1; t <= 4; t++) {
       const esiste = esistenti.find((e) => e.trimestre === t);
-      console.log(`DEBUG: Trimestre ${t} - esiste:`, !!esiste);
       if (!esiste) {
         runQuery(
           `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
           [id_cliente, adp.id, anno, t, "da_fare"],
         );
         inseriti++;
-        console.log(`DEBUG: Inserito trimestre ${t}`);
       }
     }
-    console.log(`DEBUG: Totale inseriti trimestrali: ${inseriti}`);
   } else if (adp.scadenza_tipo === "semestrale") {
-    console.log(
-      `DEBUG: Creazione semestrale per cliente ${id_cliente}, adp ${adp.id}, anno ${anno}`,
-    );
-    console.log(`DEBUG: Record esistenti trovati:`, esistenti);
-
     for (let s = 1; s <= 2; s++) {
       const esiste = esistenti.find((e) => e.semestre === s);
-      console.log(`DEBUG: Semestre ${s} - esiste:`, !!esiste);
       if (!esiste) {
         runQuery(
           `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
           [id_cliente, adp.id, anno, s, "da_fare"],
         );
         inseriti++;
-        console.log(`DEBUG: Inserito semestre ${s}`);
       }
     }
-    console.log(`DEBUG: Totale inseriti semestrali: ${inseriti}`);
   } else if (adp.scadenza_tipo === "mensile") {
-    // Crea sempre 12 mesi da Gen a Dic
-    console.log(
-      `DEBUG: Creazione mensile per cliente ${id_cliente}, adp ${adp.id}, anno ${anno}`,
-    );
-    console.log(`DEBUG: Record esistenti trovati:`, esistenti);
-
     for (let m = 1; m <= 12; m++) {
       const esiste = esistenti.find((e) => e.mese === m);
-      console.log(`DEBUG: Mese ${m} - esiste:`, !!esiste);
       if (!esiste) {
         runQuery(
           `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
           [id_cliente, adp.id, anno, m, "da_fare"],
         );
         inseriti++;
-        console.log(`DEBUG: Inserito mese ${m}`);
       }
-    }
-    console.log(`DEBUG: Totale inseriti mensili: ${inseriti}`);
-  } else if (adp.scadenza_tipo === "annuale") {
-    // Gli adempimenti annuali creano 1 solo record
-    const esiste = esistenti.find(
-      (e) => e.mese === null && e.trimestre === null && e.semestre === null,
-    );
-    if (!esiste) {
-      runQuery(
-        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
-        [id_cliente, adp.id, anno, "da_fare"],
-      );
-      inseriti++;
     }
   } else {
     const esiste = esistenti.find(
@@ -390,13 +323,6 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
   let mantenuti = 0;
   const dettagli = [];
 
-  // Ottieni la periodicita del cliente
-  const clienteConfig = queryOne(
-    `SELECT periodicita FROM clienti_config_annuale WHERE id_cliente = ? AND anno = ?`,
-    [id_cliente, anno],
-  );
-
-  // Prima controlla se esistono già record per questo cliente/adempimento/anno
   const esistenti = queryAll(
     `SELECT id, mese, trimestre, semestre FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
     [id_cliente, adp.id, anno],
@@ -441,7 +367,6 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
       }
     }
   } else if (adp.scadenza_tipo === "mensile") {
-    // Crea sempre 12 mesi da Gen a Dic
     for (let m = 1; m <= 12; m++) {
       const esiste = esistenti.find((e) => e.mese === m);
       if (!esiste) {
@@ -459,26 +384,6 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
           azione: "mantenuto",
         });
       }
-    }
-  } else if (adp.scadenza_tipo === "annuale") {
-    // Gli adempimenti annuali creano 1 solo record
-    const esiste = esistenti.find(
-      (e) => e.mese === null && e.trimestre === null && e.semestre === null,
-    );
-    if (!esiste) {
-      runQuery(
-        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
-        [id_cliente, adp.id, anno, "da_fare"],
-      );
-      inseriti++;
-    } else {
-      mantenuti++;
-      dettagli.push({
-        tipo: "annuale",
-        valore: null,
-        id_esistente: esiste.id,
-        azione: "mantenuto (annuale)",
-      });
     }
   } else {
     const esiste = esistenti.find(
@@ -528,145 +433,6 @@ function generaAdempimentoPerTutti(id_adp, anno) {
   return { inseriti, mantenuti, dettagli };
 }
 
-function rigeneraAdempimentoPerTutti(id_adp, anno) {
-  const a = queryOne(`SELECT * FROM adempimenti WHERE id = ?`, [id_adp]);
-  if (!a) return 0;
-  let tot = 0;
-  queryAll(`SELECT id FROM clienti WHERE attivo = 1`).forEach((c) => {
-    tot += inserisciAdempimentoForzato(c.id, a, anno);
-  });
-  return tot;
-}
-
-function inserisciAdempimentoForzato(id_cliente, adp, anno) {
-  let inseriti = 0;
-
-  // Prima elimina gli adempimenti esistenti per questo cliente/adempimento/anno
-  if (adp.scadenza_tipo === "trimestrale") {
-    runQuery(
-      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
-      [id_cliente, adp.id, anno],
-    );
-    for (let t = 1; t <= 4; t++) {
-      runQuery(
-        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, trimestre, stato) VALUES (?,?,?,?,?)`,
-        [id_cliente, adp.id, anno, t, "da_fare"],
-      );
-      inseriti++;
-    }
-  } else if (adp.scadenza_tipo === "semestrale") {
-    runQuery(
-      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
-      [id_cliente, adp.id, anno],
-    );
-    for (let s = 1; s <= 2; s++) {
-      runQuery(
-        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, semestre, stato) VALUES (?,?,?,?,?)`,
-        [id_cliente, adp.id, anno, s, "da_fare"],
-      );
-      inseriti++;
-    }
-  } else if (adp.scadenza_tipo === "mensile") {
-    runQuery(
-      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
-      [id_cliente, adp.id, anno],
-    );
-    for (let m = 1; m <= 12; m++) {
-      runQuery(
-        `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, stato) VALUES (?,?,?,?,?)`,
-        [id_cliente, adp.id, anno, m, "da_fare"],
-      );
-      inseriti++;
-    }
-  } else {
-    runQuery(
-      `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ? AND mese IS NULL AND trimestre IS NULL AND semestre IS NULL`,
-      [id_cliente, adp.id, anno],
-    );
-    runQuery(
-      `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, stato) VALUES (?,?,?,?)`,
-      [id_cliente, adp.id, anno, "da_fare"],
-    );
-    inseriti++;
-  }
-  return inseriti;
-}
-
-// ⭐ NUOVA FUNZIONE: Applica adempimenti esistenti a clienti multipli (senza duplicati)
-function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
-  let totaleInseriti = 0;
-  let totaleSkipped = 0;
-  
-  // Per ogni adempimento selezionato
-  for (const adpId of adempimenti_ids) {
-    const adp = queryOne(`SELECT * FROM adempimenti WHERE id = ? AND attivo = 1`, [adpId]);
-    if (!adp) {
-      console.warn(`Adempimento ${adpId} non trovato o non attivo`);
-      continue;
-    }
-    
-    // Per ogni cliente selezionato
-    for (const clienteId of clienti_ids) {
-      // Verifica se il cliente esiste ed è attivo
-      const cliente = queryOne(`SELECT id FROM clienti WHERE id = ? AND attivo = 1`, [clienteId]);
-      if (!cliente) {
-        console.warn(`Cliente ${clienteId} non trovato o non attivo`);
-        continue;
-      }
-      
-      // Usa la funzione esistente che gestisce già il "se assente"
-      const risultato = inserisciAdempimentoSeAssenteConDettagli(clienteId, adp, anno);
-      totaleInseriti += risultato.inseriti;
-      totaleSkipped += risultato.mantenuti;
-    }
-  }
-  
-  return {
-    inseriti: totaleInseriti,
-    skipped: totaleSkipped,
-    clienti: clienti_ids.length,
-    adempimenti: adempimenti_ids.length
-  };
-}
-
-// ⭐ NUOVA FUNZIONE: Applica adempimenti esistenti a clienti multipli (senza duplicati)
-function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
-  let totaleInseriti = 0;
-  let totaleSkipped = 0;
-  
-  // Per ogni adempimento selezionato
-  for (const adpId of adempimenti_ids) {
-    const adp = queryOne(`SELECT * FROM adempimenti WHERE id = ? AND attivo = 1`, [adpId]);
-    if (!adp) {
-      console.warn(`Adempimento ${adpId} non trovato o non attivo`);
-      continue;
-    }
-    
-    // Per ogni cliente selezionato
-    for (const clienteId of clienti_ids) {
-      // Verifica se il cliente esiste ed è attivo
-      const cliente = queryOne(`SELECT id FROM clienti WHERE id = ? AND attivo = 1`, [clienteId]);
-      if (!cliente) {
-        console.warn(`Cliente ${clienteId} non trovato o non attivo`);
-        continue;
-      }
-      
-      // Usa la funzione esistente che gestisce già il "se assente"
-      const risultato = inserisciAdempimentoSeAssenteConDettagli(clienteId, adp, anno);
-      totaleInseriti += risultato.inseriti;
-      totaleSkipped += risultato.mantenuti;
-    }
-  }
-  
-  return {
-    inseriti: totaleInseriti,
-    skipped: totaleSkipped,
-    clienti: clienti_ids.length,
-    adempimenti: adempimenti_ids.length
-  };
-}
-
-// ⭐ APPLICA ADEMPIMENTI ESISTENTI A CLIENTI MULTIPLI
 function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
   let totaleInseriti = 0;
   let totaleSkipped = 0;
@@ -691,7 +457,7 @@ function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
     }
   }
   
-  return { inseriti: totaleInseriti, skipped: totaleSkipped };
+  return { inseriti: totaleInseriti, skipped: totaleSkipped, clienti: clienti_ids.length, adempimenti: adempimenti_ids.length };
 }
 
 module.exports = {
@@ -701,10 +467,9 @@ module.exports = {
   updateAdempimento,
   deleteAdempimento,
   generaAdempimentoPerTutti,
-  rigeneraAdempimentoPerTutti,
   inserisciAdempimentoSeAssente,
   canDeleteAdempimento,
   createAdempimentoPersonalizzato,
   checkAdempimentiClienteEsistenti,
-  applicaAdempimentiAClienti  // ⭐ AGGIUNGI
+  applicaAdempimentiAClienti
 };
