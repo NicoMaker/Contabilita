@@ -588,15 +588,18 @@ function renderGlobaleTabella(rawData) {
       var classBadgesHtml = _renderGlobaleClienteClassBadges(client);
       var sottotipoLabel = client.sottotipologia_nome || "";
       
-      // ⭐ ORDINA i periodi: data_scadenza DESC (più recente prima), poi nome adempimento
+      // ⭐ ORDINA i periodi: data_scadenza ASC (più vecchio prima), poi nome adempimento
       var periodiOrdinati = client.periodi.slice().sort(function(a, b) {
+        // Prima ordina per data_scadenza ASC (più vecchio prima)
         if (a.data_scadenza && b.data_scadenza) {
           var dateA = new Date(a.data_scadenza);
           var dateB = new Date(b.data_scadenza);
-          return dateB - dateA;
+          return dateA - dateB;
         }
+        // Chi ha data va prima di chi non ha data
         if (a.data_scadenza) return -1;
         if (b.data_scadenza) return 1;
+        // Se nessuna data, ordina per nome adempimento (alfabetico)
         return a.adempimento_nome.localeCompare(b.adempimento_nome, "it", { sensitivity: "base" });
       });
       
