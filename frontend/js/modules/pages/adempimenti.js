@@ -292,27 +292,36 @@ function openAdpModal(r) {
 
   // Nascondi DATA COMPLETAMENTO per tipo Semplice
   const dataCompletamentoGroup = document.getElementById("data-completamento-group");
-  if (dataCompletamentoGroup) dataCompletamentoGroup.style.display = isSemplice ? "none" : "";
+  if (dataCompletamentoGroup) {
+    dataCompletamentoGroup.style.display = isSemplice ? "none" : "";
+  }
 
   // CHIUDI TUTTE LE SEZIONI prima di mostrarne una
-  document.getElementById("sect-importo-normale").style.display = "none";
-  document.getElementById("sect-importo-cont").style.display = "none";
-  document.getElementById("sect-importo-rate").style.display = "none";
-  document.getElementById("sect-importo-checkbox").style.display = "none";
+  const sectNormale = document.getElementById("sect-importo-normale");
+  const sectCont = document.getElementById("sect-importo-cont");
+  const sectRate = document.getElementById("sect-importo-rate");
+  const sectCheckbox = document.getElementById("sect-importo-checkbox");
+  
+  if (sectNormale) sectNormale.style.display = "none";
+  if (sectCont) sectCont.style.display = "none";
+  if (sectRate) sectRate.style.display = "none";
+  if (sectCheckbox) sectCheckbox.style.display = "none";
 
   // Mostra la sezione corretta in base al tipo
   if (isCbx) {
-    document.getElementById("sect-importo-checkbox").style.display = "block";
+    if (sectCheckbox) sectCheckbox.style.display = "block";
     _aggiornaPulsantiCheckbox(r.stato || "da_fare");
-  } else if (isCont) {
-    document.getElementById("sect-importo-cont").style.display = "block";
+  } 
+  else if (isCont) {
+    if (sectCont) sectCont.style.display = "block";
     setVal("adp-imp-iva", parseItalianoFloat(r.importo_iva) || "");
     setVal("adp-imp-cont", parseItalianoFloat(r.importo_contabilita) || "");
     const contCheck = document.getElementById("adp-cont-completata");
     if (contCheck) contCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriContabilita(r);
-  } else if (isRate) {
-    document.getElementById("sect-importo-rate").style.display = "block";
+  } 
+  else if (isRate) {
+    if (sectRate) sectRate.style.display = "block";
     setVal("adp-imp-saldo", parseItalianoFloat(r.importo_saldo) || "");
     setVal("adp-imp-acc1", parseItalianoFloat(r.importo_acconto1) || "");
     setVal("adp-imp-acc2", parseItalianoFloat(r.importo_acconto2) || "");
@@ -328,9 +337,11 @@ function openAdpModal(r) {
     const rateContCheck = document.getElementById("adp-rate-cont-completata");
     if (rateContCheck) rateContCheck.checked = parseInt(r.cont_completata) === 1;
     _aggiornaColoriRateContabilita(r);
-  } else if (isSemplice) {
-    document.getElementById("sect-importo-normale").style.display = "block";
-    setVal("adp-importo", parseItalianoFloat(r.importo) || "");
+  } 
+  else if (isSemplice) {
+    // Solo Scadenza: nessun importo, solo data scadenza
+    if (sectNormale) sectNormale.style.display = "none";
+    // Non mostrare importo
   }
 
   openModal("modal-adempimento");
@@ -515,6 +526,7 @@ function saveAdpStato() {
     data.cont_completata = document.getElementById("adp-rate-cont-completata")?.checked ? 1 : 0;
     if (data.stato === "completato") data.data_completamento = daItalianaAISO(getVal("adp-data")) || daItalianaAISO(oggiItaliano());
   } else if (isSemplice) {
+    // Solo Scadenza: nessun importo, nessuna data completamento
     data.importo = null;
     data.data_completamento = null;
   }
