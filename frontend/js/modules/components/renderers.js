@@ -108,21 +108,15 @@ function renderImportoCellCompact(r) {
     // Conversione corretta in numeri
     const sNum =
       r.importo_saldo != null && r.importo_saldo !== ""
-        ? parseFloat(
-            String(r.importo_saldo).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_saldo)
         : null;
     const a1Num =
       r.importo_acconto1 != null && r.importo_acconto1 !== ""
-        ? parseFloat(
-            String(r.importo_acconto1).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto1)
         : null;
     const a2Num =
       r.importo_acconto2 != null && r.importo_acconto2 !== ""
-        ? parseFloat(
-            String(r.importo_acconto2).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto2)
         : null;
 
     const s =
@@ -147,9 +141,7 @@ function renderImportoCellCompact(r) {
   }
   // Importo normale
   if (r.importo != null && r.importo !== "") {
-    const impNum = parseFloat(
-      String(r.importo).replace(/\./g, "").replace(",", "."),
-    );
+    const impNum = parseFloat(r.importo);
     return `<div class="importi-cell"><div class="imp-row"><span class="imp-lbl">&euro;</span><span class="imp-val" style="color:${impNum < 0 ? "var(--red)" : "var(--green)"}">${formattaNumeroItaliano(impNum)}&euro;</span></div></div>`;
   }
   return `<span class="imp-empty">-</span>`;
@@ -178,21 +170,15 @@ function getPillColor(r, stato) {
     // Conversione corretta dei valori in numeri per verificare se > 0 o < 0
     const sNum =
       r.importo_saldo != null && r.importo_saldo !== ""
-        ? parseFloat(
-            String(r.importo_saldo).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_saldo)
         : null;
     const a1Num =
       r.importo_acconto1 != null && r.importo_acconto1 !== ""
-        ? parseFloat(
-            String(r.importo_acconto1).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto1)
         : null;
     const a2Num =
       r.importo_acconto2 != null && r.importo_acconto2 !== ""
-        ? parseFloat(
-            String(r.importo_acconto2).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto2)
         : null;
 
     const filled = [sNum, a1Num, a2Num].filter(
@@ -266,21 +252,15 @@ function renderPeriodoPill(r) {
     // Conversione corretta dei valori per i rate
     const sNum =
       r.importo_saldo != null && r.importo_saldo !== ""
-        ? parseFloat(
-            String(r.importo_saldo).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_saldo)
         : null;
     const a1Num =
       r.importo_acconto1 != null && r.importo_acconto1 !== ""
-        ? parseFloat(
-            String(r.importo_acconto1).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto1)
         : null;
     const a2Num =
       r.importo_acconto2 != null && r.importo_acconto2 !== ""
-        ? parseFloat(
-            String(r.importo_acconto2).replace(/\./g, "").replace(",", "."),
-          )
+        ? parseFloat(r.importo_acconto2)
         : null;
 
     const filled = [sNum, a1Num, a2Num].filter(
@@ -358,7 +338,7 @@ function renderPeriodoPill(r) {
 function _buildContabilitaLabel(r, pillColor) {
   const ivaNum =
     r.importo_iva != null && r.importo_iva !== ""
-      ? parseFloat(String(r.importo_iva).replace(/\./g, "").replace(",", "."))
+      ? parseFloat(r.importo_iva)
       : null;
   const hasIva = ivaNum !== null && ivaNum !== 0;
   const contDone = parseInt(r.cont_completata) === 1;
@@ -400,19 +380,15 @@ function _buildRateLabel(r, pillColor) {
   // Conversione corretta dei valori in numeri
   const sNum =
     r.importo_saldo != null && r.importo_saldo !== ""
-      ? parseFloat(String(r.importo_saldo).replace(/\./g, "").replace(",", "."))
+      ? parseFloat(r.importo_saldo)
       : null;
   const a1Num =
     r.importo_acconto1 != null && r.importo_acconto1 !== ""
-      ? parseFloat(
-          String(r.importo_acconto1).replace(/\./g, "").replace(",", "."),
-        )
+      ? parseFloat(r.importo_acconto1)
       : null;
   const a2Num =
     r.importo_acconto2 != null && r.importo_acconto2 !== ""
-      ? parseFloat(
-          String(r.importo_acconto2).replace(/\./g, "").replace(",", "."),
-        )
+      ? parseFloat(r.importo_acconto2)
       : null;
 
   const icons = ["💰", "📥", "📥"];
