@@ -4,6 +4,49 @@
 
 var _globTipFiltroPanelOpen = false;
 
+// ─── CONDIVISIONE STORAGE CON CLIENTI.JS ─────────────────────
+function _getGlobStorageKeys() {
+  return {
+    FILTRI: 'gestionale_filtri_tipologie',
+    NESSUNO: 'gestionale_filtri_nessuno',
+    PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+  };
+}
+
+function _salvaFiltriGlobaleSuStorage() {
+  try {
+    const keys = typeof window._activeFiltroKeys !== "undefined" 
+      ? window._activeFiltroKeys 
+      : new Set();
+    const nessuno = typeof window._filtroManualeNessuno !== "undefined" 
+      ? window._filtroManualeNessuno 
+      : false;
+    
+    const filtriData = {
+      keys: Array.from(keys),
+      nessuno: nessuno,
+      pannelloAperto: _globTipFiltroPanelOpen
+    };
+    localStorage.setItem(_getGlobStorageKeys().FILTRI, JSON.stringify(filtriData));
+  } catch (e) {
+    console.warn('[globale.js] Errore salvataggio filtri:', e);
+  }
+}
+
+function _caricaFiltriGlobaleDaStorage() {
+  try {
+    const saved = localStorage.getItem(_getGlobStorageKeys().FILTRI);
+    if (saved) {
+      const filtriData = JSON.parse(saved);
+      _globTipFiltroPanelOpen = filtriData.pannelloAperto || false;
+      return true;
+    }
+  } catch (e) {
+    console.warn('[globale.js] Errore caricamento filtri:', e);
+  }
+  return false;
+}
+
 function calcolaGlobaleStats(data) {
   var totale = data.length;
   var comp = 0,
@@ -69,6 +112,7 @@ function toggleGlobTipFiltroPanel(event) {
     event.preventDefault();
   }
   _globTipFiltroPanelOpen = !_globTipFiltroPanelOpen;
+  _salvaFiltriGlobaleSuStorage(); // Salva stato pannello
   _aggiornaGlobPanelVisibility();
 }
 
@@ -78,6 +122,7 @@ function closeGlobTipFiltroPanel(event) {
     event.preventDefault();
   }
   _globTipFiltroPanelOpen = false;
+  _salvaFiltriGlobaleSuStorage(); // Salva stato pannello
   _aggiornaGlobPanelVisibility();
 }
 
@@ -131,11 +176,18 @@ function _refreshGlobTipFiltroPanel() {
 function clientePassaFiltroTipologie(c) {
   var activeFiltroKeys = _getActiveFiltroKeys();
   var isNone = _isManualNessuno();
-  if (isNone || activeFiltroKeys.size === 0) return false;
   var allKeys =
     typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
-  if (allKeys.length > 0 && activeFiltroKeys.size === allKeys.length)
+  
+  // Se non ci sono filtri o tutti sono selezionati, mostra tutto
+  if (activeFiltroKeys.size === 0 || (allKeys.length > 0 && activeFiltroKeys.size === allKeys.length)) {
     return true;
+  }
+  
+  // Se è stato selezionato "Nessuno" manualmente, nascondi tutto
+  if (isNone) {
+    return false;
+  }
   var tipCod = c.tipologia_codice || "";
   var col2DbToLabel = window.COL2_DB_TO_LABEL || {
     privato: "Privato",
@@ -325,6 +377,21 @@ function renderGlobalePage() {
   ) {
     initializeTipologieFilter();
   }
+  
+  // Carica stato pannello da storage
+  _caricaFiltriGlobaleDaStorage();
+  
+  // Event listener per sincronizzazione filtri solo se siamo nella vista globale
+  window.addEventListener('filtriTipologieAggiornati', function(e) {
+    // Verifica che siamo effettivamente nella vista globale prima di aggiornare
+    if (document.getElementById('glob-tip-filtro-container')) {
+      _globTipFiltroPanelOpen = e.detail.pannelloAperto;
+      // Aggiorna solo il contatore, non fare refresh completo del pannello
+      _aggiornaGlobTipFiltroCounter();
+      if (state.scadGlobale) renderGlobaleTabella(state.scadGlobale);
+    }
+  });
+  
   if (typeof state.globaleSelectedCliente === "undefined")
     state.globaleSelectedCliente = "";
 
@@ -746,8 +813,8 @@ function renderGlobaleTabella(rawData) {
         : "") +
       '<div id="glob-tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">' +
       (_globTipFiltroPanelOpen
-        ? '<button class="btn btn-xs btn-secondary" onclick="closeGlobTipFiltroPanel(event)">✕ Chiudi</button>'
-        : '<button class="btn btn-xs btn-secondary" onclick="toggleGlobTipFiltroPanel(event)">▼ Espandi</button>') +
+        ? '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation(); closeGlobTipFiltroPanel(event)">✕ Chiudi</button>'
+        : '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation(); toggleGlobTipFiltroPanel(event)">▼ Espandi</button>') +
       "</div>" +
       "</div>" +
       '<div id="glob-tip-filtro-container" style="display:' +

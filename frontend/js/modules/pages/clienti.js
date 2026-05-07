@@ -143,6 +143,13 @@ let _tipFiltroPanelOpen = false;
 const _FILTRO_NESSUNO = "__NESSUNO__";
 let _filtroManualeNessuno = false; // true = l'utente ha cliccato "Nessuno"
 
+// ─── LOCAL STORAGE KEYS ───────────────────────────────────────
+const _STORAGE_KEYS = {
+  FILTRI: 'gestionale_filtri_tipologie',
+  NESSUNO: 'gestionale_filtri_nessuno',
+  PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+};
+
 function _buildFiltroKey(tipCod, col2, col3, per) {
   return `${tipCod}|${col2 || ""}|${col3 || ""}|${per || ""}`;
 }
@@ -165,10 +172,44 @@ function _getAllKeys() {
   return keys;
 }
 
-// ─── INIT FILTRO: seleziona tutto ────────────────────────────
+// ─── GESTIONE PERSISTENZA ─────────────────────────────────────
+function salvaFiltriSuStorage() {
+  try {
+    const filtriData = {
+      keys: Array.from(_activeFiltroKeys),
+      nessuno: _filtroManualeNessuno,
+      pannelloAperto: _tipFiltroPanelOpen
+    };
+    localStorage.setItem(_STORAGE_KEYS.FILTRI, JSON.stringify(filtriData));
+  } catch (e) {
+    console.warn('[clienti.js] Errore salvataggio filtri:', e);
+  }
+}
+
+function caricaFiltriDaStorage() {
+  try {
+    const saved = localStorage.getItem(_STORAGE_KEYS.FILTRI);
+    if (saved) {
+      const filtriData = JSON.parse(saved);
+      _activeFiltroKeys = new Set(filtriData.keys || []);
+      _filtroManualeNessuno = filtriData.nessuno || false;
+      _tipFiltroPanelOpen = filtriData.pannelloAperto || false;
+      return true;
+    }
+  } catch (e) {
+    console.warn('[clienti.js] Errore caricamento filtri:', e);
+  }
+  return false;
+}
+
+// ─── INIT FILTRO: carica da storage o seleziona tutto ────────────────────────────
 function initializeTipologieFilter() {
-  _filtroManualeNessuno = false;
-  _activeFiltroKeys = new Set(_getAllKeys());
+  const hasLoaded = caricaFiltriDaStorage();
+  if (!hasLoaded) {
+    // Se non ci sono filtri salvati, seleziona tutto
+    _filtroManualeNessuno = false;
+    _activeFiltroKeys = new Set(_getAllKeys());
+  }
   _syncGlobalFiltroKeys();
 }
 
@@ -177,10 +218,26 @@ function initializeTipologieFilter() {
 
 function _syncGlobalFiltroKeys() {
   window._activeFiltroKeys = _activeFiltroKeys;
+  window._filtroManualeNessuno = _filtroManualeNessuno;
   window.COL2_DB_TO_LABEL = _col2DbToLabel();
   window.COL3_DB_TO_LABEL = _col3DbToLabel();
   window.COL2_LABEL_TO_DB = _col2LabelToDb();
   window.COL3_LABEL_TO_DB = _col3LabelToDb();
+  
+  // Sincronizza con altre viste aperte
+  _sincronizzaFiltriGlobali();
+}
+
+function _sincronizzaFiltriGlobali() {
+  // Emetti evento custom per notificare le altre viste
+  const event = new CustomEvent('filtriTipologieAggiornati', {
+    detail: {
+      keys: Array.from(_activeFiltroKeys),
+      nessuno: _filtroManualeNessuno,
+      pannelloAperto: _tipFiltroPanelOpen
+    }
+  });
+  window.dispatchEvent(event);
 }
 
 function _isTipCodAllSelected(tipCod) {
@@ -219,8 +276,8 @@ function renderTipologieFiltroPanel() {
       <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia</span>
       <span style="font-size:11px;color:var(--t3);margin-left:4px">(${isNone ? 0 : isAll ? totalKeys : activeCount}/${totalKeys} selezionati)</span>
       <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-        <button class="tip-btn-all"  onclick="selezionaTuttiTipFiltro(event)"   title="Seleziona tutto">✦ Tutti</button>
-        <button class="tip-btn-none" onclick="deselezionaTuttiTipFiltro(event)" title="Deseleziona tutto">✕ Nessuno</button>
+        <button class="tip-btn-all"  onclick="event.stopPropagation(); selezionaTuttiTipFiltro(event)"   title="Seleziona tutto">✦ Tutti</button>
+        <button class="tip-btn-none" onclick="event.stopPropagation(); deselezionaTuttiTipFiltro(event)" title="Deseleziona tutto">✕ Nessuno</button>
       </div>
     </div>
     <div class="tip-filtro-body">`;
@@ -241,7 +298,7 @@ function renderTipologieFiltroPanel() {
       });
 
     html += `<div class="tip-gruppo">
-      <div class="tip-gruppo-header" onclick="toggleTipologiaGruppo(event,'${tipCod}')"
+      <div class="tip-gruppo-header" onclick="event.stopPropagation(); toggleTipologiaGruppo(event,'${tipCod}')"
            style="border-color:${tip.color}44;background:${tip.color}0d">
         <span class="tip-gruppo-badge" style="background:${tip.color}22;color:${tip.color};border-color:${tip.color}44">${tip.icon} ${tipCod}</span>
         <span class="tip-gruppo-desc">${tip.desc}</span>
@@ -279,7 +336,7 @@ function renderTipologieFiltroPanel() {
 
         html += `<button
           class="tip-percorso-chip${isActive ? " tip-active" : ""}"
-          onclick="toggleFiltroPercorso(event,'${tipCod}','${p.col2 || ""}','${p.col3 || ""}','${per}')"
+          onclick="event.stopPropagation(); toggleFiltroPercorso(event,'${tipCod}','${p.col2 || ""}','${p.col3 || ""}','${per}')"
           style="${isActive ? `background:${tip.color}22;border-color:${tip.color};color:${tip.color}` : ""}"
           title="${p.codice}">
           <span class="tip-chip-codice">${p.codice}</span>
@@ -303,6 +360,7 @@ function toggleTipFiltroPanel(event) {
     event.preventDefault();
   }
   _tipFiltroPanelOpen = !_tipFiltroPanelOpen;
+  salvaFiltriSuStorage(); // Salva lo stato del pannello
   _aggiornaTipFiltroPanelVisibility();
 }
 
@@ -312,6 +370,7 @@ function closeTipFiltroPanel(event) {
     event.preventDefault();
   }
   _tipFiltroPanelOpen = false;
+  salvaFiltriSuStorage(); // Salva lo stato del pannello
   _aggiornaTipFiltroPanelVisibility();
 }
 
@@ -354,8 +413,11 @@ function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
   }
 
   _syncGlobalFiltroKeys();
-  _refreshTipFiltroPanel();
-  applyClientiFiltriDB();
+  salvaFiltriSuStorage(); // Salva le modifiche
+  
+  // Aggiorna solo il chip cliccato e il contatore, non tutto il pannello
+  _updateSingleChip(key, tipCod, col2, col3, per);
+  _aggiornaTipFiltroCounter();
 }
 
 function toggleTipologiaGruppo(event, tipCod) {
@@ -393,6 +455,7 @@ function toggleTipologiaGruppo(event, tipCod) {
   }
 
   _syncGlobalFiltroKeys();
+  salvaFiltriSuStorage(); // Salva le modifiche
   _refreshTipFiltroPanel();
   applyClientiFiltriDB();
 }
@@ -406,8 +469,8 @@ function selezionaTuttiTipFiltro(event) {
   _filtroManualeNessuno = false;
   _activeFiltroKeys = new Set(_getAllKeys());
   _syncGlobalFiltroKeys();
+  salvaFiltriSuStorage(); // Salva le modifiche
   _refreshTipFiltroPanel();
-  applyClientiFiltriDB();
 }
 
 // ── "✕ Nessuno": deseleziona tutto, rimane nessuno finché
@@ -420,8 +483,8 @@ function deselezionaTuttiTipFiltro(event) {
   _filtroManualeNessuno = true;
   _activeFiltroKeys = new Set();
   _syncGlobalFiltroKeys();
+  salvaFiltriSuStorage(); // Salva le modifiche
   _refreshTipFiltroPanel();
-  applyClientiFiltriDB();
 }
 
 function _refreshTipFiltroPanel() {
@@ -433,6 +496,41 @@ function _refreshTipFiltroPanel() {
   container.appendChild(tmp.firstChild);
   _aggiornaTipFiltroCounter();
   container.style.display = _tipFiltroPanelOpen ? "block" : "none";
+}
+
+function _updateSingleChip(key, tipCod, col2, col3, per) {
+  // Trova tutti i chip e cerca quello corrispondente
+  const chips = document.querySelectorAll('.tip-percorso-chip');
+  
+  for (let i = 0; i < chips.length; i++) {
+    const chip = chips[i];
+    const onclickAttr = chip.getAttribute('onclick') || '';
+    
+    // Verifica se questo chip corrisponde ai parametri
+    if (onclickAttr.includes(`'${tipCod}'`) && 
+        onclickAttr.includes(`'${col2 || ''}'`) && 
+        onclickAttr.includes(`'${col3 || ''}'`) && 
+        onclickAttr.includes(`'${per}'`)) {
+      
+      const isActive = _activeFiltroKeys.has(key);
+      const data = _getTipologiePercorsiData();
+      const tip = data[tipCod];
+      const tipColor = tip ? tip.color : "#888";
+      
+      if (isActive) {
+        chip.classList.add("tip-active");
+        chip.style.background = `${tipColor}22`;
+        chip.style.borderColor = tipColor;
+        chip.style.color = tipColor;
+      } else {
+        chip.classList.remove("tip-active");
+        chip.style.background = "";
+        chip.style.borderColor = "";
+        chip.style.color = "";
+      }
+      break; // Trovato il chip corretto, esci dal ciclo
+    }
+  }
 }
 
 function _aggiornaTipFiltroCounter() {
@@ -544,6 +642,7 @@ function resetClientiFiltri() {
   if (annoSelect) annoSelect.value = new Date().getFullYear();
   initializeTipologieFilter();
   _refreshTipFiltroPanel();
+  salvaFiltriSuStorage(); // Salva il reset
   if (typeof socket !== "undefined")
     socket.emit("get:clienti", { anno: new Date().getFullYear() });
 }
@@ -600,7 +699,7 @@ function renderClientiTabella(clienti) {
     </div>
 
     <div style="margin-bottom:16px">
-      <div id="tip-filtro-header-row" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;" onclick="toggleTipFiltroPanel(event)">
+      <div id="tip-filtro-header-row" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);">
         <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtro Tipologie</span>
         <span id="tip-filtro-count" style="display:${isNone ? "inline-flex" : !isAll ? "inline-flex" : "none"};align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:${isNone ? "var(--red)" : "var(--accent)"};color:#fff;border-radius:10px;font-size:11px;font-weight:700">${isNone ? "0" : activeCount}</span>
         ${isNone ? `<span style="font-size:11px;color:var(--red);font-weight:700">⚠️ Nessuno selezionato</span>` : ""}

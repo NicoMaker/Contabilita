@@ -194,7 +194,11 @@ function initSearchableSelect(selectId) {
 
   // Chiudi cliccando fuori
   document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) closePanel();
+    // Non chiudere se il click è su un pannello filtri
+    const filtroPanel = e.target.closest('.tip-filtro-panel, #tip-filtro-panel, #dash-tip-filtro-panel, #glob-tip-filtro-panel, [id*="tip-filtro-container"]');
+    if (!wrap.contains(e.target) && !filtroPanel) {
+      closePanel();
+    }
   });
 
   /* ── refresh pubblico ── */

@@ -33,15 +33,14 @@ function buildDashboardShell(stats) {
     <!-- ⭐ FILTRO TIPOLOGIE CLIENTI (DASHBOARD) — identico a clienti.js -->
     <div style="margin-bottom:16px">
       <div id="dash-tip-filtro-header-row"
-           style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);cursor:pointer;"
-           onclick="toggleDashTipFiltroPanel(event)">
+           style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:10px 14px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r-sm);">
         <span style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">🏷️ Filtra per Tipologia Clienti</span>
         <span id="dash-tip-filtro-count"
               style="display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--red);color:#fff;border-radius:10px;font-size:11px;font-weight:700">0</span>
         <span id="dash-tip-filtro-warning"
               style="font-size:11px;color:var(--red);font-weight:700;display:none">⚠️ Nessuno selezionato</span>
         <div id="dash-tip-filtro-toggle-btn" style="margin-left:auto" onclick="event.stopPropagation()">
-          <button class="btn btn-xs btn-secondary" onclick="toggleDashTipFiltroPanel(event)">▼ Espandi</button>
+          <button class="btn btn-xs btn-secondary" onclick="event.stopPropagation(); toggleDashTipFiltroPanel(event)">▼ Espandi</button>
         </div>
       </div>
       <div id="dash-tip-filtro-container" style="display:none"></div>
@@ -93,6 +92,29 @@ function buildDashboardShell(stats) {
   setTimeout(function () {
     if (typeof initializeTipologieFilter === "function")
       initializeTipologieFilter();
+    
+    // Carica stato pannello da storage
+    try {
+      const saved = localStorage.getItem(_getStorageKeys().FILTRI);
+      if (saved) {
+        const filtriData = JSON.parse(saved);
+        _dashTipFiltroPanelOpen = filtriData.pannelloAperto || false;
+      }
+    } catch (e) {
+      console.warn('[dashboard.js] Errore caricamento stato pannello:', e);
+    }
+    
+    // Event listener per sincronizzazione filtri solo se siamo nella dashboard
+    window.addEventListener('filtriTipologieAggiornati', function(e) {
+      // Verifica che siamo effettivamente nella dashboard prima di aggiornare
+      if (document.getElementById('dash-adp-grid')) {
+        _dashTipFiltroPanelOpen = e.detail.pannelloAperto;
+        _refreshDashTipFiltroPanel();
+        _aggiornaDashTipFiltroCounter();
+        if (state.dashStats) updateDashboardContent(state.dashStats);
+      }
+    });
+    
     _refreshDashTipFiltroPanel();
     _aggiornaDashTipFiltroCounter();
   }, 100);
@@ -460,12 +482,43 @@ function resetDashFiltri() {
 var _dashTipFiltroPanelOpen = false;
 var _dashFiltroObserver = null; // MutationObserver attivo
 
+// ─── CONDIVISIONE STORAGE CON CLIENTI.JS ─────────────────────
+// Usa le stesse funzioni di storage definite in clienti.js
+function _getStorageKeys() {
+  return {
+    FILTRI: 'gestionale_filtri_tipologie',
+    NESSUNO: 'gestionale_filtri_nessuno',
+    PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+  };
+}
+
+function _salvaFiltriDashboardSuStorage() {
+  try {
+    const keys = typeof window._activeFiltroKeys !== "undefined" 
+      ? window._activeFiltroKeys 
+      : new Set();
+    const nessuno = typeof window._filtroManualeNessuno !== "undefined" 
+      ? window._filtroManualeNessuno 
+      : false;
+    
+    const filtriData = {
+      keys: Array.from(keys),
+      nessuno: nessuno,
+      pannelloAperto: _dashTipFiltroPanelOpen
+    };
+    localStorage.setItem(_getStorageKeys().FILTRI, JSON.stringify(filtriData));
+  } catch (e) {
+    console.warn('[dashboard.js] Errore salvataggio filtri:', e);
+  }
+}
+
 function toggleDashTipFiltroPanel(event) {
   if (event) {
     event.stopPropagation();
     event.preventDefault();
   }
   _dashTipFiltroPanelOpen = !_dashTipFiltroPanelOpen;
+  _salvaFiltriDashboardSuStorage(); // Salva stato pannello
   _aggiornaDashPanelVisibility();
   if (_dashTipFiltroPanelOpen) _refreshDashTipFiltroPanel();
 }
@@ -476,6 +529,7 @@ function closeDashTipFiltroPanel(event) {
     event.preventDefault();
   }
   _dashTipFiltroPanelOpen = false;
+  _salvaFiltriDashboardSuStorage(); // Salva stato pannello
   _aggiornaDashPanelVisibility();
 }
 
@@ -541,6 +595,8 @@ function _refreshDashTipFiltroPanel() {
 
   // MutationObserver: ogni volta che clienti.js ri-renderizza i chip
   // (cambio classe "tip-active") aggiorna contatori + card dashboard.
+  // DISABILITATO TEMPORANEAMENTE PER DEBUG
+  /*
   _dashFiltroObserver = new MutationObserver(function () {
     _aggiornaDashTipFiltroCounter();
     if (state.dashStats) updateDashboardContent(state.dashStats);
@@ -551,6 +607,7 @@ function _refreshDashTipFiltroPanel() {
     attributes: true,
     attributeFilter: ["class", "style"],
   });
+  */
 
   container.style.display = _dashTipFiltroPanelOpen ? "block" : "none";
   _aggiornaDashTipFiltroCounter();
@@ -575,11 +632,14 @@ function clientePassaFiltroTipologieDashboard(adempimento) {
       : new Set();
   var allKeys =
     typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
-  var isNone = window._filtroManualeNessuno || keys.size === 0;
+  var isNone = window._filtroManualeNessuno;
   var isAll = !isNone && keys.size === allKeys.length;
 
+  // Se non ci sono filtri o tutti sono selezionati, mostra tutto
+  if (keys.size === 0 || isAll) return true;
+  
+  // Se è stato selezionato "Nessuno" manualmente, nascondi tutto
   if (isNone) return false;
-  if (isAll) return true;
 
   // Se l'adempimento porta il codice tipologia del cliente, filtriamo su quello
   if (adempimento.cliente_tipologia_codice) {
