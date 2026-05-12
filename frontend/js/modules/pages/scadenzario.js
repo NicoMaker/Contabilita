@@ -396,7 +396,7 @@ function renderScadenzarioTabella(data) {
           ${sottotipoLabel ? `<span class="badge b-categoria">${sottotipoLabel}</span>` : ""}
           ${c.col2_value ? `<span class="badge-info">${col2Map[c.col2_value] || c.col2_value}</span>` : ""}
           ${c.col3_value ? `<span class="badge-info">${col3Map[c.col3_value] || c.col3_value}</span>` : ""}
-          ${c.periodicita ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : c.periodicita === "annuale" ? "📅 Annuale" : "📆 Trimestrale"}</span>` : ""}
+          ${c.periodicita && c.col2_value !== "privato" ? `<span class="badge-per">${c.periodicita === "mensile" ? "📅 Mensile" : c.periodicita === "annuale" ? "📅 Annuale" : "📆 Trimestrale"}</span>` : ""}
         </div>
         <div class="cpc-meta-row">
           ${c.codice_fiscale ? `<span class="cpc-meta-chip">CF: <strong>${c.codice_fiscale}</strong></span>` : ""}

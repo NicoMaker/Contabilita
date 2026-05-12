@@ -338,7 +338,7 @@ function _renderGlobaleClienteClassBadges(c) {
       '<span class="badge-info" style="font-size:10px">' +
       (col3Map[c.col3] || c.col3) +
       "</span>";
-  if (c.periodicita) {
+  if (c.periodicita && c.col2 !== "privato") {
     var perObj = null;
     for (var i = 0; i < perAll.length; i++) {
       if (perAll[i].value === c.periodicita) {

@@ -688,7 +688,7 @@ function renderClientiPage() {
 
 function renderClientiTabella(clienti) {
   const col2Map = {
-    privato: "Ditta Ind.",
+    privato: "Privato",
     ditta: "Ditta Ind.",
     socio: "Socio",
     professionista: "Prof.",
@@ -767,7 +767,7 @@ function renderClientiTabella(clienti) {
           colBadges += `<span class="badge-info" style="font-size:11px">📁 ${col2Map[c.col2_value] || c.col2_value}</span>`;
         if (c.col3_value)
           colBadges += `<span class="badge-info" style="font-size:11px">⚙️ ${col3Map[c.col3_value] || c.col3_value}</span>`;
-        if (c.periodicita)
+        if (c.periodicita && c.col2_value !== "privato")
           colBadges += `<span class="badge-per" style="font-size:11px">📅 ${periodicitaMap[c.periodicita] || c.periodicita}</span>`;
 
         const configInfo =
@@ -1368,12 +1368,18 @@ function aggiornaColonneCliente() {
 function _checkAndShowPeriodicita(tipCodice) {
   const cfg = _cfg();
   const percorsi = cfg.percorsi?.[tipCodice] || [];
+  const col2Val = document.getElementById("c-col2")?.value || "";
   
   // Check if any path for this tipologia has periodicity
   const hasPeriodicita = percorsi.some(p => p.hasPer || p.isForfettario);
   
   const col4Wrap = document.getElementById("wrap-col4");
-  if (hasPeriodicita) {
+  // Hide periodicity for privato and socio
+  if (col2Val === "privato" || col2Val === "socio") {
+    col4Wrap.style.display = "none";
+    const col4Sel = document.getElementById("c-col4");
+    if (col4Sel) col4Sel.value = "";
+  } else if (hasPeriodicita) {
     // Show periodicity field
     col4Wrap.style.display = "";
     // Initialize with empty options if not already populated
@@ -1645,7 +1651,7 @@ function onCol2Change() {
   lastClienteFormValues.col2 = col2Val;
   const col3Sel = document.getElementById("c-col3");
   if (col3Sel) col3Sel.value = "";
-  _nascondiCol4();
+  // Nascondi il badge forfettario quando cambia col2
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
   aggiornaColonneCliente();
