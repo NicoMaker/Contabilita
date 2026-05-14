@@ -235,23 +235,35 @@ function initNav() {
     scaricaDatabase();
   });
 
+  /* ── Blocca propagazione click dal contenuto del modal all'overlay ── */
+  document.querySelectorAll(".modal-overlay .modal").forEach((modal) => {
+    modal.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+  });
+
   /* ── chiudi modal cliccando fuori ── */
   document.querySelectorAll(".modal-overlay").forEach((overlay) => {
     overlay.addEventListener("click", (e) => {
+      console.log("[v0] Modal click - target:", e.target, "overlay:", overlay, "target === overlay:", e.target === overlay);
+      
       // Solo chiudi se il click e' direttamente sull'overlay (sfondo scuro)
       // e NON su qualsiasi elemento interno al modal
       if (e.target !== overlay) {
         // Click su elemento interno - non chiudere
+        console.log("[v0] Click interno al modal - NON chiudo");
         return;
       }
       
       // Extra check: se il click e' su elementi del pannello filtri, non chiudere
       const filtroPanel = e.target.closest('.tip-filtro-panel, #tip-filtro-panel, #dash-tip-filtro-panel, #glob-tip-filtro-panel, [id*="tip-filtro-container"], .tip-percorso-chip, .tip-gruppo-header, .tip-btn-all, .tip-btn-none');
       if (filtroPanel) {
+        console.log("[v0] Click su pannello filtri - NON chiudo");
         return;
       }
       
       // Click diretto sull'overlay - chiudi il modal
+      console.log("[v0] Click diretto sull'overlay - CHIUDO");
       overlay.classList.remove("open");
     });
   });
