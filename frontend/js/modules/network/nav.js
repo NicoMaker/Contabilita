@@ -137,13 +137,11 @@ function initSearchableSelect(selectId) {
   }
 
   function closePanel() {
-    if (panel.style.display !== "none") {
-      panel.style.display = "none";
-      delete panel.dataset.open;
-      trigger.setAttribute("aria-expanded", "false");
-      trigger.querySelector(".ss-arrow").style.transform = "rotate(0deg)";
-      trigger.style.borderColor = "";
-    }
+    panel.style.display = "none";
+    delete panel.dataset.open;
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.querySelector(".ss-arrow").style.transform = "rotate(0deg)";
+    trigger.style.borderColor = "";
   }
 
   function _closeOtherPanel(p) {
@@ -194,15 +192,11 @@ function initSearchableSelect(selectId) {
     }
   });
 
-  // Chiudi cliccando fuori — MODIFICATO: non chiudere se si clicca su modali o pannelli filtri
+  // Chiudi cliccando fuori
   document.addEventListener("click", (e) => {
-    // Verifica se il click è all'interno di un modale aperto
-    const isInsideModal = !!e.target.closest('.modal-overlay.open, .modal');
-    // Verifica se il click è su un pannello di filtro
+    // Non chiudere se il click è su un pannello filtri
     const filtroPanel = e.target.closest('.tip-filtro-panel, #tip-filtro-panel, #dash-tip-filtro-panel, #glob-tip-filtro-panel, [id*="tip-filtro-container"]');
-    
-    // NON chiudere se il click è dentro un modale o su un filtro panel
-    if (!wrap.contains(e.target) && !filtroPanel && !isInsideModal) {
+    if (!wrap.contains(e.target) && !filtroPanel) {
       closePanel();
     }
   });
@@ -241,16 +235,13 @@ function initNav() {
     scaricaDatabase();
   });
 
-  /* ── chiudi modal cliccando fuori ── MODIFICATO: evita chiusura involontaria ── */
+  /* ── chiudi modal cliccando fuori ── */
   document.querySelectorAll(".modal-overlay").forEach((overlay) => {
     overlay.addEventListener("click", (e) => {
-      // Se il click non è direttamente sull'overlay (cioè su un elemento figlio), non chiudere
-      if (e.target !== overlay) return;
+      // Check if click is on filter panel elements inside the modal
+      const filtroPanel = e.target.closest('.tip-filtro-panel, #tip-filtro-panel, #dash-tip-filtro-panel, #glob-tip-filtro-panel, [id*="tip-filtro-container"], .tip-percorso-chip, .tip-gruppo-header, .tip-btn-all, .tip-btn-none');
       
-      // Verifica se il click è su un pannello filtro o elementi interattivi all'interno del modal
-      const filtroPanel = e.target.closest('.tip-filtro-panel, #tip-filtro-panel, #dash-tip-filtro-panel, #glob-tip-filtro-panel, [id*="tip-filtro-container"], .tip-percorso-chip, .tip-gruppo-header, .tip-btn-all, .tip-btn-none, .ss-panel, .ss-wrap, .date-picker-container');
-      
-      // Chiudi solo se il click è direttamente sull'overlay e non su elementi che non devono chiuderlo
+      // Only close if clicking directly on the overlay (outside modal content) and not on filter elements
       if (e.target === overlay && !filtroPanel) {
         overlay.classList.remove("open");
       }
