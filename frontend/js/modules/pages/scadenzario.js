@@ -425,7 +425,6 @@ function renderScadenzarioTabella(data) {
       </div>
     </div>
     <div class="cpc-actions no-print">
-      <button class="${generaBtnClass}" onclick="generaScadenzario()" title="${generaBtnTitle}" ${tuttiGenerati ? "disabled" : ""}>${generaBtnIcon} Genera</button>
       <button class="btn btn-sm btn-cyan" onclick="openCopia()">📋 Copia</button>
       ${renderBtnAddAdp(c.id)}
       <button class="btn btn-print btn-sm" style="margin-left:auto" onclick="window.print()">🖨️ Stampa</button>
