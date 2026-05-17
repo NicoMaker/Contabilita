@@ -111,6 +111,10 @@ socket.on("res:scadenzario", ({ success, data }) => {
     data.forEach((r) => inseriti.add(r.id_adempimento));
     state.adpInseriti = Array.from(inseriti);
     renderScadenzarioTabella(data);
+    // ⭐ Inietta la barra bulk dopo il render
+    setTimeout(function () {
+      if (typeof patchScadBulk === "function") patchScadBulk();
+    }, 50);
   }
 });
 
@@ -123,7 +127,25 @@ socket.on("res:scadenzario_globale", ({ success, data }) => {
   }
 });
 
-// ─── RISPOSTA CRUD CLIENTI ────────────────────────────────────
+// ─── RISPOSTA ELIMINA BULK SCADENZARIO CLIENTE ───────────────
+socket.on("res:elimina:adempimenti_cliente_bulk", ({ success, eliminati, error }) => {
+  if (success) {
+    showNotif(
+      "🗑️ Eliminat" + (eliminati === 1 ? "o" : "i") + " " + eliminati +
+      " adempiment" + (eliminati === 1 ? "o" : "i"),
+      "success"
+    );
+    if (typeof _scadBulkMode !== "undefined") {
+      window._scadBulkMode = false;
+      if (typeof _aggiornaUIBulkMode === "function") _aggiornaUIBulkMode();
+    }
+    if (state.page === "scadenzario") loadScadenzario();
+    if (state.page === "scadenzario_globale") loadGlobale();
+    if (state.page === "dashboard") socket.emit("get:stats", { anno: state.anno });
+  } else {
+    showNotif("❌ Errore eliminazione: " + (error || "Operazione fallita"), "error");
+  }
+});
 function getClienteSaveErrorMessage(error) {
   if (!error) return "Errore durante il salvataggio del cliente";
   if (error.includes("NOME_DUPLICATO")) return "Nome gia esistente";

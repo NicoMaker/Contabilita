@@ -475,6 +475,50 @@ function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
   };
 }
 
+// ─── ELIMINA ADEMPIMENTI DA CLIENTI (BULK) ────────────────────
+// Per ogni combinazione adempimento×cliente elimina TUTTI i record
+// dell'anno (mese/trimestre/semestre). Se il cliente non ha
+// quell'adempimento viene ignorato senza errori.
+function eliminaAdempimentiDaClienti(adempimenti_ids, clienti_ids, anno) {
+  let eliminati = 0;
+  let nonTrovati = 0;
+
+  for (const adpId of adempimenti_ids) {
+    for (const clienteId of clienti_ids) {
+      const esistenti = queryAll(
+        `SELECT id FROM adempimenti_cliente WHERE id_adempimento = ? AND id_cliente = ? AND anno = ?`,
+        [adpId, clienteId, anno],
+      );
+      if (esistenti.length === 0) {
+        nonTrovati++;
+        continue;
+      }
+      runQuery(
+        `DELETE FROM adempimenti_cliente WHERE id_adempimento = ? AND id_cliente = ? AND anno = ?`,
+        [adpId, clienteId, anno],
+      );
+      eliminati += esistenti.length;
+    }
+  }
+
+  return { eliminati, nonTrovati };
+}
+
+// ─── ELIMINA ADEMPIMENTI BULK PER UN SINGOLO CLIENTE ──────────
+// Riceve un array di id di adempimenti_cliente (le righe precise, non
+// id_adempimento) e le elimina tutte in una sola operazione.
+function eliminaAdempimentiClienteBulk(ids_righe) {
+  let eliminati = 0;
+  for (const id of ids_righe) {
+    const riga = queryOne(`SELECT id FROM adempimenti_cliente WHERE id = ?`, [id]);
+    if (riga) {
+      runQuery(`DELETE FROM adempimenti_cliente WHERE id = ?`, [id]);
+      eliminati++;
+    }
+  }
+  return { eliminati };
+}
+
 module.exports = {
   getAdempimenti,
   getAdempimentiCliente,
@@ -487,4 +531,6 @@ module.exports = {
   createAdempimentoPersonalizzato,
   checkAdempimentiClienteEsistenti,
   applicaAdempimentiAClienti,
+  eliminaAdempimentiDaClienti,
+  eliminaAdempimentiClienteBulk,
 };

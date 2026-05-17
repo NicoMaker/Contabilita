@@ -914,8 +914,23 @@
     <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-applica-adempimenti">
       <div class="modal modal-lg">
-        <div class="modal-title">
-          📋 Applica Adempimenti Esistenti a Clienti
+        <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <span>📋 Gestione Adempimenti su Clienti</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Modalità:</span>
+            <button
+              id="applica-mode-inserisci"
+              onclick="setApplicaModalita('inserisci')"
+              style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);background:var(--green);color:#fff;transition:all .15s">
+              ➕ Inserisci
+            </button>
+            <button
+              id="applica-mode-elimina"
+              onclick="setApplicaModalita('elimina')"
+              style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--text2);transition:all .15s">
+              🗑️ Elimina
+            </button>
+          </div>
         </div>
 
         <div class="infobox" style="margin-bottom: 18px">
@@ -1031,7 +1046,7 @@
           >
             Annulla
           </button>
-          <button class="btn btn-primary" onclick="eseguiApplicaAdempimenti()">
+          <button class="btn btn-primary" id="btn-esegui-applica" onclick="eseguiApplicaAdempimenti()">
             📋 Applica a Clienti Selezionati
           </button>
         </div>
@@ -1130,7 +1145,8 @@
     <script src="js/modules/components/renderers.js"></script>
     <script src="js/modules/pages/dashboard.js"></script>
     <script src="js/modules/pages/clienti.js"></script>
-    <script src="js/modules/pages/scadenzario.js"></script>
+    <script src="js/modules/pages/scadenzario.js"></script>7
+    <script src="js/modules/pages/scadenziario-bulk.js"></script>
     <script src="js/modules/pages/globale.js"></script>
     <script src="js/modules/pages/adempimenti.js"></script>
     <script src="js/modules/pages/tipologie.js"></script>

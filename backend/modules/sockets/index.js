@@ -580,6 +580,67 @@ module.exports = function setupSocketHandlers(io) {
       },
     );
 
+    // ⭐ ELIMINA ADEMPIMENTI DA CLIENTI (MULTIPLI)
+    socket.on(
+      "elimina:adempimenti_a_clienti",
+      ({ adempimenti_ids, clienti_ids, anno }) => {
+        try {
+          console.log(
+            `🗑️ Eliminazione adempimenti: ${adempimenti_ids.length} adempimenti da ${clienti_ids.length} clienti per anno ${anno}`,
+          );
+          const risultato = adempimentiModel.eliminaAdempimentiDaClienti(
+            adempimenti_ids,
+            clienti_ids,
+            anno,
+          );
+
+          io.emit("broadcast:scadenzario_updated", { anno });
+          io.emit("broadcast:globale_updated", { anno });
+          io.emit("broadcast:stats_updated", { anno });
+
+          socket.emit("res:elimina:adempimenti_a_clienti", {
+            success: true,
+            eliminati: risultato.eliminati,
+            nonTrovati: risultato.nonTrovati,
+            clienti: clienti_ids.length,
+            adempimenti: adempimenti_ids.length,
+          });
+        } catch (e) {
+          console.error("❌ Errore in elimina:adempimenti_a_clienti:", e);
+          socket.emit("res:elimina:adempimenti_a_clienti", {
+            success: false,
+            error: e.message,
+          });
+        }
+      },
+    );
+
+    // ⭐ ELIMINA ADEMPIMENTI BULK PER SINGOLO CLIENTE (dalla pagina scadenzario)
+    socket.on(
+      "elimina:adempimenti_cliente_bulk",
+      ({ ids_righe, id_cliente, anno }) => {
+        try {
+          console.log(`🗑️ Bulk delete scadenzario cliente ${id_cliente}: ${ids_righe.length} righe`);
+          const risultato = adempimentiModel.eliminaAdempimentiClienteBulk(ids_righe);
+
+          io.emit("broadcast:scadenzario_updated", { id_cliente, anno });
+          io.emit("broadcast:globale_updated", { anno });
+          io.emit("broadcast:stats_updated", { anno });
+
+          socket.emit("res:elimina:adempimenti_cliente_bulk", {
+            success: true,
+            eliminati: risultato.eliminati,
+          });
+        } catch (e) {
+          console.error("❌ Errore in elimina:adempimenti_cliente_bulk:", e);
+          socket.emit("res:elimina:adempimenti_cliente_bulk", {
+            success: false,
+            error: e.message,
+          });
+        }
+      },
+    );
+
     socket.on("disconnect", () => {
       console.log(`❌ Client disconnesso: ${socket.id}`);
     });

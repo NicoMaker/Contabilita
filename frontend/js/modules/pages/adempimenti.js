@@ -673,3 +673,43 @@ window.saveAdpDef = saveAdpDef;
 window.onAdpTipoChange = onAdpTipoChange;
 window.applyAdempimentiFiltriSearch = applyAdempimentiFiltriSearch;
 window.resetAdempimentiFiltri = resetAdempimentiFiltri;
+
+function eliminaAdempimentiDaClienti(adempimenti_ids, clienti_ids, anno) {
+  let eliminati = 0;
+  let nonTrovati = 0;
+
+  for (const adpId of adempimenti_ids) {
+    const adp = queryOne(
+      `SELECT * FROM adempimenti WHERE id = ? AND attivo = 1`,
+      [adpId],
+    );
+    if (!adp) {
+      console.warn(`Adempimento ${adpId} non trovato o non attivo`);
+      continue;
+    }
+
+    for (const clienteId of clienti_ids) {
+      const esistenti = queryAll(
+        `SELECT id FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
+        [clienteId, adpId, anno],
+      );
+      if (esistenti.length === 0) {
+        nonTrovati++;
+        continue;
+      }
+      // Elimina tutte le occorrenze (mesi/trimestri/semestri) per quella coppia
+      runQuery(
+        `DELETE FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ?`,
+        [clienteId, adpId, anno],
+      );
+      eliminati += esistenti.length;
+    }
+  }
+
+  return {
+    eliminati,
+    nonTrovati,
+    clienti: clienti_ids.length,
+    adempimenti: adempimenti_ids.length,
+  };
+}

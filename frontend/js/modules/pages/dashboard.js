@@ -214,6 +214,52 @@ function goToClienteScadenzarioDiretto(clienteId) {
 
 // ─── APPLICA ADEMPIMENTI ──────────────────────────────────────
 
+// ─── MODALITÀ: inserisci o elimina ───────────────────────────
+var _applicaModalita = "inserisci";
+
+function setApplicaModalita(m) {
+  _applicaModalita = m;
+  var btnIns = document.getElementById("applica-mode-inserisci");
+  var btnEl = document.getElementById("applica-mode-elimina");
+  if (btnIns) {
+    btnIns.style.background = m === "inserisci" ? "var(--green)" : "var(--surface3)";
+    btnIns.style.color = m === "inserisci" ? "#fff" : "var(--text2)";
+    btnIns.style.borderColor = m === "inserisci" ? "var(--green)" : "var(--border)";
+  }
+  if (btnEl) {
+    btnEl.style.background = m === "elimina" ? "var(--red)" : "var(--surface3)";
+    btnEl.style.color = m === "elimina" ? "#fff" : "var(--text2)";
+    btnEl.style.borderColor = m === "elimina" ? "var(--red)" : "var(--border)";
+  }
+  var btnApplica = document.getElementById("btn-esegui-applica");
+  if (btnApplica) {
+    if (m === "elimina") {
+      btnApplica.textContent = "🗑️ Elimina da Clienti Selezionati";
+      btnApplica.style.background = "var(--red)";
+      btnApplica.style.borderColor = "var(--red)";
+    } else {
+      btnApplica.textContent = "📋 Applica a Clienti Selezionati";
+      btnApplica.style.background = "";
+      btnApplica.style.borderColor = "";
+    }
+  }
+  var infoBox = document.querySelector("#modal-applica-adempimenti .infobox");
+  if (infoBox) {
+    if (m === "elimina") {
+      infoBox.innerHTML = "🗑️ Seleziona adempimenti e clienti: verranno eliminati solo quelli già presenti. Se un cliente non ha quell'adempimento viene ignorato.";
+      infoBox.style.background = "var(--red)08";
+      infoBox.style.borderColor = "var(--red)44";
+      infoBox.style.color = "var(--red)";
+    } else {
+      infoBox.innerHTML = "✅ Seleziona uno o più adempimenti e uno o più clienti.<br>📌 Gli adempimenti già presenti vengono conservati.";
+      infoBox.style.background = "";
+      infoBox.style.borderColor = "";
+      infoBox.style.color = "";
+    }
+  }
+}
+
+
 function apriApplicaAdempimentiPerVuoti() {
   socket.emit("get:clienti_senza_adempimenti", { anno: state.anno });
   socket.once("res:clienti_senza_adempimenti", function (data) {
@@ -273,6 +319,7 @@ function apriModalConPreselezione(clientiVuotiIds) {
 
 function openApplicaAdempimenti() {
   _applicaTipFiltro = new Set(); // reset filtro tipologia all'apertura
+  _applicaModalita = "inserisci"; // reset modalità
   if (!state.adempimenti || state.adempimenti.length === 0) {
     socket.emit("get:adempimenti");
     socket.once("res:adempimenti", function (data) {
@@ -615,11 +662,27 @@ function eseguiApplicaAdempimenti() {
     showNotif("Seleziona almeno un cliente", "error");
     return;
   }
-  socket.emit("applica:adempimenti_a_clienti", {
-    adempimenti_ids: adpIds,
-    clienti_ids: clientiIds,
-    anno,
-  });
+
+  if (_applicaModalita === "elimina") {
+    var nAdp = adpIds.length;
+    var nCli = clientiIds.length;
+    if (!confirm(
+      "Eliminerai " + nAdp + " adempiment" + (nAdp === 1 ? "o" : "i") +
+      " da " + nCli + " client" + (nCli === 1 ? "e" : "i") +
+      " per l'anno " + anno + ".\n\nI clienti che non hanno l'adempimento vengono ignorati.\n\nConfermi?"
+    )) return;
+    socket.emit("elimina:adempimenti_a_clienti", {
+      adempimenti_ids: adpIds,
+      clienti_ids: clientiIds,
+      anno,
+    });
+  } else {
+    socket.emit("applica:adempimenti_a_clienti", {
+      adempimenti_ids: adpIds,
+      clienti_ids: clientiIds,
+      anno,
+    });
+  }
   closeModal("modal-applica-adempimenti");
 }
 
@@ -1004,6 +1067,19 @@ if (typeof socket !== "undefined") {
       showNotif("❌ Errore: " + (data.error || "Operazione fallita"), "error");
     }
   });
+
+  socket.on("res:elimina:adempimenti_a_clienti", function (data) {
+    if (data.success) {
+      var msg = "🗑️ Eliminati " + data.eliminati + " record da " + data.clienti + " clienti";
+      if (data.nonTrovati > 0)
+        msg += " (" + data.nonTrovati + " già assenti, ignorati)";
+      showNotif(msg, "success");
+      socket.emit("get:stats", { anno: state.anno });
+      caricaClientiSenzaAdempimenti();
+    } else {
+      showNotif("❌ Errore eliminazione: " + (data.error || "Operazione fallita"), "error");
+    }
+  });
 }
 
 // ─── ESPOSIZIONE GLOBALE ──────────────────────────────────────
@@ -1030,3 +1106,4 @@ window.closeDashTipFiltroPanel = closeDashTipFiltroPanel;
 window._aggiornaDashPanelVisibility = _aggiornaDashPanelVisibility;
 window._aggiornaDashTipFiltroCounter = _aggiornaDashTipFiltroCounter;
 window._refreshDashTipFiltroPanel = _refreshDashTipFiltroPanel;
+window.setApplicaModalita = setApplicaModalita;
