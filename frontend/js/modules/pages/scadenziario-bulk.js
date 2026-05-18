@@ -249,6 +249,8 @@ function switchAddAdpTab(tab) {
     if (btnAdd) { btnAdd.style.background = "var(--surface2)"; btnAdd.style.color = "var(--text2)"; }
     if (btnDel) { btnDel.style.background = "var(--red)";      btnDel.style.color = "#fff"; }
     // Popola la lista "Elimina" ogni volta che si apre la tab
+    var delSearch = document.getElementById("del-adp-search");
+    if (delSearch) delSearch.value = "";
     popolaDelAdpList();
   }
 }
@@ -262,7 +264,13 @@ function switchAddAdpTab(tab) {
  * (non per singola riga mese/trimestre: quando elimini un adempimento
  * vengono eliminati tutti i suoi periodi per quel cliente/anno).
  */
-function popolaDelAdpList() {
+function filtraDelAdpList() {
+  var q = (document.getElementById("del-adp-search")?.value || "").toLowerCase().trim();
+  popolaDelAdpList(q);
+}
+
+function popolaDelAdpList(filtro) {
+  filtro = filtro || "";
   var container = document.getElementById("del-adp-list");
   var annoInput = document.getElementById("del-adp-anno");
   var avviso    = document.getElementById("del-adp-avviso");
@@ -299,13 +307,21 @@ function popolaDelAdpList() {
     return a.nome.localeCompare(b.nome);
   });
 
+  // Filtra per ricerca
+  if (filtro) {
+    adpList = adpList.filter(function(a) {
+      return a.nome.toLowerCase().includes(filtro) || a.codice.toLowerCase().includes(filtro);
+    });
+  }
+
   if (avviso) avviso.style.display = adpList.length > 0 ? "" : "none";
   if (chkTutti) { chkTutti.checked = false; chkTutti.indeterminate = false; }
 
   if (adpList.length === 0) {
     container.innerHTML =
       '<div style="padding:14px;text-align:center;color:var(--text3);font-size:13px">' +
-      'Nessun adempimento presente per questo cliente / anno</div>';
+      (filtro ? 'Nessun adempimento trovato' : 'Nessun adempimento presente per questo cliente / anno') +
+      '</div>';
     if (btnElim) { btnElim.disabled = true; btnElim.style.opacity = "0.5"; }
     return;
   }
@@ -426,6 +442,7 @@ window.patchScadBulk               = patchScadBulk;
 
 window.switchAddAdpTab             = switchAddAdpTab;
 window.popolaDelAdpList            = popolaDelAdpList;
+window.filtraDelAdpList            = filtraDelAdpList;
 window._aggiornaDelAdpCounter      = _aggiornaDelAdpCounter;
 window.toggleSelezionaTuttiDelAdp  = toggleSelezionaTuttiDelAdp;
 window.eseguiEliminaAdpCliente     = eseguiEliminaAdpCliente;

@@ -1127,6 +1127,12 @@
         <div id="tab-panel-elimina" style="display:none">
           <div class="form-group">
             <label>SELEZIONA ADEMPIMENTI DA ELIMINARE</label>
+            <div style="margin-bottom:6px">
+              <input class="input" id="del-adp-search"
+                placeholder="🔍 Cerca adempimento…"
+                oninput="filtraDelAdpList()"
+                style="font-size:12px;padding:6px 10px;width:100%;box-sizing:border-box" />
+            </div>
             <div
               id="del-adp-list"
               style="
