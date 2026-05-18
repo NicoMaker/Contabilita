@@ -1054,53 +1054,125 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- MODAL AGGIUNGI ADEMPIMENTO                              -->
+    <!-- MODAL AGGIUNGI / ELIMINA ADEMPIMENTO                    -->
     <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="modal-add-adp">
       <div class="modal modal-sm">
-        <div class="modal-title">➕ Aggiungi Adempimento</div>
-        <input type="hidden" id="add-adp-cliente-id" />
-        <div class="add-adp-cliente-info" id="add-adp-cliente-info"></div>
-        <div class="form-group">
-          <label>Seleziona Adempimenti da Aggiungere</label>
-          <div
-            id="add-adp-list"
-            style="
-              max-height: 200px;
-              overflow-y: auto;
-              border: 1px solid var(--b1);
-              border-radius: var(--r-sm);
-              padding: 10px;
-              margin-bottom: 10px;
-              background: var(--s2);
-            "
-          ></div>
-          <div style="margin-top: 8px">
-            <label class="flag-chip">
-              <input
-                type="checkbox"
-                id="add-adp-seleziona-tutti"
-                onchange="toggleSelezionaTuttiAddAdp()"
-              />
-              <span>Seleziona/Deseleziona Tutti</span>
-            </label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Anno</label
-          ><input class="input" id="add-adp-anno" type="number" />
-        </div>
-        <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-add-adp')"
-          >
-            Annulla
-          </button>
-          <button class="btn btn-primary" onclick="eseguiAddAdp()">
+
+        <!-- Tab switcher -->
+        <div style="display:flex;gap:0;margin-bottom:16px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)">
+          <button id="tab-add-adp-btn"
+            onclick="switchAddAdpTab('aggiungi')"
+            style="flex:1;padding:9px 0;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s">
             ➕ Aggiungi
           </button>
+          <button id="tab-del-adp-btn"
+            onclick="switchAddAdpTab('elimina')"
+            style="flex:1;padding:9px 0;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--surface2);color:var(--text2);transition:all .15s">
+            🗑️ Elimina
+          </button>
         </div>
+
+        <input type="hidden" id="add-adp-cliente-id" />
+        <div class="add-adp-cliente-info" id="add-adp-cliente-info"></div>
+
+        <!-- ── TAB AGGIUNGI ── -->
+        <div id="tab-panel-aggiungi">
+          <div class="form-group">
+            <label>SELEZIONA ADEMPIMENTI DA AGGIUNGERE</label>
+            <div
+              id="add-adp-list"
+              style="
+                max-height: 200px;
+                overflow-y: auto;
+                border: 1px solid var(--border);
+                border-radius: var(--r-sm);
+                padding: 10px;
+                margin-bottom: 10px;
+                background: var(--surface2);
+              "
+            ></div>
+            <div style="margin-top: 8px">
+              <label class="flag-chip">
+                <input
+                  type="checkbox"
+                  id="add-adp-seleziona-tutti"
+                  onchange="toggleSelezionaTuttiAddAdp()"
+                />
+                <span>Seleziona/Deseleziona Tutti</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Anno</label>
+            <input class="input" id="add-adp-anno" type="number" />
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('modal-add-adp')">
+              Annulla
+            </button>
+            <button class="btn btn-primary" onclick="eseguiAddAdp()">
+              ➕ Aggiungi
+            </button>
+          </div>
+        </div>
+
+        <!-- ── TAB ELIMINA ── -->
+        <div id="tab-panel-elimina" style="display:none">
+          <div class="form-group">
+            <label>SELEZIONA ADEMPIMENTI DA ELIMINARE</label>
+            <div
+              id="del-adp-list"
+              style="
+                max-height: 200px;
+                overflow-y: auto;
+                border: 1px solid var(--border);
+                border-radius: var(--r-sm);
+                padding: 10px;
+                margin-bottom: 10px;
+                background: var(--surface2);
+              "
+            ></div>
+            <div style="margin-top: 8px">
+              <label class="flag-chip">
+                <input
+                  type="checkbox"
+                  id="del-adp-seleziona-tutti"
+                  onchange="toggleSelezionaTuttiDelAdp()"
+                />
+                <span>Seleziona/Deseleziona Tutti</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Anno</label>
+            <input class="input" id="del-adp-anno" type="number" readonly
+              style="opacity:0.6;cursor:not-allowed" />
+          </div>
+          <div id="del-adp-avviso" style="
+            display:none;
+            padding:8px 12px;
+            background:var(--red)18;
+            border:1px solid var(--red)44;
+            border-radius:var(--r-sm);
+            font-size:12px;
+            color:var(--red);
+            margin-bottom:10px
+          ">
+            ⚠️ Verranno eliminati tutti i periodi (mesi/trimestri) dell'adempimento selezionato per questo cliente e anno.
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('modal-add-adp')">
+              Annulla
+            </button>
+            <button id="btn-esegui-elimina-adp" class="btn" disabled
+              onclick="eseguiEliminaAdpCliente()"
+              style="background:var(--red);color:#fff;border-color:var(--red);opacity:0.5">
+              🗑️ Elimina selezionati
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
