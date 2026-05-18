@@ -215,46 +215,71 @@ function goToClienteScadenzarioDiretto(clienteId) {
 // ─── APPLICA ADEMPIMENTI ──────────────────────────────────────
 
 // ─── MODALITÀ: inserisci o elimina ───────────────────────────
-var _applicaModalita = "inserisci";
+var _applicaModalita = null; // null = nessuna scelta, obbligatorio cliccare
 
 function setApplicaModalita(m) {
   _applicaModalita = m;
   var btnIns = document.getElementById("applica-mode-inserisci");
   var btnEl = document.getElementById("applica-mode-elimina");
-  if (btnIns) {
-    btnIns.style.background = m === "inserisci" ? "var(--green)" : "var(--surface3)";
-    btnIns.style.color = m === "inserisci" ? "#fff" : "var(--text2)";
-    btnIns.style.borderColor = m === "inserisci" ? "var(--green)" : "var(--border)";
-  }
-  if (btnEl) {
-    btnEl.style.background = m === "elimina" ? "var(--red)" : "var(--surface3)";
-    btnEl.style.color = m === "elimina" ? "#fff" : "var(--text2)";
-    btnEl.style.borderColor = m === "elimina" ? "var(--red)" : "var(--border)";
-  }
-  var btnApplica = document.getElementById("btn-esegui-applica");
-  if (btnApplica) {
-    if (m === "elimina") {
-      btnApplica.textContent = "🗑️ Elimina da Clienti Selezionati";
-      btnApplica.style.background = "var(--red)";
-      btnApplica.style.borderColor = "var(--red)";
-    } else {
-      btnApplica.textContent = "📋 Applica a Clienti Selezionati";
-      btnApplica.style.background = "";
-      btnApplica.style.borderColor = "";
+
+  // Stato neutro (null) → entrambi grigi
+  if (!m) {
+    if (btnIns) { btnIns.style.background = "var(--surface3)"; btnIns.style.color = "var(--text2)"; btnIns.style.borderColor = "var(--border)"; }
+    if (btnEl)  { btnEl.style.background  = "var(--surface3)"; btnEl.style.color  = "var(--text2)"; btnEl.style.borderColor  = "var(--border)"; }
+  } else {
+    if (btnIns) {
+      btnIns.style.background  = m === "inserisci" ? "var(--green)"   : "var(--surface3)";
+      btnIns.style.color       = m === "inserisci" ? "#fff"           : "var(--text2)";
+      btnIns.style.borderColor = m === "inserisci" ? "var(--green)"   : "var(--border)";
+    }
+    if (btnEl) {
+      btnEl.style.background   = m === "elimina"   ? "var(--red)"     : "var(--surface3)";
+      btnEl.style.color        = m === "elimina"   ? "#fff"           : "var(--text2)";
+      btnEl.style.borderColor  = m === "elimina"   ? "var(--red)"     : "var(--border)";
     }
   }
+
+  var btnApplica = document.getElementById("btn-esegui-applica");
+  if (btnApplica) {
+    if (!m) {
+      // Nessuna modalità scelta: bottone disabilitato e neutro
+      btnApplica.textContent   = "⬆ Scegli modalità sopra";
+      btnApplica.style.background   = "var(--surface3)";
+      btnApplica.style.borderColor  = "var(--border)";
+      btnApplica.style.color        = "var(--text3)";
+      btnApplica.disabled = true;
+    } else if (m === "elimina") {
+      btnApplica.textContent   = "🗑️ Elimina da Clienti Selezionati";
+      btnApplica.style.background   = "var(--red)";
+      btnApplica.style.borderColor  = "var(--red)";
+      btnApplica.style.color        = "#fff";
+      btnApplica.disabled = false;
+    } else {
+      btnApplica.textContent   = "📋 Applica a Clienti Selezionati";
+      btnApplica.style.background   = "";
+      btnApplica.style.borderColor  = "";
+      btnApplica.style.color        = "";
+      btnApplica.disabled = false;
+    }
+  }
+
   var infoBox = document.querySelector("#modal-applica-adempimenti .infobox");
   if (infoBox) {
-    if (m === "elimina") {
+    if (!m) {
+      infoBox.innerHTML = "👆 Scegli prima la modalità: <strong>Inserisci</strong> per aggiungere adempimenti ai clienti, oppure <strong>Elimina</strong> per rimuoverli.";
+      infoBox.style.background   = "var(--surface2)";
+      infoBox.style.borderColor  = "var(--border)";
+      infoBox.style.color        = "var(--text2)";
+    } else if (m === "elimina") {
       infoBox.innerHTML = "🗑️ Seleziona adempimenti e clienti: verranno eliminati solo quelli già presenti. Se un cliente non ha quell'adempimento viene ignorato.";
-      infoBox.style.background = "var(--red)08";
-      infoBox.style.borderColor = "var(--red)44";
-      infoBox.style.color = "var(--red)";
+      infoBox.style.background   = "var(--red)08";
+      infoBox.style.borderColor  = "var(--red)44";
+      infoBox.style.color        = "var(--red)";
     } else {
       infoBox.innerHTML = "✅ Seleziona uno o più adempimenti e uno o più clienti.<br>📌 Gli adempimenti già presenti vengono conservati.";
-      infoBox.style.background = "";
-      infoBox.style.borderColor = "";
-      infoBox.style.color = "";
+      infoBox.style.background   = "";
+      infoBox.style.borderColor  = "";
+      infoBox.style.color        = "";
     }
   }
 }
@@ -319,7 +344,7 @@ function apriModalConPreselezione(clientiVuotiIds) {
 
 function openApplicaAdempimenti() {
   _applicaTipFiltro = new Set(); // reset filtro tipologia all'apertura
-  _applicaModalita = "inserisci"; // reset modalità
+  _applicaModalita = null; // ⭐ reset modalità: obbligatorio scegliere ogni volta
   if (!state.adempimenti || state.adempimenti.length === 0) {
     socket.emit("get:adempimenti");
     socket.once("res:adempimenti", function (data) {
@@ -347,6 +372,8 @@ function openApplicaAdempimenti() {
     infoBox.style.color = "";
   }
   document.getElementById("applica-adempimenti-anno").value = state.anno;
+  // ⭐ Aggiorna visivamente i bottoni in base alla modalità corrente (persistente)
+  setTimeout(function() { setApplicaModalita(_applicaModalita); }, 0);
   openModal("modal-applica-adempimenti");
 }
 
@@ -649,6 +676,10 @@ function getSelectedClientiApplica() {
   });
 }
 function eseguiApplicaAdempimenti() {
+  if (!_applicaModalita) {
+    showNotif("⬆ Scegli prima la modalità: Inserisci o Elimina", "error");
+    return;
+  }
   var adpIds = getSelectedAdempimentiApplica();
   var clientiIds = getSelectedClientiApplica();
   var anno = parseInt(

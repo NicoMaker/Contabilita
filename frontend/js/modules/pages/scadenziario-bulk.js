@@ -222,7 +222,22 @@ function _iniettaBotoneTopbar() {
 // ══════════════════════════════════════════════════════════════
 
 // Stato corrente della tab attiva nella modale
-var _addAdpTabAttiva = "aggiungi";
+var _addAdpTabAttiva = null; // null = nessuna tab scelta, obbligatorio cliccare
+
+/**
+ * Resetta la tab al suo stato neutro (nessuna selezione) — chiamata all'apertura modal
+ */
+function resetAddAdpTab() {
+  _addAdpTabAttiva = null;
+  var panelAdd = document.getElementById("tab-panel-aggiungi");
+  var panelDel = document.getElementById("tab-panel-elimina");
+  var btnAdd   = document.getElementById("tab-add-adp-btn");
+  var btnDel   = document.getElementById("tab-del-adp-btn");
+  if (panelAdd) panelAdd.style.display = "none";
+  if (panelDel) panelDel.style.display = "none";
+  if (btnAdd) { btnAdd.style.background = "var(--surface2)"; btnAdd.style.color = "var(--text2)"; }
+  if (btnDel) { btnDel.style.background = "var(--surface2)"; btnDel.style.color = "var(--text2)"; }
+}
 
 /**
  * Cambia tab nella modale (chiamata dai pulsanti tab dell'HTML)
@@ -424,9 +439,7 @@ function eseguiEliminaAdpCliente() {
   });
 
   closeModal("modal-add-adp");
-  // Resetta la tab per la prossima apertura
-  _addAdpTabAttiva = "aggiungi";
-  switchAddAdpTab("aggiungi");
+  // ⭐ NON resetta la tab: mantiene l'ultima scelta (aggiungi/elimina)
 }
 
 
@@ -441,6 +454,7 @@ window.eliminaBulkScadenzario      = eliminaBulkScadenzario;
 window.patchScadBulk               = patchScadBulk;
 
 window.switchAddAdpTab             = switchAddAdpTab;
+window.resetAddAdpTab              = resetAddAdpTab;
 window.popolaDelAdpList            = popolaDelAdpList;
 window.filtraDelAdpList            = filtraDelAdpList;
 window._aggiornaDelAdpCounter      = _aggiornaDelAdpCounter;

@@ -744,6 +744,10 @@ function openAddAdp(id_cliente) {
   if (c)
     document.getElementById("add-adp-cliente-info").innerHTML =
       renderClienteInfoBox(c);
+  // ⭐ Reset tab a stato neutro: obbligatorio cliccare Aggiungi o Elimina ogni volta
+  if (typeof resetAddAdpTab === "function") {
+    setTimeout(function() { resetAddAdpTab(); }, 0);
+  }
   openModal("modal-add-adp");
 }
 
