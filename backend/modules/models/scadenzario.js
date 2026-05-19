@@ -4,7 +4,6 @@ const {
   inserisciAdempimentoSeAssenteConDettagli,
 } = require("./adempimenti");
 
-// ─── HELPER: anno dalla data_scadenza o anno corrente ─────────
 function _annoFromRow(anno) {
   return anno || new Date().getFullYear();
 }
@@ -63,7 +62,6 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
     params.push(s, s);
   }
 
-  // ORDINAMENTO: data_scadenza DESC (più recente prima), poi nome adempimento, poi nome cliente
   sql += ` ORDER BY ac.data_scadenza DESC NULLS LAST, a.nome COLLATE NOCASE, c.nome COLLATE NOCASE, ac.mese, ac.trimestre, ac.semestre`;
   return queryAll(sql, params);
 }
@@ -126,12 +124,10 @@ function getScadenzarioGlobale(anno, filtri = {}) {
     params.push(s, s, s, s);
   }
 
-  // ORDINAMENTO: data_scadenza DESC (più recente prima), poi nome adempimento, poi nome cliente
   sql += ` ORDER BY ac.data_scadenza DESC NULLS LAST, a.nome COLLATE NOCASE, c.nome COLLATE NOCASE, ac.mese, ac.trimestre, ac.semestre`;
   return queryAll(sql, params);
 }
 
-// ... resto del file invariato (tutte le altre funzioni rimangono uguali)
 function generaScadenzarioInterno(id_cliente, anno) {
   const adps = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
   let tot = 0;
@@ -231,10 +227,10 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
             r.mese,
             r.trimestre,
             r.semestre,
-            "da_fare",
+            "da_fare",          // stato sempre da_fare
             r.data_scadenza,
-            r.data_completamento,
-            r.note,
+            null,               // data_completamento azzerata
+            null,               // ⭐ note NON copiate
             r.importo,
             r.importo_saldo,
             r.importo_acconto1,

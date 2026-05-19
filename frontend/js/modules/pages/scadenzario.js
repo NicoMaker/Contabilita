@@ -504,7 +504,6 @@ function renderScadenzarioTabella(data) {
     content = `<div class="empty">
       <div class="empty-icon">📅</div>
       <p>Nessun adempimento per ${state.anno}</p>
-      <button class="btn btn-primary" onclick="generaScadenzario()" style="margin-top:16px">⚡ Genera Scadenzario</button>
     </div>`;
 
   document.getElementById("content").innerHTML =
