@@ -24,7 +24,7 @@ function cleanupPaginaBianca() {
     socket.off("res:delete:pagina_bianca");
     paginaBiancaListenersRegistered = false;
   }
-  
+
   paginaBiancaFilter = {
     tipo: "studio",
     id_cliente: "",
@@ -33,7 +33,7 @@ function cleanupPaginaBianca() {
   paginaBiancaCurrentEntry = null;
   paginaBiancaEditMode = false;
   paginaBiancaClientiSearchTerm = "";
-  
+
   const modal = document.getElementById("modal-pagina-bianca");
   if (modal && modal.classList.contains("open")) {
     modal.classList.remove("open");
@@ -47,19 +47,29 @@ function stampaPaginaBianca() {
   // Ottieni gli appunti attualmente visualizzati
   const container = document.getElementById("pagina-bianca-list");
   if (!container) return;
-  
+
   const appuntiHTML = container.innerHTML;
-  const titoloPagina = document.getElementById("page-title")?.textContent || "Pagina Bianca";
-  const tipoFiltro = paginaBiancaFilter.tipo === "studio" ? "🏢 Appunti Studio" : "👤 Appunti Clienti";
-  const clienteNome = (paginaBiancaFilter.id_cliente && state.clienti) 
-    ? state.clienti.find(c => c.id == paginaBiancaFilter.id_cliente)?.nome 
+  const titoloPagina =
+    document.getElementById("page-title")?.textContent || "Pagina Bianca";
+  const tipoFiltro =
+    paginaBiancaFilter.tipo === "studio"
+      ? "🏢 Appunti Studio"
+      : "👤 Appunti Clienti";
+  const clienteNome =
+    paginaBiancaFilter.id_cliente && state.clienti
+      ? state.clienti.find((c) => c.id == paginaBiancaFilter.id_cliente)?.nome
+      : "";
+  const filtroInfo =
+    paginaBiancaFilter.tipo === "cliente" && clienteNome
+      ? ` - Cliente: ${clienteNome}`
+      : paginaBiancaFilter.tipo === "cliente"
+        ? " - Tutti i clienti"
+        : "";
+  const searchTerm = paginaBiancaFilter.search
+    ? ` - Cerca: "${paginaBiancaFilter.search}"`
     : "";
-  const filtroInfo = paginaBiancaFilter.tipo === "cliente" && clienteNome 
-    ? ` - Cliente: ${clienteNome}` 
-    : (paginaBiancaFilter.tipo === "cliente" ? " - Tutti i clienti" : "");
-  const searchTerm = paginaBiancaFilter.search ? ` - Cerca: "${paginaBiancaFilter.search}"` : "";
-  
-  const printWindow = window.open('', '_blank');
+
+  const printWindow = window.open("", "_blank");
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -190,7 +200,7 @@ function stampaPaginaBianca() {
         <p>${tipoFiltro}${filtroInfo}${searchTerm}</p>
       </div>
       <div class="print-date">
-        Data stampa: ${new Date().toLocaleString('it-IT')}
+        Data stampa: ${new Date().toLocaleString("it-IT")}
       </div>
       ${appuntiHTML || '<div class="no-data">Nessun appunto da stampare</div>'}
     </body>
@@ -206,13 +216,13 @@ function stampaPaginaBianca() {
 function setupPaginaBiancaSocketListeners() {
   if (typeof socket === "undefined") return;
   if (paginaBiancaListenersRegistered) return;
-  
+
   socket.on("res:pagina_bianca", ({ success, data }) => {
     if (success && state.page === "pagina_bianca") {
       renderPaginaBiancaList(data);
     }
   });
-  
+
   socket.on("res:create:pagina_bianca", ({ success }) => {
     if (success && state.page === "pagina_bianca") {
       filterPaginaBianca();
@@ -221,7 +231,7 @@ function setupPaginaBiancaSocketListeners() {
       showNotif("Appunto creato con successo", "success");
     }
   });
-  
+
   socket.on("res:update:pagina_bianca", ({ success }) => {
     if (success && state.page === "pagina_bianca") {
       filterPaginaBianca();
@@ -230,7 +240,7 @@ function setupPaginaBiancaSocketListeners() {
       showNotif("Appunto aggiornato", "success");
     }
   });
-  
+
   socket.on("res:delete:pagina_bianca", ({ success }) => {
     if (success && state.page === "pagina_bianca") {
       filterPaginaBianca();
@@ -239,7 +249,7 @@ function setupPaginaBiancaSocketListeners() {
       showNotif("Appunto eliminato", "success");
     }
   });
-  
+
   paginaBiancaListenersRegistered = true;
 }
 
@@ -249,12 +259,12 @@ function setupPaginaBiancaSocketListeners() {
 function filterClientiSelect(searchTerm) {
   const select = document.getElementById("pb-filtro-cliente-select");
   if (!select || !state.clienti) return;
-  
+
   const searchLower = (searchTerm || "").toLowerCase().trim();
   const options = select.querySelectorAll("option");
   let visibleCount = 0;
-  
-  options.forEach(opt => {
+
+  options.forEach((opt) => {
     if (opt.value === "") {
       opt.style.display = "";
       opt.style.backgroundColor = "";
@@ -270,7 +280,7 @@ function filterClientiSelect(searchTerm) {
       opt.style.backgroundColor = "#ffcccc";
     }
   });
-  
+
   if (visibleCount === 1 && searchLower !== "" && select.value === "") {
     for (let i = 0; i < options.length; i++) {
       const opt = options[i];
@@ -302,9 +312,9 @@ function onPaginaBiancaClienteSelectChange() {
 function renderClientiSelectWithSearch() {
   const wrapper = document.getElementById("pb-cliente-select-wrapper");
   if (!wrapper || !state.clienti) return;
-  
+
   const currentValue = paginaBiancaFilter.id_cliente;
-  
+
   wrapper.innerHTML = `
     <label style="font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Cliente</label>
     <div style="position: relative;">
@@ -317,15 +327,19 @@ function renderClientiSelectWithSearch() {
         value="${escAttr(paginaBiancaClientiSearchTerm)}">
       <select id="pb-filtro-cliente-select" class="select" style="margin-top: 0px;" onchange="onPaginaBiancaClienteSelectChange()">
         <option value="">-- Tutti i clienti --</option>
-        ${state.clienti.map(c => `
-          <option value="${c.id}" ${currentValue == c.id ? 'selected' : ''}>
-            ${escAttr(c.nome)} (${c.tipologia_codice || '-'})
+        ${state.clienti
+          .map(
+            (c) => `
+          <option value="${c.id}" ${currentValue == c.id ? "selected" : ""}>
+            ${escAttr(c.nome)} (${c.tipologia_codice || "-"})
           </option>
-        `).join("")}
+        `,
+          )
+          .join("")}
       </select>
     </div>
   `;
-  
+
   if (paginaBiancaClientiSearchTerm) {
     filterClientiSelect(paginaBiancaClientiSearchTerm);
   }
@@ -338,12 +352,12 @@ function filterModalClientiSelect() {
   const searchInput = document.getElementById("pb-modal-cliente-search");
   const select = document.getElementById("pb-id-cliente");
   if (!searchInput || !select) return;
-  
+
   const searchTerm = (searchInput.value || "").toLowerCase().trim();
   const options = select.querySelectorAll("option");
   let visibleCount = 0;
-  
-  options.forEach(opt => {
+
+  options.forEach((opt) => {
     if (opt.value === "") {
       opt.style.display = "";
       return;
@@ -356,7 +370,7 @@ function filterModalClientiSelect() {
       opt.style.display = "none";
     }
   });
-  
+
   if (visibleCount === 1 && searchTerm !== "" && select.value === "") {
     for (let i = 0; i < options.length; i++) {
       const opt = options[i];
@@ -377,7 +391,7 @@ function onModalClientiSearchInput() {
 // ═══════════════════════════════════════════════════════════════
 function renderPaginaBiancaPage() {
   setupPaginaBiancaSocketListeners();
-  
+
   const content = document.getElementById("content");
   if (!content) return;
 
@@ -395,7 +409,7 @@ function renderPaginaBiancaPage() {
 
   // Costruisci l'HTML del filtro clienti con ricerca
   const clientiFilterHtml = `
-    <div id="pb-cliente-select-wrapper" style="min-width: 260px; ${paginaBiancaFilter.tipo !== 'cliente' ? 'display: none;' : ''}">
+    <div id="pb-cliente-select-wrapper" style="min-width: 260px; ${paginaBiancaFilter.tipo !== "cliente" ? "display: none;" : ""}">
       <label style="font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Cliente</label>
       <div style="position: relative;">
         <input type="text" 
@@ -407,11 +421,15 @@ function renderPaginaBiancaPage() {
           value="${escAttr(paginaBiancaClientiSearchTerm)}">
         <select id="pb-filtro-cliente-select" class="select" style="margin-top: 0px;" onchange="onPaginaBiancaClienteSelectChange()">
           <option value="">-- Tutti i clienti --</option>
-          ${state.clienti.map(c => `
-            <option value="${c.id}" ${paginaBiancaFilter.id_cliente == c.id ? 'selected' : ''}>
-              ${escAttr(c.nome)} (${c.tipologia_codice || '-'})
+          ${state.clienti
+            .map(
+              (c) => `
+            <option value="${c.id}" ${paginaBiancaFilter.id_cliente == c.id ? "selected" : ""}>
+              ${escAttr(c.nome)} (${c.tipologia_codice || "-"})
             </option>
-          `).join("")}
+          `,
+            )
+            .join("")}
         </select>
       </div>
     </div>
@@ -438,8 +456,8 @@ function renderPaginaBiancaPage() {
         <div style="min-width: 160px;">
           <label style="font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Tipo</label>
           <div style="display: flex; gap: 8px; margin-top: 4px;">
-            <button id="pb-filtro-studio" class="btn btn-sm ${paginaBiancaFilter.tipo === 'studio' ? 'btn-primary' : 'btn-secondary'}" onclick="setPaginaBiancaTipo('studio')">🏢 Studio</button>
-            <button id="pb-filtro-cliente" class="btn btn-sm ${paginaBiancaFilter.tipo === 'cliente' ? 'btn-primary' : 'btn-secondary'}" onclick="setPaginaBiancaTipo('cliente')">👤 Cliente</button>
+            <button id="pb-filtro-studio" class="btn btn-sm ${paginaBiancaFilter.tipo === "studio" ? "btn-primary" : "btn-secondary"}" onclick="setPaginaBiancaTipo('studio')">🏢 Studio</button>
+            <button id="pb-filtro-cliente" class="btn btn-sm ${paginaBiancaFilter.tipo === "cliente" ? "btn-primary" : "btn-secondary"}" onclick="setPaginaBiancaTipo('cliente')">👤 Cliente</button>
           </div>
         </div>
         ${clientiFilterHtml}
@@ -528,19 +546,21 @@ function renderPaginaBiancaList(appunti) {
 
   const html = `
     <div style="display: flex; flex-direction: column; gap: 16px;">
-      ${appunti.map(a => `
+      ${appunti
+        .map(
+          (a) => `
         <div class="pagina-bianca-card" style="background: var(--surface1); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05);" 
              onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'; this.style.transform='translateY(-2px)'" 
              onmouseleave="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'; this.style.transform='translateY(0)'">
           
           <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--surface2); border-bottom: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-              <span style="font-size: 24px;">${a.tipo === 'studio' ? '🏢' : '👤'}</span>
+              <span style="font-size: 24px;">${a.tipo === "studio" ? "🏢" : "👤"}</span>
               <div>
                 <div style="font-weight: 700; font-size: 16px;">${escAttr(a.titolo)}</div>
                 <div style="font-size: 12px; color: var(--text3); margin-top: 2px;">
-                  ${a.tipo === 'studio' ? 'Appunto Studio' : `Cliente: ${escAttr(a.cliente_nome || '—')}`}
-                  ${a.data_creazione ? ` · ${formattaDataOraItaliana(a.data_creazione)}` : ''}
+                  ${a.tipo === "studio" ? "Appunto Studio" : `Cliente: ${escAttr(a.cliente_nome || "—")}`}
+                  ${a.data_creazione ? ` · ${formattaDataOraItaliana(a.data_creazione)}` : ""}
                 </div>
               </div>
             </div>
@@ -552,14 +572,20 @@ function renderPaginaBiancaList(appunti) {
           
           <div style="padding: 20px;">
             <div style="color: var(--text1); line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto;">
-              ${escAttr(a.contenuto || '— Nessun contenuto —')}
+              ${escAttr(a.contenuto || "— Nessun contenuto —")}
             </div>
-            ${a.allegati ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3);">
+            ${
+              a.allegati
+                ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3);">
               📎 Allegati: ${escAttr(a.allegati)}
-            </div>` : ''}
+            </div>`
+                : ""
+            }
           </div>
         </div>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </div>
   `;
 
@@ -624,7 +650,7 @@ function showPaginaBiancaModal() {
               oninput="filterModalClientiSelect()">
             <select id="pb-id-cliente" class="select" style="margin-top: 0px;" size="6">
               <option value="">-- Seleziona un cliente --</option>
-              ${state.clienti ? state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)} (${c.tipologia_codice || '-'})</option>`).join("") : ""}
+              ${state.clienti ? state.clienti.map((c) => `<option value="${c.id}">${escAttr(c.nome)} (${c.tipologia_codice || "-"})</option>`).join("") : ""}
             </select>
           </div>
         </div>
@@ -661,17 +687,21 @@ function showPaginaBiancaModal() {
   document.getElementById("pb-titolo").value = "";
   document.getElementById("pb-contenuto").value = "";
   document.getElementById("pb-allegati").value = "";
-  
+
   const modalSearch = document.getElementById("pb-modal-cliente-search");
   if (modalSearch) modalSearch.value = "";
-  
+
   const clienteSelect = document.getElementById("pb-id-cliente");
   if (clienteSelect) clienteSelect.value = "";
 
   // Ereditarietà automatica del contesto
-  const radioStudio = document.querySelector('input[name="pb-tipo"][value="studio"]');
-  const radioCliente = document.querySelector('input[name="pb-tipo"][value="cliente"]');
-  
+  const radioStudio = document.querySelector(
+    'input[name="pb-tipo"][value="studio"]',
+  );
+  const radioCliente = document.querySelector(
+    'input[name="pb-tipo"][value="cliente"]',
+  );
+
   if (paginaBiancaFilter.tipo === "cliente" && paginaBiancaFilter.id_cliente) {
     if (radioCliente) radioCliente.checked = true;
     document.getElementById("pb-cliente-group").style.display = "block";
@@ -679,15 +709,21 @@ function showPaginaBiancaModal() {
       if (clienteSelect) clienteSelect.value = paginaBiancaFilter.id_cliente;
       filterModalClientiSelect();
     }, 50);
-    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
-  } else if (paginaBiancaFilter.tipo === "cliente" && !paginaBiancaFilter.id_cliente) {
+    document.getElementById("pb-modal-title").textContent =
+      "✏️ Nuovo Appunto Cliente";
+  } else if (
+    paginaBiancaFilter.tipo === "cliente" &&
+    !paginaBiancaFilter.id_cliente
+  ) {
     if (radioCliente) radioCliente.checked = true;
     document.getElementById("pb-cliente-group").style.display = "block";
-    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
+    document.getElementById("pb-modal-title").textContent =
+      "✏️ Nuovo Appunto Cliente";
   } else {
     if (radioStudio) radioStudio.checked = true;
     document.getElementById("pb-cliente-group").style.display = "none";
-    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Studio";
+    document.getElementById("pb-modal-title").textContent =
+      "✏️ Nuovo Appunto Studio";
   }
 
   // Se è in modifica
@@ -699,7 +735,8 @@ function showPaginaBiancaModal() {
         document.getElementById("pb-titolo").value = data.titolo || "";
         document.getElementById("pb-contenuto").value = data.contenuto || "";
         document.getElementById("pb-allegati").value = data.allegati || "";
-        document.getElementById("pb-modal-title").textContent = "✏️ Modifica Appunto";
+        document.getElementById("pb-modal-title").textContent =
+          "✏️ Modifica Appunto";
 
         if (data.tipo === "cliente") {
           if (radioCliente) radioCliente.checked = true;
@@ -723,13 +760,16 @@ function onPaginaBiancaTipoChange() {
   const tipo = document.querySelector('input[name="pb-tipo"]:checked')?.value;
   const clienteGroup = document.getElementById("pb-cliente-group");
   const titleSpan = document.getElementById("pb-modal-title");
-  
+
   if (clienteGroup) {
     clienteGroup.style.display = tipo === "cliente" ? "block" : "none";
   }
-  
+
   if (titleSpan) {
-    titleSpan.textContent = tipo === "cliente" ? "✏️ Nuovo Appunto Cliente" : "✏️ Nuovo Appunto Studio";
+    titleSpan.textContent =
+      tipo === "cliente"
+        ? "✏️ Nuovo Appunto Cliente"
+        : "✏️ Nuovo Appunto Studio";
   }
 }
 
@@ -786,14 +826,17 @@ function openPaginaBiancaPerCliente(clienteId, clienteNome) {
     search: "",
   };
   paginaBiancaClientiSearchTerm = "";
-  
-  document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach((x) => x.classList.remove("active"));
   const nav = document.querySelector('[data-page="pagina_bianca"]');
   if (nav) nav.classList.add("active");
-  
+
   state.page = "pagina_bianca";
-  document.getElementById("page-title").textContent = `📝 Pagina Bianca - ${clienteNome}`;
-  
+  document.getElementById("page-title").textContent =
+    `📝 Pagina Bianca - ${clienteNome}`;
+
   setupPaginaBiancaSocketListeners();
   renderPaginaBiancaPage();
 }

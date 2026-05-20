@@ -42,7 +42,7 @@ function renderPage(page) {
       cleanupPaginaBianca();
     }
   }
-  
+
   state.page = page;
   state._dashRendered = false;
   scrollToTop();

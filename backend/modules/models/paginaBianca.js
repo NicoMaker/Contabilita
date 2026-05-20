@@ -1,4 +1,9 @@
-const { runQuery, runQueryAndGetId, queryAll, queryOne } = require("../database");
+const {
+  runQuery,
+  runQueryAndGetId,
+  queryAll,
+  queryOne,
+} = require("../database");
 
 function getPaginaBianca(filtri = {}) {
   let sql = `
@@ -30,40 +35,49 @@ function getPaginaBianca(filtri = {}) {
 }
 
 function getPaginaBiancaSingolo(id) {
-  return queryOne(`
+  return queryOne(
+    `
     SELECT pb.*, c.nome as cliente_nome
     FROM pagina_bianca pb
     LEFT JOIN clienti c ON pb.id_cliente = c.id
     WHERE pb.id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 function createPaginaBianca(data) {
-  return runQueryAndGetId(`
+  return runQueryAndGetId(
+    `
     INSERT INTO pagina_bianca (tipo, titolo, contenuto, allegati, id_cliente)
     VALUES (?,?,?,?,?)
-  `, [
-    data.tipo,
-    data.titolo,
-    data.contenuto || null,
-    data.allegati || null,
-    data.id_cliente || null
-  ]);
+  `,
+    [
+      data.tipo,
+      data.titolo,
+      data.contenuto || null,
+      data.allegati || null,
+      data.id_cliente || null,
+    ],
+  );
 }
 
 function updatePaginaBianca(data) {
-  runQuery(`
+  runQuery(
+    `
     UPDATE pagina_bianca SET
       tipo = ?, titolo = ?, contenuto = ?, allegati = ?, id_cliente = ?
     WHERE id = ?
-  `, [
-    data.tipo,
-    data.titolo,
-    data.contenuto || null,
-    data.allegati || null,
-    data.id_cliente || null,
-    data.id
-  ]);
+  `,
+    [
+      data.tipo,
+      data.titolo,
+      data.contenuto || null,
+      data.allegati || null,
+      data.id_cliente || null,
+      data.id,
+    ],
+  );
 }
 
 function deletePaginaBianca(id) {
@@ -75,5 +89,5 @@ module.exports = {
   getPaginaBiancaSingolo,
   createPaginaBianca,
   updatePaginaBianca,
-  deletePaginaBianca
+  deletePaginaBianca,
 };

@@ -622,7 +622,10 @@ module.exports = function setupSocketHandlers(io) {
         const data = paginaBiancaModel.getPaginaBiancaSingolo(id);
         socket.emit("res:pagina_bianca_singolo", { success: true, data });
       } catch (e) {
-        socket.emit("res:pagina_bianca_singolo", { success: false, error: e.message });
+        socket.emit("res:pagina_bianca_singolo", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -631,9 +634,15 @@ module.exports = function setupSocketHandlers(io) {
         const newId = paginaBiancaModel.createPaginaBianca(data);
         io.emit("broadcast:pagina_bianca_updated");
         socket.emit("res:create:pagina_bianca", { success: true, id: newId });
-        socket.emit("notify", { type: "success", msg: "Appunto creato con successo" });
+        socket.emit("notify", {
+          type: "success",
+          msg: "Appunto creato con successo",
+        });
       } catch (e) {
-        socket.emit("res:create:pagina_bianca", { success: false, error: e.message });
+        socket.emit("res:create:pagina_bianca", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -644,7 +653,10 @@ module.exports = function setupSocketHandlers(io) {
         socket.emit("res:update:pagina_bianca", { success: true });
         socket.emit("notify", { type: "success", msg: "Appunto aggiornato" });
       } catch (e) {
-        socket.emit("res:update:pagina_bianca", { success: false, error: e.message });
+        socket.emit("res:update:pagina_bianca", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
@@ -655,7 +667,10 @@ module.exports = function setupSocketHandlers(io) {
         socket.emit("res:delete:pagina_bianca", { success: true });
         socket.emit("notify", { type: "success", msg: "Appunto eliminato" });
       } catch (e) {
-        socket.emit("res:delete:pagina_bianca", { success: false, error: e.message });
+        socket.emit("res:delete:pagina_bianca", {
+          success: false,
+          error: e.message,
+        });
       }
     });
 
