@@ -107,6 +107,28 @@ function filterClientiSelect(searchTerm) {
   });
 }
 
+function filterModalClientiSelect() {
+  const searchInput = document.getElementById("pb-modal-cliente-search");
+  const select = document.getElementById("pb-id-cliente");
+  if (!searchInput || !select) return;
+  
+  const searchTerm = searchInput.value.toLowerCase().trim();
+  const options = select.querySelectorAll("option");
+  
+  options.forEach(opt => {
+    if (opt.value === "") {
+      opt.style.display = "";
+      return;
+    }
+    const text = opt.textContent.toLowerCase();
+    if (searchTerm === "" || text.includes(searchTerm)) {
+      opt.style.display = "";
+    } else {
+      opt.style.display = "none";
+    }
+  });
+}
+
 function renderClientiSelectWithSearch() {
   const wrapper = document.getElementById("pb-cliente-select-wrapper");
   if (!wrapper || !state.clienti) return;
@@ -134,7 +156,6 @@ function renderClientiSelectWithSearch() {
     </div>
   `;
   
-  // Applica il filtro di ricerca se c'è un termine
   if (paginaBiancaClientiSearchTerm) {
     filterClientiSelect(paginaBiancaClientiSearchTerm);
   }
@@ -238,7 +259,6 @@ function renderPaginaBiancaPage() {
     return;
   }
 
-  // Applica il filtro di ricerca se c'è un termine
   if (paginaBiancaClientiSearchTerm && paginaBiancaFilter.tipo === "cliente") {
     setTimeout(() => {
       filterClientiSelect(paginaBiancaClientiSearchTerm);
@@ -267,22 +287,6 @@ function filterPaginaBianca() {
     paginaBiancaFilter.search = searchInput.value;
   }
   loadPaginaBiancaAppunti();
-}
-
-function onPaginaBiancaClienteSelectChange() {
-  const select = document.getElementById("pb-filtro-cliente-select");
-  if (select) {
-    paginaBiancaFilter.id_cliente = select.value;
-    loadPaginaBiancaAppunti();
-  }
-}
-
-function onPaginaBiancaClientiSearch() {
-  const searchInput = document.getElementById("pb-cliente-search-input");
-  if (searchInput) {
-    paginaBiancaClientiSearchTerm = searchInput.value;
-    filterClientiSelect(paginaBiancaClientiSearchTerm);
-  }
 }
 
 const debounceFilterPaginaBianca = debounce(() => {
@@ -360,10 +364,14 @@ function renderPaginaBiancaList(appunti) {
   container.innerHTML = html;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODALE NUOVO APPUNTO — con ereditarietà automatica del contesto
+// ═══════════════════════════════════════════════════════════════
 function openPaginaBiancaEditor(id = null) {
   paginaBiancaEditMode = !!id;
   paginaBiancaCurrentEntry = id;
 
+  // Carica i clienti se necessario
   if (!state.clienti || state.clienti.length === 0) {
     socket.emit("get:clienti", { anno: state.anno });
     socket.once("res:clienti", (data) => {
@@ -394,7 +402,7 @@ function showPaginaBiancaModal() {
           <label>Tipo Appunto <span class="required-star">*</span></label>
           <div style="display: flex; gap: 16px; margin-top: 8px;">
             <label class="flag-chip" style="cursor: pointer;">
-              <input type="radio" name="pb-tipo" value="studio" checked onchange="onPaginaBiancaTipoChange()">
+              <input type="radio" name="pb-tipo" value="studio" onchange="onPaginaBiancaTipoChange()">
               <span>🏢 Appunto Studio</span>
             </label>
             <label class="flag-chip" style="cursor: pointer;">
@@ -452,17 +460,42 @@ function showPaginaBiancaModal() {
   document.getElementById("pb-titolo").value = "";
   document.getElementById("pb-contenuto").value = "";
   document.getElementById("pb-allegati").value = "";
-  document.getElementById("pb-id-cliente").value = "";
   
   const modalSearch = document.getElementById("pb-modal-cliente-search");
   if (modalSearch) modalSearch.value = "";
+  
+  const clienteSelect = document.getElementById("pb-id-cliente");
+  if (clienteSelect) clienteSelect.value = "";
 
+  // ⭐⭐⭐ EREDITARIETÀ AUTOMATICA DEL CONTESTO ⭐⭐⭐
+  // Preimposta il tipo in base al filtro corrente della pagina
   const radioStudio = document.querySelector('input[name="pb-tipo"][value="studio"]');
   const radioCliente = document.querySelector('input[name="pb-tipo"][value="cliente"]');
-  if (radioStudio) radioStudio.checked = true;
-  document.getElementById("pb-cliente-group").style.display = "none";
-  document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto";
+  
+  if (paginaBiancaFilter.tipo === "cliente" && paginaBiancaFilter.id_cliente) {
+    // Se il filtro è su un cliente specifico, preimposta "Appunto Cliente"
+    if (radioCliente) radioCliente.checked = true;
+    document.getElementById("pb-cliente-group").style.display = "block";
+    // Preimposta anche il cliente selezionato
+    setTimeout(() => {
+      if (clienteSelect) clienteSelect.value = paginaBiancaFilter.id_cliente;
+      // Aggiorna la ricerca visiva
+      filterModalClientiSelect();
+    }, 50);
+    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
+  } else if (paginaBiancaFilter.tipo === "cliente" && !paginaBiancaFilter.id_cliente) {
+    // Se il filtro è "Tutti i clienti", preimposta "Appunto Cliente" ma senza cliente specifico
+    if (radioCliente) radioCliente.checked = true;
+    document.getElementById("pb-cliente-group").style.display = "block";
+    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
+  } else {
+    // Default: Appunto Studio
+    if (radioStudio) radioStudio.checked = true;
+    document.getElementById("pb-cliente-group").style.display = "none";
+    document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Studio";
+  }
 
+  // Se è in modifica, carica i dati (sovrascrive le preimpostazioni)
   if (paginaBiancaEditMode && paginaBiancaCurrentEntry) {
     socket.emit("get:pagina_bianca_singolo", { id: paginaBiancaCurrentEntry });
     socket.once("res:pagina_bianca_singolo", ({ success, data }) => {
@@ -476,8 +509,9 @@ function showPaginaBiancaModal() {
         if (data.tipo === "cliente") {
           if (radioCliente) radioCliente.checked = true;
           document.getElementById("pb-cliente-group").style.display = "block";
-          if (data.id_cliente) {
-            document.getElementById("pb-id-cliente").value = data.id_cliente;
+          if (data.id_cliente && clienteSelect) {
+            clienteSelect.value = data.id_cliente;
+            filterModalClientiSelect();
           }
         } else {
           if (radioStudio) radioStudio.checked = true;
@@ -490,33 +524,17 @@ function showPaginaBiancaModal() {
   openModal("modal-pagina-bianca");
 }
 
-function filterModalClientiSelect() {
-  const searchInput = document.getElementById("pb-modal-cliente-search");
-  const select = document.getElementById("pb-id-cliente");
-  if (!searchInput || !select) return;
-  
-  const searchTerm = searchInput.value.toLowerCase().trim();
-  const options = select.querySelectorAll("option");
-  
-  options.forEach(opt => {
-    if (opt.value === "") {
-      opt.style.display = "";
-      return;
-    }
-    const text = opt.textContent.toLowerCase();
-    if (searchTerm === "" || text.includes(searchTerm)) {
-      opt.style.display = "";
-    } else {
-      opt.style.display = "none";
-    }
-  });
-}
-
 function onPaginaBiancaTipoChange() {
   const tipo = document.querySelector('input[name="pb-tipo"]:checked')?.value;
   const clienteGroup = document.getElementById("pb-cliente-group");
+  const titleSpan = document.getElementById("pb-modal-title");
+  
   if (clienteGroup) {
     clienteGroup.style.display = tipo === "cliente" ? "block" : "none";
+  }
+  
+  if (titleSpan) {
+    titleSpan.textContent = tipo === "cliente" ? "✏️ Nuovo Appunto Cliente" : "✏️ Nuovo Appunto Studio";
   }
 }
 
