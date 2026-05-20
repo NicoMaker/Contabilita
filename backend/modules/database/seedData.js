@@ -1,75 +1,125 @@
-function createSchema(db) {
-  try {
-    db.run(`ALTER TABLE clienti ADD COLUMN contabilita INTEGER DEFAULT 0`);
-  } catch (e) {}
+const initSqlJs = require("sql.js");
+const path = require("path");
+const fs = require("fs");
+const { createSchema, seedData } = require("./seedData");
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tipologie_cliente (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      codice TEXT NOT NULL UNIQUE,
-      nome TEXT NOT NULL,
-      descrizione TEXT,
-      colore TEXT DEFAULT '#5b8df6'
-    )
-  `);
+const DB_PATH = path.join(__dirname, "../../db", "gestionale.db");
+let db;
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS sottotipologie (
+function saveDB() {
+  const data = db.export();
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  fs.writeFileSync(DB_PATH, Buffer.from(data));
+}
+
+function runQuery(sql, params = []) {
+  db.run(sql, params);
+  saveDB();
+  return db;
+}
+
+function runQueryAndGetId(sql, params = []) {
+  db.run(sql, params);
+  saveDB();
+  const stmt = db.prepare("SELECT last_insert_rowid() as id");
+  stmt.step();
+  const result = stmt.getAsObject();
+  stmt.free();
+  return result.id;
+}
+
+function queryAll(sql, params = []) {
+  const stmt = db.prepare(sql);
+  stmt.bind(params);
+  const rows = [];
+  while (stmt.step()) rows.push(stmt.getAsObject());
+  stmt.free();
+  return rows;
+}
+
+function queryOne(sql, params = []) {
+  return queryAll(sql, params)[0] || null;
+}
+
+async function initDB() {
+  const SQL = await initSqlJs();
+  if (fs.existsSync(DB_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(fileBuffer);
+    console.log("✅ Database caricato da file");
+    migrateDB();
+  } else {
+    db = new SQL.Database();
+    console.log("🆕 Nuovo database creato");
+    createSchema(db);
+    seedData(db);
+    saveDB();
+  }
+  return db;
+}
+
+function migrateDB() {
+  const migrations = [
+    `ALTER TABLE sottotipologie ADD COLUMN is_separator INTEGER DEFAULT 0`,
+    `ALTER TABLE adempimenti ADD COLUMN is_contabilita INTEGER DEFAULT 0`,
+    `ALTER TABLE adempimenti ADD COLUMN has_rate INTEGER DEFAULT 0`,
+    `ALTER TABLE adempimenti ADD COLUMN rate_labels TEXT`,
+    `ALTER TABLE adempimenti ADD COLUMN is_checkbox INTEGER DEFAULT 0`,
+    `ALTER TABLE adempimenti ADD COLUMN is_text_only INTEGER DEFAULT 0`,
+    `ALTER TABLE adempimenti ADD COLUMN anno_validita INTEGER DEFAULT NULL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_saldo REAL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_acconto1 REAL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_acconto2 REAL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_iva REAL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN importo_contabilita REAL`,
+    `ALTER TABLE adempimenti_cliente ADD COLUMN cont_completata INTEGER DEFAULT 0`,
+    `ALTER TABLE clienti ADD COLUMN periodicita TEXT`,
+    `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
+    `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
+
+    // Tabella appunti
+    `CREATE TABLE IF NOT EXISTS appunti (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      id_tipologia INTEGER NOT NULL,
+      titolo TEXT NOT NULL,
+      contenuto TEXT,
+      id_cliente INTEGER,
+      data_inserimento TEXT DEFAULT (datetime('now')),
+      data_scadenza TEXT,
+      priorita TEXT CHECK(priorita IN ('bassa','media','alta')) DEFAULT 'media',
+      completato INTEGER DEFAULT 0,
+      FOREIGN KEY (id_cliente) REFERENCES clienti(id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_appunti_cliente ON appunti(id_cliente)`,
+    `CREATE INDEX IF NOT EXISTS idx_appunti_scadenza ON appunti(data_scadenza)`,
+    `CREATE INDEX IF NOT EXISTS idx_appunti_completato ON appunti(completato)`,
+
+    // Tabella pagina_bianca
+    `CREATE TABLE IF NOT EXISTS pagina_bianca (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT NOT NULL CHECK(tipo IN ('studio', 'cliente')),
+      titolo TEXT NOT NULL,
+      contenuto TEXT,
+      allegati TEXT,
+      id_cliente INTEGER,
+      data_creazione TEXT DEFAULT (datetime('now')),
+      data_modifica TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (id_cliente) REFERENCES clienti(id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_tipo ON pagina_bianca(tipo)`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_cliente ON pagina_bianca(id_cliente)`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_data ON pagina_bianca(data_creazione DESC)`,
+
+    // Trigger per data_modifica su pagina_bianca
+    `CREATE TRIGGER IF NOT EXISTS update_pagina_bianca_modifica 
+    AFTER UPDATE ON pagina_bianca
+    BEGIN
+      UPDATE pagina_bianca SET data_modifica = datetime('now') WHERE id = NEW.id;
+    END`,
+
+    // Ricreazione tabella adempimenti
+    `CREATE TABLE IF NOT EXISTS adempimenti_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       codice TEXT NOT NULL,
-      nome TEXT NOT NULL,
-      is_separator INTEGER DEFAULT 0,
-      ordine INTEGER DEFAULT 0,
-      FOREIGN KEY (id_tipologia) REFERENCES tipologie_cliente(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS clienti (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome TEXT NOT NULL,
-      codice_fiscale TEXT,
-      partita_iva TEXT,
-      email TEXT,
-      telefono TEXT,
-      indirizzo TEXT,
-      citta TEXT,
-      cap TEXT,
-      provincia TEXT,
-      pec TEXT,
-      sdi TEXT,
-      iban TEXT,
-      note TEXT,
-      referente TEXT,
-      attivo INTEGER DEFAULT 1,
-      contabilita INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS clienti_config_annuale (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      id_cliente INTEGER NOT NULL,
-      anno INTEGER NOT NULL,
-      id_tipologia INTEGER NOT NULL,
-      id_sottotipologia INTEGER,
-      col2_value TEXT,
-      col3_value TEXT,
-      periodicita TEXT,
-      UNIQUE(id_cliente, anno),
-      FOREIGN KEY (id_cliente) REFERENCES clienti(id),
-      FOREIGN KEY (id_tipologia) REFERENCES tipologie_cliente(id),
-      FOREIGN KEY (id_sottotipologia) REFERENCES sottotipologie(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS adempimenti (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      codice TEXT NOT NULL UNIQUE,
       nome TEXT NOT NULL,
       descrizione TEXT,
       scadenza_tipo TEXT CHECK(scadenza_tipo IN ('annuale','semestrale','trimestrale','mensile')),
@@ -80,137 +130,36 @@ function createSchema(db) {
       rate_labels TEXT,
       anno_validita INTEGER DEFAULT NULL,
       attivo INTEGER DEFAULT 1
-    )
-  `);
+    )`,
+    `INSERT OR IGNORE INTO adempimenti_new
+       SELECT id, codice, nome, descrizione, scadenza_tipo,
+              is_contabilita, has_rate, is_checkbox, 
+              COALESCE(is_text_only, 0) as is_text_only,
+              rate_labels, anno_validita, attivo
+       FROM adempimenti`,
+    `DROP TABLE adempimenti`,
+    `ALTER TABLE adempimenti_new RENAME TO adempimenti`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_adempimenti_codice_attivo ON adempimenti(codice) WHERE attivo = 1`,
+  ];
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS adempimenti_cliente (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      id_cliente INTEGER NOT NULL,
-      id_adempimento INTEGER NOT NULL,
-      anno INTEGER NOT NULL,
-      mese INTEGER CHECK(mese BETWEEN 1 AND 12),
-      trimestre INTEGER CHECK(trimestre BETWEEN 1 AND 4),
-      semestre INTEGER CHECK(semestre BETWEEN 1 AND 2),
-      stato TEXT DEFAULT 'da_fare',
-      data_scadenza TEXT,
-      data_completamento TEXT,
-      note TEXT,
-      importo REAL,
-      importo_saldo REAL,
-      importo_acconto1 REAL,
-      importo_acconto2 REAL,
-      importo_iva REAL,
-      importo_contabilita REAL,
-      cont_completata INTEGER DEFAULT 0,
-      UNIQUE(id_cliente, id_adempimento, anno, mese, trimestre, semestre),
-      FOREIGN KEY (id_cliente) REFERENCES clienti(id),
-      FOREIGN KEY (id_adempimento) REFERENCES adempimenti(id)
-    )
-  `);
-
-  // Tabella appunti
-  db.run(`
-    CREATE TABLE IF NOT EXISTS appunti (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      titolo TEXT NOT NULL,
-      contenuto TEXT,
-      id_cliente INTEGER,
-      data_inserimento TEXT DEFAULT (datetime('now')),
-      data_scadenza TEXT,
-      priorita TEXT CHECK(priorita IN ('bassa','media','alta')) DEFAULT 'media',
-      colore TEXT,
-      completato INTEGER DEFAULT 0,
-      FOREIGN KEY (id_cliente) REFERENCES clienti(id)
-    )
-  `);
-
-  console.log("📐 Schema creato");
+  migrations.forEach((sql) => {
+    try {
+      db.run(sql);
+    } catch (e) {
+      // Ignora errori di colonna già esistente
+    }
+  });
+  saveDB();
 }
 
-function seedData(db) {
-  const tipologie = [
-    {
-      codice: "PF",
-      nome: "Persona Fisica",
-      descrizione: "Contribuente persona fisica",
-      colore: "#5b8df6",
-    },
-    {
-      codice: "SP",
-      nome: "Società di Persone",
-      descrizione: "SNC, SAS, SS",
-      colore: "#fbbf24",
-    },
-    {
-      codice: "SC",
-      nome: "Società di Capitali",
-      descrizione: "SRL, SPA, SAPA",
-      colore: "#34d399",
-    },
-    {
-      codice: "ASS",
-      nome: "Associazione",
-      descrizione: "Associazioni e enti non commerciali",
-      colore: "#f472b6",
-    },
-  ];
-  tipologie.forEach((t) =>
-    db.run(
-      `INSERT INTO tipologie_cliente (codice,nome,descrizione,colore) VALUES (?,?,?,?)`,
-      [t.codice, t.nome, t.descrizione, t.colore],
-    ),
-  );
-
-  const sottotipologie = [
-    { it: 1, c: "PF_PRIV", n: "Privato", sep: 0, ord: 1 },
-    { it: 1, c: "PF_DITTA_SEP", n: "— Ditta Individuale —", sep: 1, ord: 2 },
-    { it: 1, c: "PF_DITTA_ORD", n: "Ditta Ind. – Ordinario", sep: 0, ord: 3 },
-    {
-      it: 1,
-      c: "PF_DITTA_SEM",
-      n: "Ditta Ind. – Semplificato",
-      sep: 0,
-      ord: 4,
-    },
-    { it: 1, c: "PF_DITTA_FOR", n: "Ditta Ind. – Forfettario", sep: 0, ord: 5 },
-    { it: 1, c: "PF_SOCIO", n: "Socio", sep: 0, ord: 6 },
-    { it: 1, c: "PF_PROF_SEP", n: "— Professionista —", sep: 1, ord: 7 },
-    {
-      it: 1,
-      c: "PF_PROF_ORD",
-      n: "Professionista – Ordinario",
-      sep: 0,
-      ord: 8,
-    },
-    {
-      it: 1,
-      c: "PF_PROF_SEM",
-      n: "Professionista – Semplificato",
-      sep: 0,
-      ord: 9,
-    },
-    {
-      it: 1,
-      c: "PF_PROF_FOR",
-      n: "Professionista – Forfettario",
-      sep: 0,
-      ord: 10,
-    },
-    { it: 2, c: "SP_ORD", n: "SP – Ordinaria", sep: 0, ord: 1 },
-    { it: 2, c: "SP_SEMP", n: "SP – Semplificata", sep: 0, ord: 2 },
-    { it: 3, c: "SC_ORD", n: "SC – Ordinaria", sep: 0, ord: 1 },
-    { it: 4, c: "ASS_ORD", n: "ASS – Ordinaria", sep: 0, ord: 1 },
-    { it: 4, c: "ASS_SEMP", n: "ASS – Semplificata", sep: 0, ord: 2 },
-  ];
-  sottotipologie.forEach((s) =>
-    db.run(
-      `INSERT INTO sottotipologie (id_tipologia,codice,nome,is_separator,ordine) VALUES (?,?,?,?,?)`,
-      [s.it, s.c, s.n, s.sep, s.ord],
-    ),
-  );
-
-  console.log("🌱 Dati seed inseriti");
-}
-
-module.exports = { createSchema, seedData };
+module.exports = {
+  get db() {
+    return db;
+  },
+  initDB,
+  saveDB,
+  runQuery,
+  runQueryAndGetId,
+  queryAll,
+  queryOne,
+};

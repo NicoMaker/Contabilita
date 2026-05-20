@@ -77,7 +77,7 @@ function migrateDB() {
     `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
     `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
 
-    // Tabella appunti (SENZA colonna colore)
+    // Tabella appunti
     `CREATE TABLE IF NOT EXISTS appunti (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       titolo TEXT NOT NULL,
@@ -92,6 +92,29 @@ function migrateDB() {
     `CREATE INDEX IF NOT EXISTS idx_appunti_cliente ON appunti(id_cliente)`,
     `CREATE INDEX IF NOT EXISTS idx_appunti_scadenza ON appunti(data_scadenza)`,
     `CREATE INDEX IF NOT EXISTS idx_appunti_completato ON appunti(completato)`,
+
+    // Tabella pagina_bianca
+    `CREATE TABLE IF NOT EXISTS pagina_bianca (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT NOT NULL CHECK(tipo IN ('studio', 'cliente')),
+      titolo TEXT NOT NULL,
+      contenuto TEXT,
+      allegati TEXT,
+      id_cliente INTEGER,
+      data_creazione TEXT DEFAULT (datetime('now')),
+      data_modifica TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (id_cliente) REFERENCES clienti(id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_tipo ON pagina_bianca(tipo)`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_cliente ON pagina_bianca(id_cliente)`,
+    `CREATE INDEX IF NOT EXISTS idx_pagina_bianca_data ON pagina_bianca(data_creazione DESC)`,
+
+    // Trigger per data_modifica su pagina_bianca
+    `CREATE TRIGGER IF NOT EXISTS update_pagina_bianca_modifica 
+    AFTER UPDATE ON pagina_bianca
+    BEGIN
+      UPDATE pagina_bianca SET data_modifica = datetime('now') WHERE id = NEW.id;
+    END`,
 
     // Ricreazione tabella adempimenti
     `CREATE TABLE IF NOT EXISTS adempimenti_new (

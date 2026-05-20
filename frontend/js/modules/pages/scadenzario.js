@@ -187,7 +187,6 @@ function loadScadenzario() {
   const sv = document.getElementById("scad-search")?.value || "";
   const st = document.getElementById("scad-filtro-stato")?.value || "";
   if (typeof socket !== "undefined") {
-    // Assicurati che gli adempimenti globali siano caricati (servono per calcolare i mancanti)
     if (!state.adempimenti || state.adempimenti.length === 0) {
       socket.emit("get:adempimenti");
     }
@@ -299,8 +298,6 @@ function renderScadenzarioTabella(data) {
 
   const hasDati = data && data.length > 0;
   const mancanti = getAdempimentiMancanti();
-  // Il pulsante è disabilitato SOLO se abbiamo dati E sappiamo con certezza che non manca nulla
-  // (state.adempimenti.length > 0 garantisce che il confronto sia affidabile)
   const tuttiGenerati =
     hasDati && state.adempimenti.length > 0 && mancanti.length === 0;
   const hasDatiDaGenerare = !tuttiGenerati;
@@ -428,6 +425,7 @@ function renderScadenzarioTabella(data) {
     <div class="cpc-actions no-print">
       <button class="btn btn-sm btn-cyan" onclick="openCopia()">📋 Copia</button>
       ${renderBtnAddAdp(c.id)}
+      <button class="btn btn-sm btn-purple" onclick="openPaginaBiancaPerCliente(${c.id}, '${escAttr(c.nome)}')" title="Appunti per questo cliente">📄 Appunti</button>
       <button class="btn btn-print btn-sm" style="margin-left:auto" onclick="window.print()">🖨️ Stampa</button>
     </div>
     ${renderClienteDatiRiferimento(c)}
@@ -452,7 +450,6 @@ function renderScadenzarioTabella(data) {
     grouped[key].rows.push(r);
   });
 
-  // ORDINA gli adempimenti per nome alfabetico
   const gruppiOrdinati = Object.values(grouped).sort((a, b) =>
     a.nome.localeCompare(b.nome, "it", { sensitivity: "base" }),
   );
@@ -465,9 +462,7 @@ function renderScadenzarioTabella(data) {
     const pgColorG =
       pG === 100 ? "var(--green)" : pG > 50 ? "var(--yellow)" : "var(--red)";
 
-    // ⭐ ORDINA i periodi: data_scadenza DESC (30/05 prima di 29/05), parità → alfabetico
     const rowsOrdinati = [...g.rows].sort((a, b) => {
-      // Ordine DESC: data più lontana (es. 30/05) prima di data più vicina (es. 29/05)
       if (a.data_scadenza && b.data_scadenza) {
         const dateA = new Date(a.data_scadenza);
         const dateB = new Date(b.data_scadenza);
@@ -476,10 +471,8 @@ function renderScadenzarioTabella(data) {
           sensitivity: "base",
         });
       }
-      // Chi ha data va prima di chi non ha data
       if (a.data_scadenza) return -1;
       if (b.data_scadenza) return 1;
-      // Se nessuna data, ordina per nome adempimento (alfabetico)
       return a.adempimento_nome.localeCompare(b.adempimento_nome, "it", {
         sensitivity: "base",
       });
@@ -517,14 +510,13 @@ function generaScadenzario() {
 
   const mancanti = getAdempimentiMancanti();
 
-  // Se non ci sono adempimenti caricati, proviamo a caricarli prima
   if (!state.adempimenti || state.adempimenti.length === 0) {
     if (typeof socket !== "undefined") {
       socket.emit("get:adempimenti");
       socket.once("res:adempimenti", ({ success, data }) => {
         if (success) {
           state.adempimenti = data;
-          generaScadenzario(); // riprova dopo il caricamento
+          generaScadenzario();
         }
       });
     }
@@ -543,7 +535,6 @@ function generaScadenzario() {
     return;
   }
 
-  // Genera tutti gli adempimenti mancanti per il cliente corrente
   const idAdpDaGenerare =
     mancanti.length > 0
       ? mancanti.map((a) => a.id)
@@ -733,7 +724,6 @@ function openAddAdp(id_cliente) {
   document.getElementById("add-adp-cliente-id").value = id_cliente;
   document.getElementById("add-adp-anno").value = state.anno;
 
-  // Reset campo ricerca
   const searchEl = document.getElementById("add-adp-search");
   if (searchEl) searchEl.value = "";
 
@@ -755,7 +745,6 @@ function openAddAdp(id_cliente) {
   if (c)
     document.getElementById("add-adp-cliente-info").innerHTML =
       renderClienteInfoBox(c);
-  // ⭐ Reset tab a stato neutro: obbligatorio cliccare Aggiungi o Elimina ogni volta
   if (typeof resetAddAdpTab === "function") {
     setTimeout(function () {
       resetAddAdpTab();

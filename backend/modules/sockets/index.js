@@ -3,6 +3,7 @@ const adempimentiModel = require("../models/adempimenti");
 const scadenzarioModel = require("../models/scadenzario");
 const statsModel = require("../models/stats");
 const appuntiModel = require("../models/appunti");
+const paginaBiancaModel = require("../models/paginaBianca");
 const { queryAll, queryOne } = require("../database");
 
 module.exports = function setupSocketHandlers(io) {
@@ -603,6 +604,58 @@ module.exports = function setupSocketHandlers(io) {
           success: false,
           error: e.message,
         });
+      }
+    });
+
+    // ========== PAGINA BIANCA ==========
+    socket.on("get:pagina_bianca", (filtri) => {
+      try {
+        const data = paginaBiancaModel.getPaginaBianca(filtri);
+        socket.emit("res:pagina_bianca", { success: true, data });
+      } catch (e) {
+        socket.emit("res:pagina_bianca", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("get:pagina_bianca_singolo", ({ id }) => {
+      try {
+        const data = paginaBiancaModel.getPaginaBiancaSingolo(id);
+        socket.emit("res:pagina_bianca_singolo", { success: true, data });
+      } catch (e) {
+        socket.emit("res:pagina_bianca_singolo", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("create:pagina_bianca", (data) => {
+      try {
+        const newId = paginaBiancaModel.createPaginaBianca(data);
+        io.emit("broadcast:pagina_bianca_updated");
+        socket.emit("res:create:pagina_bianca", { success: true, id: newId });
+        socket.emit("notify", { type: "success", msg: "Appunto creato con successo" });
+      } catch (e) {
+        socket.emit("res:create:pagina_bianca", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("update:pagina_bianca", (data) => {
+      try {
+        paginaBiancaModel.updatePaginaBianca(data);
+        io.emit("broadcast:pagina_bianca_updated");
+        socket.emit("res:update:pagina_bianca", { success: true });
+        socket.emit("notify", { type: "success", msg: "Appunto aggiornato" });
+      } catch (e) {
+        socket.emit("res:update:pagina_bianca", { success: false, error: e.message });
+      }
+    });
+
+    socket.on("delete:pagina_bianca", ({ id }) => {
+      try {
+        paginaBiancaModel.deletePaginaBianca(id);
+        io.emit("broadcast:pagina_bianca_updated");
+        socket.emit("res:delete:pagina_bianca", { success: true });
+        socket.emit("notify", { type: "success", msg: "Appunto eliminato" });
+      } catch (e) {
+        socket.emit("res:delete:pagina_bianca", { success: false, error: e.message });
       }
     });
 
