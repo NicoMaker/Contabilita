@@ -557,7 +557,7 @@ function renderPaginaBiancaList(appunti) {
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
               <span style="font-size: 24px;">${a.tipo === "studio" ? "🏢" : "👤"}</span>
               <div>
-                <div style="font-weight: 700; font-size: 16px;">${a.titolo ? escAttr(a.titolo) : '<span style="color:var(--text3);font-style:italic;font-weight:500">(senza titolo)</span>'}</div>
+                <div style="font-weight: 700; font-size: 16px;">${a.titolo ? escAttr(a.titolo) : ''}</div>
                 <div style="font-size: 12px; color: var(--text3); margin-top: 2px;">
                   ${a.tipo === "studio" ? "Appunto Studio" : `Cliente: ${escAttr(a.cliente_nome || "—")}`}
                   
