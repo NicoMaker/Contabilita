@@ -84,49 +84,61 @@ function setupPaginaBiancaSocketListeners() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FUNZIONI PER LA RICERCA CLIENTI NEL DROPDOWN
+// FUNZIONI PER LA RICERCA CLIENTI NEL DROPDOWN (FILTRO PAGINA)
 // ═══════════════════════════════════════════════════════════════
 function filterClientiSelect(searchTerm) {
   const select = document.getElementById("pb-filtro-cliente-select");
   if (!select || !state.clienti) return;
   
-  const searchLower = searchTerm.toLowerCase().trim();
+  const searchLower = (searchTerm || "").toLowerCase().trim();
   const options = select.querySelectorAll("option");
+  let visibleCount = 0;
   
   options.forEach(opt => {
     if (opt.value === "") {
+      // L'opzione "Tutti i clienti" rimane sempre visibile
       opt.style.display = "";
+      opt.style.backgroundColor = "";
       return;
     }
-    const text = opt.textContent.toLowerCase();
+    const text = (opt.textContent || "").toLowerCase();
     if (searchLower === "" || text.includes(searchLower)) {
       opt.style.display = "";
+      opt.style.backgroundColor = "";
+      visibleCount++;
     } else {
       opt.style.display = "none";
+      opt.style.backgroundColor = "#ffcccc";
     }
   });
+  
+  // Se c'è un solo risultato e il campo di ricerca non è vuoto, selezionalo automaticamente
+  if (visibleCount === 1 && searchLower !== "" && select.value === "") {
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i];
+      if (opt.value !== "" && opt.style.display !== "none") {
+        select.value = opt.value;
+        onPaginaBiancaClienteSelectChange();
+        break;
+      }
+    }
+  }
 }
 
-function filterModalClientiSelect() {
-  const searchInput = document.getElementById("pb-modal-cliente-search");
-  const select = document.getElementById("pb-id-cliente");
-  if (!searchInput || !select) return;
-  
-  const searchTerm = searchInput.value.toLowerCase().trim();
-  const options = select.querySelectorAll("option");
-  
-  options.forEach(opt => {
-    if (opt.value === "") {
-      opt.style.display = "";
-      return;
-    }
-    const text = opt.textContent.toLowerCase();
-    if (searchTerm === "" || text.includes(searchTerm)) {
-      opt.style.display = "";
-    } else {
-      opt.style.display = "none";
-    }
-  });
+function onPaginaBiancaClientiSearch() {
+  const searchInput = document.getElementById("pb-cliente-search-input");
+  if (searchInput) {
+    paginaBiancaClientiSearchTerm = searchInput.value;
+    filterClientiSelect(paginaBiancaClientiSearchTerm);
+  }
+}
+
+function onPaginaBiancaClienteSelectChange() {
+  const select = document.getElementById("pb-filtro-cliente-select");
+  if (select) {
+    paginaBiancaFilter.id_cliente = select.value;
+    loadPaginaBiancaAppunti();
+  }
 }
 
 function renderClientiSelectWithSearch() {
@@ -161,20 +173,46 @@ function renderClientiSelectWithSearch() {
   }
 }
 
-function onPaginaBiancaClientiSearch() {
-  const searchInput = document.getElementById("pb-cliente-search-input");
-  if (searchInput) {
-    paginaBiancaClientiSearchTerm = searchInput.value;
-    filterClientiSelect(paginaBiancaClientiSearchTerm);
+// ═══════════════════════════════════════════════════════════════
+// FUNZIONI PER LA RICERCA CLIENTI NEL DROPDOWN (MODALE)
+// ═══════════════════════════════════════════════════════════════
+function filterModalClientiSelect() {
+  const searchInput = document.getElementById("pb-modal-cliente-search");
+  const select = document.getElementById("pb-id-cliente");
+  if (!searchInput || !select) return;
+  
+  const searchTerm = (searchInput.value || "").toLowerCase().trim();
+  const options = select.querySelectorAll("option");
+  let visibleCount = 0;
+  
+  options.forEach(opt => {
+    if (opt.value === "") {
+      opt.style.display = "";
+      return;
+    }
+    const text = (opt.textContent || "").toLowerCase();
+    if (searchTerm === "" || text.includes(searchTerm)) {
+      opt.style.display = "";
+      visibleCount++;
+    } else {
+      opt.style.display = "none";
+    }
+  });
+  
+  // Se c'è un solo risultato e il campo di ricerca non è vuoto, selezionalo automaticamente
+  if (visibleCount === 1 && searchTerm !== "" && select.value === "") {
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i];
+      if (opt.value !== "" && opt.style.display !== "none") {
+        select.value = opt.value;
+        break;
+      }
+    }
   }
 }
 
-function onPaginaBiancaClienteSelectChange() {
-  const select = document.getElementById("pb-filtro-cliente-select");
-  if (select) {
-    paginaBiancaFilter.id_cliente = select.value;
-    loadPaginaBiancaAppunti();
-  }
+function onModalClientiSearchInput() {
+  filterModalClientiSelect();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -185,6 +223,18 @@ function renderPaginaBiancaPage() {
   
   const content = document.getElementById("content");
   if (!content) return;
+
+  // Carica clienti se necessario
+  if (!state.clienti || state.clienti.length === 0) {
+    socket.emit("get:clienti", { anno: state.anno });
+    socket.once("res:clienti", (data) => {
+      if (data.success) {
+        state.clienti = data.data;
+        renderPaginaBiancaPage();
+      }
+    });
+    return;
+  }
 
   // Costruisci l'HTML del filtro clienti con ricerca
   const clientiFilterHtml = `
@@ -200,11 +250,11 @@ function renderPaginaBiancaPage() {
           value="${escAttr(paginaBiancaClientiSearchTerm)}">
         <select id="pb-filtro-cliente-select" class="select" style="margin-top: 0px;" onchange="onPaginaBiancaClienteSelectChange()">
           <option value="">-- Tutti i clienti --</option>
-          ${state.clienti ? state.clienti.map(c => `
+          ${state.clienti.map(c => `
             <option value="${c.id}" ${paginaBiancaFilter.id_cliente == c.id ? 'selected' : ''}>
               ${escAttr(c.nome)} (${c.tipologia_codice || '-'})
             </option>
-          `).join("") : ""}
+          `).join("")}
         </select>
       </div>
     </div>
@@ -247,18 +297,6 @@ function renderPaginaBiancaPage() {
     </div>
   `;
 
-  // Carica clienti se necessario
-  if (!state.clienti || state.clienti.length === 0) {
-    socket.emit("get:clienti", { anno: state.anno });
-    socket.once("res:clienti", (data) => {
-      if (data.success) {
-        state.clienti = data.data;
-        renderPaginaBiancaPage();
-      }
-    });
-    return;
-  }
-
   if (paginaBiancaClientiSearchTerm && paginaBiancaFilter.tipo === "cliente") {
     setTimeout(() => {
       filterClientiSelect(paginaBiancaClientiSearchTerm);
@@ -272,6 +310,9 @@ function setPaginaBiancaTipo(tipo) {
   paginaBiancaFilter.tipo = tipo;
   if (tipo === "studio") {
     paginaBiancaFilter.id_cliente = "";
+    paginaBiancaClientiSearchTerm = "";
+  } else {
+    // Quando si passa a "Cliente", resetta la ricerca per mostrare tutti i clienti
     paginaBiancaClientiSearchTerm = "";
   }
   renderPaginaBiancaPage();
@@ -365,13 +406,12 @@ function renderPaginaBiancaList(appunti) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MODALE NUOVO APPUNTO — con ereditarietà automatica del contesto
+// MODALE NUOVO APPUNTO
 // ═══════════════════════════════════════════════════════════════
 function openPaginaBiancaEditor(id = null) {
   paginaBiancaEditMode = !!id;
   paginaBiancaCurrentEntry = id;
 
-  // Carica i clienti se necessario
   if (!state.clienti || state.clienti.length === 0) {
     socket.emit("get:clienti", { anno: state.anno });
     socket.once("res:clienti", (data) => {
@@ -421,7 +461,7 @@ function showPaginaBiancaModal() {
               placeholder="🔍 Cerca cliente..." 
               style="margin-bottom: 4px;"
               oninput="filterModalClientiSelect()">
-            <select id="pb-id-cliente" class="select" style="margin-top: 0px;" size="5" style="height: auto;">
+            <select id="pb-id-cliente" class="select" style="margin-top: 0px;" size="6">
               <option value="">-- Seleziona un cliente --</option>
               ${state.clienti ? state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)} (${c.tipologia_codice || '-'})</option>`).join("") : ""}
             </select>
@@ -467,35 +507,29 @@ function showPaginaBiancaModal() {
   const clienteSelect = document.getElementById("pb-id-cliente");
   if (clienteSelect) clienteSelect.value = "";
 
-  // ⭐⭐⭐ EREDITARIETÀ AUTOMATICA DEL CONTESTO ⭐⭐⭐
-  // Preimposta il tipo in base al filtro corrente della pagina
+  // Ereditarietà automatica del contesto
   const radioStudio = document.querySelector('input[name="pb-tipo"][value="studio"]');
   const radioCliente = document.querySelector('input[name="pb-tipo"][value="cliente"]');
   
   if (paginaBiancaFilter.tipo === "cliente" && paginaBiancaFilter.id_cliente) {
-    // Se il filtro è su un cliente specifico, preimposta "Appunto Cliente"
     if (radioCliente) radioCliente.checked = true;
     document.getElementById("pb-cliente-group").style.display = "block";
-    // Preimposta anche il cliente selezionato
     setTimeout(() => {
       if (clienteSelect) clienteSelect.value = paginaBiancaFilter.id_cliente;
-      // Aggiorna la ricerca visiva
       filterModalClientiSelect();
     }, 50);
     document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
   } else if (paginaBiancaFilter.tipo === "cliente" && !paginaBiancaFilter.id_cliente) {
-    // Se il filtro è "Tutti i clienti", preimposta "Appunto Cliente" ma senza cliente specifico
     if (radioCliente) radioCliente.checked = true;
     document.getElementById("pb-cliente-group").style.display = "block";
     document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Cliente";
   } else {
-    // Default: Appunto Studio
     if (radioStudio) radioStudio.checked = true;
     document.getElementById("pb-cliente-group").style.display = "none";
     document.getElementById("pb-modal-title").textContent = "✏️ Nuovo Appunto Studio";
   }
 
-  // Se è in modifica, carica i dati (sovrascrive le preimpostazioni)
+  // Se è in modifica
   if (paginaBiancaEditMode && paginaBiancaCurrentEntry) {
     socket.emit("get:pagina_bianca_singolo", { id: paginaBiancaCurrentEntry });
     socket.once("res:pagina_bianca_singolo", ({ success, data }) => {
@@ -625,3 +659,4 @@ window.cleanupPaginaBianca = cleanupPaginaBianca;
 window.onPaginaBiancaClientiSearch = onPaginaBiancaClientiSearch;
 window.onPaginaBiancaClienteSelectChange = onPaginaBiancaClienteSelectChange;
 window.filterModalClientiSelect = filterModalClientiSelect;
+window.onModalClientiSearchInput = onModalClientiSearchInput;
