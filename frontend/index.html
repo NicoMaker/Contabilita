@@ -1396,72 +1396,72 @@
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- MODAL APPUNTO                                             -->
     <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- MODAL APPUNTO                                             -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-appunto">
-  <div class="modal">
-    <div class="modal-title">
-      📝 <span id="modal-appunto-title">Nuovo Appunto</span>
-    </div>
-    <input type="hidden" id="appunto-id" />
-    <div class="form-group">
-      <label>Titolo *</label>
-      <input
-        class="input"
-        id="appunto-titolo"
-        placeholder="Titolo dell'appunto"
-      />
-    </div>
-    <div class="form-group">
-      <label>Contenuto</label>
-      <textarea
-        class="input"
-        id="appunto-contenuto"
-        rows="4"
-        placeholder="Testo dell'appunto..."
-      ></textarea>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Cliente associato</label>
-        <select class="select" id="appunto-cliente">
-          <option value="">-- Nessuno (appunto generale) --</option>
-        </select>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MODAL APPUNTO                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-appunto">
+      <div class="modal">
+        <div class="modal-title">
+          📝 <span id="modal-appunto-title">Nuovo Appunto</span>
+        </div>
+        <input type="hidden" id="appunto-id" />
+        <div class="form-group">
+          <label>Titolo *</label>
+          <input
+            class="input"
+            id="appunto-titolo"
+            placeholder="Titolo dell'appunto"
+          />
+        </div>
+        <div class="form-group">
+          <label>Contenuto</label>
+          <textarea
+            class="input"
+            id="appunto-contenuto"
+            rows="4"
+            placeholder="Testo dell'appunto..."
+          ></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente associato</label>
+            <select class="select" id="appunto-cliente">
+              <option value="">-- Nessuno (appunto generale) --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data scadenza</label>
+            <input
+              class="input"
+              id="appunto-scadenza"
+              type="text"
+              placeholder="gg/mm/aaaa"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Priorità</label>
+            <select class="select" id="appunto-priorita">
+              <option value="bassa">🟢 Bassa</option>
+              <option value="media" selected>🟡 Media</option>
+              <option value="alta">🔴 Alta</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-appunto')"
+          >
+            Annulla
+          </button>
+          <button class="btn btn-primary" onclick="saveAppunto()">
+            💾 Salva
+          </button>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Data scadenza</label>
-        <input
-          class="input"
-          id="appunto-scadenza"
-          type="text"
-          placeholder="gg/mm/aaaa"
-        />
-      </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Priorità</label>
-        <select class="select" id="appunto-priorita">
-          <option value="bassa">🟢 Bassa</option>
-          <option value="media" selected>🟡 Media</option>
-          <option value="alta">🔴 Alta</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button
-        class="btn btn-secondary"
-        onclick="closeModal('modal-appunto')"
-      >
-        Annulla
-      </button>
-      <button class="btn btn-primary" onclick="saveAppunto()">
-        💾 Salva
-      </button>
-    </div>
-  </div>
-</div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- SCRIPT (ordine di dipendenza)                           -->

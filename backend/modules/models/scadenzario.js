@@ -137,7 +137,7 @@ function generaScadenzarioInterno(id_cliente, anno) {
   const adps = queryAll(
     `SELECT * FROM adempimenti WHERE attivo = 1
      AND (anno_validita IS NULL OR anno_validita = ?)`,
-    [anno]
+    [anno],
   );
   let tot = 0;
   adps.forEach((a) => {
@@ -163,7 +163,7 @@ function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1
        AND (anno_validita IS NULL OR anno_validita = ?)`,
-      [anno]
+      [anno],
     );
   }
 
@@ -212,7 +212,7 @@ function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
     adempimenti = queryAll(
       `SELECT * FROM adempimenti WHERE attivo = 1
        AND (anno_validita IS NULL OR anno_validita = ?)`,
-      [anno]
+      [anno],
     );
   }
 
@@ -233,12 +233,15 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
   let tot = 0;
   righe.forEach((r) => {
     // ⭐ Non copiare adempimenti vincolati a un anno specifico diverso da anno_a
-    const adp = queryOne(
-      `SELECT anno_validita FROM adempimenti WHERE id = ?`,
-      [r.id_adempimento]
-    );
-    if (adp && adp.anno_validita !== null && adp.anno_validita !== undefined
-        && String(adp.anno_validita) !== String(anno_a)) {
+    const adp = queryOne(`SELECT anno_validita FROM adempimenti WHERE id = ?`, [
+      r.id_adempimento,
+    ]);
+    if (
+      adp &&
+      adp.anno_validita !== null &&
+      adp.anno_validita !== undefined &&
+      String(adp.anno_validita) !== String(anno_a)
+    ) {
       return; // skip: era valido solo per anno_da
     }
 
@@ -260,8 +263,8 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
             r.semestre,
             "da_fare",
             r.data_scadenza,
-            null,     // data_completamento azzerata
-            null,     // ⭐ note NON copiate
+            null, // data_completamento azzerata
+            null, // ⭐ note NON copiate
             r.importo,
             r.importo_saldo,
             r.importo_acconto1,

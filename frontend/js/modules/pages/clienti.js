@@ -145,9 +145,9 @@ let _filtroManualeNessuno = false; // true = l'utente ha cliccato "Nessuno"
 
 // ─── LOCAL STORAGE KEYS ───────────────────────────────────────
 const _STORAGE_KEYS = {
-  FILTRI: 'gestionale_filtri_tipologie',
-  NESSUNO: 'gestionale_filtri_nessuno',
-  PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+  FILTRI: "gestionale_filtri_tipologie",
+  NESSUNO: "gestionale_filtri_nessuno",
+  PANNELLO_APERTO: "gestionale_filtri_pannello_aperto",
 };
 
 function _buildFiltroKey(tipCod, col2, col3, per) {
@@ -178,11 +178,11 @@ function salvaFiltriSuStorage() {
     const filtriData = {
       keys: Array.from(_activeFiltroKeys),
       nessuno: _filtroManualeNessuno,
-      pannelloAperto: _tipFiltroPanelOpen
+      pannelloAperto: _tipFiltroPanelOpen,
     };
     localStorage.setItem(_STORAGE_KEYS.FILTRI, JSON.stringify(filtriData));
   } catch (e) {
-    console.warn('[clienti.js] Errore salvataggio filtri:', e);
+    console.warn("[clienti.js] Errore salvataggio filtri:", e);
   }
 }
 
@@ -197,7 +197,7 @@ function caricaFiltriDaStorage() {
       return true;
     }
   } catch (e) {
-    console.warn('[clienti.js] Errore caricamento filtri:', e);
+    console.warn("[clienti.js] Errore caricamento filtri:", e);
   }
   return false;
 }
@@ -212,7 +212,10 @@ function initializeTipologieFilter() {
   } else {
     // Also ensure we have all keys even if loaded from storage
     const allKeys = _getAllKeys();
-    if (_activeFiltroKeys.size === 0 || (_activeFiltroKeys.size === 1 && _filtroManualeNessuno)) {
+    if (
+      _activeFiltroKeys.size === 0 ||
+      (_activeFiltroKeys.size === 1 && _filtroManualeNessuno)
+    ) {
       // If filters are empty or only "nessuno", select all
       _filtroManualeNessuno = false;
       _activeFiltroKeys = new Set(allKeys);
@@ -232,19 +235,19 @@ function _syncGlobalFiltroKeys() {
   window.COL3_DB_TO_LABEL = _col3DbToLabel();
   window.COL2_LABEL_TO_DB = _col2LabelToDb();
   window.COL3_LABEL_TO_DB = _col3LabelToDb();
-  
+
   // Sincronizza con altre viste aperte
   _sincronizzaFiltriGlobali();
 }
 
 function _sincronizzaFiltriGlobali() {
   // Emetti evento custom per notificare le altre viste
-  const event = new CustomEvent('filtriTipologieAggiornati', {
+  const event = new CustomEvent("filtriTipologieAggiornati", {
     detail: {
       keys: Array.from(_activeFiltroKeys),
       nessuno: _filtroManualeNessuno,
-      pannelloAperto: _tipFiltroPanelOpen
-    }
+      pannelloAperto: _tipFiltroPanelOpen,
+    },
   });
   window.dispatchEvent(event);
 }
@@ -423,7 +426,7 @@ function toggleFiltroPercorso(event, tipCod, col2, col3, per) {
 
   _syncGlobalFiltroKeys();
   salvaFiltriSuStorage(); // Salva le modifiche
-  
+
   // Aggiorna solo il chip cliccato e il contatore, non tutto il pannello
   _updateSingleChip(key, tipCod, col2, col3, per);
   _aggiornaTipFiltroCounter();
@@ -509,23 +512,24 @@ function _refreshTipFiltroPanel() {
 
 function _updateSingleChip(key, tipCod, col2, col3, per) {
   // Trova tutti i chip e cerca quello corrispondente
-  const chips = document.querySelectorAll('.tip-percorso-chip');
-  
+  const chips = document.querySelectorAll(".tip-percorso-chip");
+
   for (let i = 0; i < chips.length; i++) {
     const chip = chips[i];
-    const onclickAttr = chip.getAttribute('onclick') || '';
-    
+    const onclickAttr = chip.getAttribute("onclick") || "";
+
     // Verifica se questo chip corrisponde ai parametri
-    if (onclickAttr.includes(`'${tipCod}'`) && 
-        onclickAttr.includes(`'${col2 || ''}'`) && 
-        onclickAttr.includes(`'${col3 || ''}'`) && 
-        onclickAttr.includes(`'${per}'`)) {
-      
+    if (
+      onclickAttr.includes(`'${tipCod}'`) &&
+      onclickAttr.includes(`'${col2 || ""}'`) &&
+      onclickAttr.includes(`'${col3 || ""}'`) &&
+      onclickAttr.includes(`'${per}'`)
+    ) {
       const isActive = _activeFiltroKeys.has(key);
       const data = _getTipologiePercorsiData();
       const tip = data[tipCod];
       const tipColor = tip ? tip.color : "#888";
-      
+
       if (isActive) {
         chip.classList.add("tip-active");
         chip.style.background = `${tipColor}22`;
@@ -673,7 +677,7 @@ function renderClientiPage() {
     }, 100);
     return; // Exit early, will be called again after filters are ready
   }
-  
+
   // Double-check that we have valid filter state
   if (_activeFiltroKeys.size === 0 && !_filtroManualeNessuno && _cfg()) {
     initializeTipologieFilter();
@@ -682,7 +686,7 @@ function renderClientiPage() {
     }, 50);
     return;
   }
-  
+
   renderClientiTabella(state.clienti);
 }
 
@@ -1083,27 +1087,27 @@ function openEditClienteModal(cliente, anno) {
     col4Val = cliente.periodicita || "";
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
-  
+
   // Store the values that need to be set after the columns are updated
   lastClienteFormValues = { col2: col2Val, col3: col3Val, col4: col4Val };
-  
+
   setTimeout(() => {
     // First update the columns structure
     aggiornaColonneCliente();
-    
+
     setTimeout(() => {
       // Then set the actual values after the DOM is ready
       if (document.getElementById("c-col2"))
         document.getElementById("c-col2").value = col2Val;
       if (document.getElementById("c-col3"))
         document.getElementById("c-col3").value = col3Val;
-      
+
       const tipCodice = _getTipologiaCodice();
       if (REGIMI_ANNUALI.includes(col3Val))
         _aggiornCol4BasedOnCol3(tipCodice, col3Val);
       else if (document.getElementById("c-col4"))
         document.getElementById("c-col4").value = col4Val;
-      
+
       aggiornaRiepilogoClassificazione();
     }, 50);
   }, 60);
@@ -1336,7 +1340,7 @@ function aggiornaColonneCliente() {
   const tipCodice = _getTipologiaCodice();
   const col2Wrap = document.getElementById("wrap-col2");
   const col2Sel = document.getElementById("c-col2");
-  
+
   // Generate col2 options dynamically from JSON instead of hardcoded
   const col2Opts = _getCol2OptionsFromJson(tipCodice);
   _aggiornaTipologiaSelectStyle();
@@ -1358,7 +1362,7 @@ function aggiornaColonneCliente() {
     if (!col2Current) col2Sel.value = "";
     _aggiornaCol3(tipCodice, col2Sel.value);
   }
-  
+
   // Always check if we should show periodicity based on tipologia and paths
   _checkAndShowPeriodicita(tipCodice);
   aggiornaRiepilogoClassificazione();
@@ -1369,10 +1373,10 @@ function _checkAndShowPeriodicita(tipCodice) {
   const cfg = _cfg();
   const percorsi = cfg.percorsi?.[tipCodice] || [];
   const col2Val = document.getElementById("c-col2")?.value || "";
-  
+
   // Check if any path for this tipologia has periodicity
-  const hasPeriodicita = percorsi.some(p => p.hasPer || p.isForfettario);
-  
+  const hasPeriodicita = percorsi.some((p) => p.hasPer || p.isForfettario);
+
   const col4Wrap = document.getElementById("wrap-col4");
   // Hide periodicity for privato and socio
   if (col2Val === "privato" || col2Val === "socio") {
@@ -1387,10 +1391,15 @@ function _checkAndShowPeriodicita(tipCodice) {
     if (col4Sel && !col4Sel.innerHTML.includes("option")) {
       const ivaPer = cfg.periodicitaIva || [];
       const annPer = (cfg.periodicitaAnnuale || []).map((p) => p.value);
-      
-      col4Sel.innerHTML = `<option value="">— Seleziona —</option>` +
-        ivaPer.map(p => `<option value="${p.value}">${p.label}</option>`).join("") +
-        annPer.map(p => `<option value="${p.value}">${p.label}</option>`).join("");
+
+      col4Sel.innerHTML =
+        `<option value="">— Seleziona —</option>` +
+        ivaPer
+          .map((p) => `<option value="${p.value}">${p.label}</option>`)
+          .join("") +
+        annPer
+          .map((p) => `<option value="${p.value}">${p.label}</option>`)
+          .join("");
     }
   } else {
     // Hide periodicity field
@@ -1403,22 +1412,25 @@ function _getCol2OptionsFromJson(tipCodice) {
   const cfg = _cfg();
   const percorsi = cfg.percorsi?.[tipCodice] || [];
   const options = [];
-  
-  percorsi.forEach(p => {
+
+  percorsi.forEach((p) => {
     if (p.col2Label) {
-      const value = p.col2Label === "Ditta Individuale" ? "ditta" : p.col2Label.toLowerCase();
-      
+      const value =
+        p.col2Label === "Ditta Individuale"
+          ? "ditta"
+          : p.col2Label.toLowerCase();
+
       // Check if this option already exists
-      const existing = options.find(opt => opt.value === value);
+      const existing = options.find((opt) => opt.value === value);
       if (!existing) {
         options.push({
           value,
-          label: p.col2Label
+          label: p.col2Label,
         });
       }
     }
   });
-  
+
   return options;
 }
 
@@ -1632,7 +1644,7 @@ function onTipologiaChange() {
   _nascondiCol4();
   const badge = document.getElementById("col4-forfettario-badge");
   if (badge) badge.style.display = "none";
-  
+
   // Ensure JSON data is loaded before updating columns
   if (_cfg() && _cfg().percorsi) {
     aggiornaColonneCliente();

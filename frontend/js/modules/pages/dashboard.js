@@ -92,7 +92,7 @@ function buildDashboardShell(stats) {
   setTimeout(function () {
     if (typeof initializeTipologieFilter === "function")
       initializeTipologieFilter();
-    
+
     // Carica stato pannello da storage
     try {
       const saved = localStorage.getItem(_getStorageKeys().FILTRI);
@@ -101,20 +101,20 @@ function buildDashboardShell(stats) {
         _dashTipFiltroPanelOpen = filtriData.pannelloAperto || false;
       }
     } catch (e) {
-      console.warn('[dashboard.js] Errore caricamento stato pannello:', e);
+      console.warn("[dashboard.js] Errore caricamento stato pannello:", e);
     }
-    
+
     // Event listener per sincronizzazione filtri solo se siamo nella dashboard
-    window.addEventListener('filtriTipologieAggiornati', function(e) {
+    window.addEventListener("filtriTipologieAggiornati", function (e) {
       // Verifica che siamo effettivamente nella dashboard prima di aggiornare
-      if (document.getElementById('dash-adp-grid')) {
+      if (document.getElementById("dash-adp-grid")) {
         _dashTipFiltroPanelOpen = e.detail.pannelloAperto;
         _refreshDashTipFiltroPanel();
         _aggiornaDashTipFiltroCounter();
         if (state.dashStats) updateDashboardContent(state.dashStats);
       }
     });
-    
+
     _refreshDashTipFiltroPanel();
     _aggiornaDashTipFiltroCounter();
   }, 100);
@@ -224,18 +224,30 @@ function setApplicaModalita(m) {
 
   // Stato neutro (null) → entrambi grigi
   if (!m) {
-    if (btnIns) { btnIns.style.background = "var(--surface3)"; btnIns.style.color = "var(--text2)"; btnIns.style.borderColor = "var(--border)"; }
-    if (btnEl)  { btnEl.style.background  = "var(--surface3)"; btnEl.style.color  = "var(--text2)"; btnEl.style.borderColor  = "var(--border)"; }
-  } else {
     if (btnIns) {
-      btnIns.style.background  = m === "inserisci" ? "var(--green)"   : "var(--surface3)";
-      btnIns.style.color       = m === "inserisci" ? "#fff"           : "var(--text2)";
-      btnIns.style.borderColor = m === "inserisci" ? "var(--green)"   : "var(--border)";
+      btnIns.style.background = "var(--surface3)";
+      btnIns.style.color = "var(--text2)";
+      btnIns.style.borderColor = "var(--border)";
     }
     if (btnEl) {
-      btnEl.style.background   = m === "elimina"   ? "var(--red)"     : "var(--surface3)";
-      btnEl.style.color        = m === "elimina"   ? "#fff"           : "var(--text2)";
-      btnEl.style.borderColor  = m === "elimina"   ? "var(--red)"     : "var(--border)";
+      btnEl.style.background = "var(--surface3)";
+      btnEl.style.color = "var(--text2)";
+      btnEl.style.borderColor = "var(--border)";
+    }
+  } else {
+    if (btnIns) {
+      btnIns.style.background =
+        m === "inserisci" ? "var(--green)" : "var(--surface3)";
+      btnIns.style.color = m === "inserisci" ? "#fff" : "var(--text2)";
+      btnIns.style.borderColor =
+        m === "inserisci" ? "var(--green)" : "var(--border)";
+    }
+    if (btnEl) {
+      btnEl.style.background =
+        m === "elimina" ? "var(--red)" : "var(--surface3)";
+      btnEl.style.color = m === "elimina" ? "#fff" : "var(--text2)";
+      btnEl.style.borderColor =
+        m === "elimina" ? "var(--red)" : "var(--border)";
     }
   }
 
@@ -243,22 +255,22 @@ function setApplicaModalita(m) {
   if (btnApplica) {
     if (!m) {
       // Nessuna modalità scelta: bottone disabilitato e neutro
-      btnApplica.textContent   = "⬆ Scegli modalità sopra";
-      btnApplica.style.background   = "var(--surface3)";
-      btnApplica.style.borderColor  = "var(--border)";
-      btnApplica.style.color        = "var(--text3)";
+      btnApplica.textContent = "⬆ Scegli modalità sopra";
+      btnApplica.style.background = "var(--surface3)";
+      btnApplica.style.borderColor = "var(--border)";
+      btnApplica.style.color = "var(--text3)";
       btnApplica.disabled = true;
     } else if (m === "elimina") {
-      btnApplica.textContent   = "🗑️ Elimina da Clienti Selezionati";
-      btnApplica.style.background   = "var(--red)";
-      btnApplica.style.borderColor  = "var(--red)";
-      btnApplica.style.color        = "#fff";
+      btnApplica.textContent = "🗑️ Elimina da Clienti Selezionati";
+      btnApplica.style.background = "var(--red)";
+      btnApplica.style.borderColor = "var(--red)";
+      btnApplica.style.color = "#fff";
       btnApplica.disabled = false;
     } else {
-      btnApplica.textContent   = "📋 Applica a Clienti Selezionati";
-      btnApplica.style.background   = "";
-      btnApplica.style.borderColor  = "";
-      btnApplica.style.color        = "";
+      btnApplica.textContent = "📋 Applica a Clienti Selezionati";
+      btnApplica.style.background = "";
+      btnApplica.style.borderColor = "";
+      btnApplica.style.color = "";
       btnApplica.disabled = false;
     }
   }
@@ -266,24 +278,26 @@ function setApplicaModalita(m) {
   var infoBox = document.querySelector("#modal-applica-adempimenti .infobox");
   if (infoBox) {
     if (!m) {
-      infoBox.innerHTML = "👆 Scegli prima la modalità: <strong>Inserisci</strong> per aggiungere adempimenti ai clienti, oppure <strong>Elimina</strong> per rimuoverli.";
-      infoBox.style.background   = "var(--surface2)";
-      infoBox.style.borderColor  = "var(--border)";
-      infoBox.style.color        = "var(--text2)";
+      infoBox.innerHTML =
+        "👆 Scegli prima la modalità: <strong>Inserisci</strong> per aggiungere adempimenti ai clienti, oppure <strong>Elimina</strong> per rimuoverli.";
+      infoBox.style.background = "var(--surface2)";
+      infoBox.style.borderColor = "var(--border)";
+      infoBox.style.color = "var(--text2)";
     } else if (m === "elimina") {
-      infoBox.innerHTML = "🗑️ Seleziona adempimenti e clienti: verranno eliminati solo quelli già presenti. Se un cliente non ha quell'adempimento viene ignorato.";
-      infoBox.style.background   = "var(--red)08";
-      infoBox.style.borderColor  = "var(--red)44";
-      infoBox.style.color        = "var(--red)";
+      infoBox.innerHTML =
+        "🗑️ Seleziona adempimenti e clienti: verranno eliminati solo quelli già presenti. Se un cliente non ha quell'adempimento viene ignorato.";
+      infoBox.style.background = "var(--red)08";
+      infoBox.style.borderColor = "var(--red)44";
+      infoBox.style.color = "var(--red)";
     } else {
-      infoBox.innerHTML = "✅ Seleziona uno o più adempimenti e uno o più clienti.<br>📌 Gli adempimenti già presenti vengono conservati.";
-      infoBox.style.background   = "";
-      infoBox.style.borderColor  = "";
-      infoBox.style.color        = "";
+      infoBox.innerHTML =
+        "✅ Seleziona uno o più adempimenti e uno o più clienti.<br>📌 Gli adempimenti già presenti vengono conservati.";
+      infoBox.style.background = "";
+      infoBox.style.borderColor = "";
+      infoBox.style.color = "";
     }
   }
 }
-
 
 function apriApplicaAdempimentiPerVuoti() {
   socket.emit("get:clienti_senza_adempimenti", { anno: state.anno });
@@ -373,7 +387,9 @@ function openApplicaAdempimenti() {
   }
   document.getElementById("applica-adempimenti-anno").value = state.anno;
   // ⭐ Aggiorna visivamente i bottoni in base alla modalità corrente (persistente)
-  setTimeout(function() { setApplicaModalita(_applicaModalita); }, 0);
+  setTimeout(function () {
+    setApplicaModalita(_applicaModalita);
+  }, 0);
   openModal("modal-applica-adempimenti");
 }
 
@@ -387,21 +403,34 @@ function renderApplicaAdempimentiModal() {
   }
   // Mantieni selezioni precedenti durante il re-render (es. dopo ricerca)
   var prevSelezionati = new Set(
-    Array.from(document.querySelectorAll(".applica-adp-checkbox:checked")).map(function(cb) { return cb.value; })
+    Array.from(document.querySelectorAll(".applica-adp-checkbox:checked")).map(
+      function (cb) {
+        return cb.value;
+      },
+    ),
   );
-  var q = (document.getElementById("applica-adp-search") ? document.getElementById("applica-adp-search").value : "").toLowerCase().trim();
+  var q = (
+    document.getElementById("applica-adp-search")
+      ? document.getElementById("applica-adp-search").value
+      : ""
+  )
+    .toLowerCase()
+    .trim();
   var adpOrdinati = state.adempimenti.slice().sort(function (a, b) {
     return a.nome.localeCompare(b.nome);
   });
   var adpFiltrati = q
-    ? adpOrdinati.filter(function(adp) {
-        return (adp.codice && adp.codice.toLowerCase().indexOf(q) !== -1) ||
-               (adp.nome && adp.nome.toLowerCase().indexOf(q) !== -1);
+    ? adpOrdinati.filter(function (adp) {
+        return (
+          (adp.codice && adp.codice.toLowerCase().indexOf(q) !== -1) ||
+          (adp.nome && adp.nome.toLowerCase().indexOf(q) !== -1)
+        );
       })
     : adpOrdinati;
 
   if (adpFiltrati.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Nessun adempimento trovato</div>';
+    container.innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--text3)">Nessun adempimento trovato</div>';
     _aggiornaAdpSelezionaTuttiBtn();
     return;
   }
@@ -412,7 +441,9 @@ function renderApplicaAdempimentiModal() {
       '<label class="flag-chip" style="margin:4px;padding:6px 12px;font-size:13px;width:calc(33% - 8px)">' +
       '<input type="checkbox" class="applica-adp-checkbox" value="' +
       adp.id +
-      '"'+(isChecked ? ' checked' : '')+' onchange="_aggiornaAdpSelezionaTuttiBtn()">' +
+      '"' +
+      (isChecked ? " checked" : "") +
+      ' onchange="_aggiornaAdpSelezionaTuttiBtn()">' +
       "<span><strong>" +
       adp.codice +
       "</strong> — " +
@@ -447,7 +478,9 @@ function _getApplicaClientiFiltrati() {
       );
     });
   }
-  clientiFiltrati.sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+  clientiFiltrati.sort(function (a, b) {
+    return a.nome.localeCompare(b.nome);
+  });
   return clientiFiltrati;
 }
 
@@ -457,34 +490,59 @@ function _renderApplicaTipFiltroPanel() {
 
   var clientiFiltrati = _getApplicaClientiFiltrati();
   var tipMap = {};
-  clientiFiltrati.forEach(function(c) {
+  clientiFiltrati.forEach(function (c) {
     var tc = c.tipologia_codice || "?";
     if (!tipMap[tc]) {
-      var info = (typeof TIPOLOGIE_INFO !== "undefined" && TIPOLOGIE_INFO[tc]) || {};
-      tipMap[tc] = { color: c.tipologia_colore || info.color || "#5b8df6", icon: info.icon || "📋", desc: info.desc || tc, count: 0 };
+      var info =
+        (typeof TIPOLOGIE_INFO !== "undefined" && TIPOLOGIE_INFO[tc]) || {};
+      tipMap[tc] = {
+        color: c.tipologia_colore || info.color || "#5b8df6",
+        icon: info.icon || "📋",
+        desc: info.desc || tc,
+        count: 0,
+      };
     }
     tipMap[tc].count++;
   });
 
   var tuttiActive = _applicaTipFiltro.size === 0;
-  var html = '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">' +
+  var html =
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">' +
     '<span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px">🏷️ Tipologia:</span>';
 
-  html += '<button onclick="event.stopPropagation();_applicaSetTipFiltro(null)" style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ' +
-    (tuttiActive ? 'var(--accent)' : 'var(--border)') + ';background:' +
-    (tuttiActive ? 'var(--accent)' : 'var(--surface3)') + ';color:' +
-    (tuttiActive ? '#fff' : 'var(--text1)') + '">✦ Tutti (' + clientiFiltrati.length + ')</button>';
+  html +=
+    '<button onclick="event.stopPropagation();_applicaSetTipFiltro(null)" style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ' +
+    (tuttiActive ? "var(--accent)" : "var(--border)") +
+    ";background:" +
+    (tuttiActive ? "var(--accent)" : "var(--surface3)") +
+    ";color:" +
+    (tuttiActive ? "#fff" : "var(--text1)") +
+    '">✦ Tutti (' +
+    clientiFiltrati.length +
+    ")</button>";
 
-  Object.entries(tipMap).forEach(function(entry) {
-    var tc = entry[0], info = entry[1];
+  Object.entries(tipMap).forEach(function (entry) {
+    var tc = entry[0],
+      info = entry[1];
     var isActive = _applicaTipFiltro.has(tc);
-    html += '<button onclick="event.stopPropagation();_applicaToggleTipFiltro(\'' + tc + '\')" style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ' +
-      (isActive ? info.color : 'var(--border)') + ';background:' +
-      (isActive ? info.color + '22' : 'var(--surface3)') + ';color:' +
-      (isActive ? info.color : 'var(--text2)') + '">' +
-      info.icon + ' ' + tc + ' <span style="font-weight:400;opacity:.7">(' + info.count + ')</span></button>';
+    html +=
+      "<button onclick=\"event.stopPropagation();_applicaToggleTipFiltro('" +
+      tc +
+      '\')" style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ' +
+      (isActive ? info.color : "var(--border)") +
+      ";background:" +
+      (isActive ? info.color + "22" : "var(--surface3)") +
+      ";color:" +
+      (isActive ? info.color : "var(--text2)") +
+      '">' +
+      info.icon +
+      " " +
+      tc +
+      ' <span style="font-weight:400;opacity:.7">(' +
+      info.count +
+      ")</span></button>";
   });
-  html += '</div>';
+  html += "</div>";
   panel.innerHTML = html;
 }
 
@@ -506,15 +564,27 @@ function _applicaToggleTipFiltro(tc) {
 function _applicaSelezionaTipologia(tc) {
   var clientiFiltrati = _getApplicaClientiFiltrati();
   var daGestire = tc
-    ? clientiFiltrati.filter(function(c) { return c.tipologia_codice === tc; })
+    ? clientiFiltrati.filter(function (c) {
+        return c.tipologia_codice === tc;
+      })
     : clientiFiltrati;
   // Controlla se tutti sono già selezionati → deseleziona, altrimenti seleziona
-  var ids = daGestire.map(function(c) { return c.id; });
-  var checkboxes = Array.from(document.querySelectorAll(".applica-cliente-checkbox")).filter(function(cb) {
+  var ids = daGestire.map(function (c) {
+    return c.id;
+  });
+  var checkboxes = Array.from(
+    document.querySelectorAll(".applica-cliente-checkbox"),
+  ).filter(function (cb) {
     return ids.indexOf(parseInt(cb.value)) !== -1;
   });
-  var tuttiChecked = checkboxes.length > 0 && checkboxes.every(function(cb) { return cb.checked; });
-  checkboxes.forEach(function(cb) { cb.checked = !tuttiChecked; });
+  var tuttiChecked =
+    checkboxes.length > 0 &&
+    checkboxes.every(function (cb) {
+      return cb.checked;
+    });
+  checkboxes.forEach(function (cb) {
+    cb.checked = !tuttiChecked;
+  });
   _aggiornaApplicaSelezionaTuttiCounter();
   // Aggiorna il testo del bottone del gruppo
   _aggiornaBottoniGruppo();
@@ -522,21 +592,31 @@ function _applicaSelezionaTipologia(tc) {
 
 function _aggiornaBottoniGruppo() {
   // Aggiorna ogni bottone di gruppo in base allo stato attuale delle checkbox
-  document.querySelectorAll("[data-gruppo-tc]").forEach(function(btn) {
+  document.querySelectorAll("[data-gruppo-tc]").forEach(function (btn) {
     var tc = btn.dataset.gruppoTc;
-    var checkboxes = Array.from(document.querySelectorAll(
-      ".applica-cliente-checkbox[data-tc='" + tc + "']"
-    ));
+    var checkboxes = Array.from(
+      document.querySelectorAll(
+        ".applica-cliente-checkbox[data-tc='" + tc + "']",
+      ),
+    );
     if (checkboxes.length === 0) return;
-    var tuttiChecked = checkboxes.every(function(cb) { return cb.checked; });
-    btn.textContent = tuttiChecked ? "− Deseleziona tutti" : "+ Seleziona tutti";
-    btn.style.background = tuttiChecked ? btn.dataset.color + "44" : btn.dataset.color + "22";
+    var tuttiChecked = checkboxes.every(function (cb) {
+      return cb.checked;
+    });
+    btn.textContent = tuttiChecked
+      ? "− Deseleziona tutti"
+      : "+ Seleziona tutti";
+    btn.style.background = tuttiChecked
+      ? btn.dataset.color + "44"
+      : btn.dataset.color + "22";
   });
 }
 
 function _aggiornaApplicaSelezionaTuttiCounter() {
   var tot = document.querySelectorAll(".applica-cliente-checkbox").length;
-  var checked = document.querySelectorAll(".applica-cliente-checkbox:checked").length;
+  var checked = document.querySelectorAll(
+    ".applica-cliente-checkbox:checked",
+  ).length;
   var tuttiSelezionati = tot > 0 && checked === tot;
   var btn = document.getElementById("applica-clienti-btn-seleziona-tutti");
   if (btn) {
@@ -552,7 +632,9 @@ function _aggiornaApplicaSelezionaTuttiCounter() {
 
 function _aggiornaAdpSelezionaTuttiBtn() {
   var tot = document.querySelectorAll(".applica-adp-checkbox").length;
-  var checked = document.querySelectorAll(".applica-adp-checkbox:checked").length;
+  var checked = document.querySelectorAll(
+    ".applica-adp-checkbox:checked",
+  ).length;
   var tuttiSelezionati = tot > 0 && checked === tot;
   var btn = document.getElementById("applica-adp-btn-seleziona-tutti");
   if (btn) {
@@ -572,55 +654,107 @@ function renderApplicaClientiList() {
   var container = document.getElementById("applica-clienti-list");
   if (!container) return;
   if (!state.clienti || state.clienti.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:20px">👥 Nessun cliente</div>';
+    container.innerHTML =
+      '<div style="text-align:center;padding:20px">👥 Nessun cliente</div>';
     return;
   }
 
   var clientiFiltrati = _getApplicaClientiFiltrati();
 
   // Applica filtro tipologia se attivo
-  var clientiVisibili = _applicaTipFiltro.size > 0
-    ? clientiFiltrati.filter(function(c) { return _applicaTipFiltro.has(c.tipologia_codice); })
-    : clientiFiltrati;
+  var clientiVisibili =
+    _applicaTipFiltro.size > 0
+      ? clientiFiltrati.filter(function (c) {
+          return _applicaTipFiltro.has(c.tipologia_codice);
+        })
+      : clientiFiltrati;
 
   if (clientiVisibili.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Nessun cliente per questa tipologia</div>';
+    container.innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--text3)">Nessun cliente per questa tipologia</div>';
     return;
   }
 
   // Raggruppa per tipologia con header colorato e bottone "Seleziona gruppo"
   var gruppi = {};
   var gruppiOrder = [];
-  clientiVisibili.forEach(function(c) {
+  clientiVisibili.forEach(function (c) {
     var tc = c.tipologia_codice || "?";
     if (!gruppi[tc]) {
-      var info = (typeof TIPOLOGIE_INFO !== "undefined" && TIPOLOGIE_INFO[tc]) || {};
-      gruppi[tc] = { color: c.tipologia_colore || info.color || "#5b8df6", icon: info.icon || "📋", desc: info.desc || tc, codice: tc, clienti: [] };
+      var info =
+        (typeof TIPOLOGIE_INFO !== "undefined" && TIPOLOGIE_INFO[tc]) || {};
+      gruppi[tc] = {
+        color: c.tipologia_colore || info.color || "#5b8df6",
+        icon: info.icon || "📋",
+        desc: info.desc || tc,
+        codice: tc,
+        clienti: [],
+      };
       gruppiOrder.push(tc);
     }
     gruppi[tc].clienti.push(c);
   });
 
   var html = "";
-  gruppiOrder.forEach(function(tc) {
+  gruppiOrder.forEach(function (tc) {
     var g = gruppi[tc];
-    html += '<div style="margin-bottom:10px">' +
+    html +=
+      '<div style="margin-bottom:10px">' +
       '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;' +
-      'background:' + g.color + '15;border-left:3px solid ' + g.color + ';border-radius:0 6px 6px 0;margin-bottom:5px">' +
-      '<span style="font-size:12px;font-weight:800;color:' + g.color + '">' + g.icon + ' ' + g.codice + '</span>' +
-      '<span style="font-size:11px;color:var(--text3)">' + g.desc + ' — ' + g.clienti.length + ' client' + (g.clienti.length === 1 ? 'e' : 'i') + '</span>' +
-      '<button onclick="event.stopPropagation();_applicaSelezionaTipologia(\'' + g.codice + '\')" ' +
-      'data-gruppo-tc="' + g.codice + '" data-color="' + g.color + '" ' +
+      "background:" +
+      g.color +
+      "15;border-left:3px solid " +
+      g.color +
+      ';border-radius:0 6px 6px 0;margin-bottom:5px">' +
+      '<span style="font-size:12px;font-weight:800;color:' +
+      g.color +
+      '">' +
+      g.icon +
+      " " +
+      g.codice +
+      "</span>" +
+      '<span style="font-size:11px;color:var(--text3)">' +
+      g.desc +
+      " — " +
+      g.clienti.length +
+      " client" +
+      (g.clienti.length === 1 ? "e" : "i") +
+      "</span>" +
+      "<button onclick=\"event.stopPropagation();_applicaSelezionaTipologia('" +
+      g.codice +
+      "')\" " +
+      'data-gruppo-tc="' +
+      g.codice +
+      '" data-color="' +
+      g.color +
+      '" ' +
       'style="margin-left:auto;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;' +
-      'border:1px solid ' + g.color + ';background:' + g.color + '22;color:' + g.color + '">+ Seleziona tutti</button>' +
-      '</div>' +
+      "border:1px solid " +
+      g.color +
+      ";background:" +
+      g.color +
+      "22;color:" +
+      g.color +
+      '">+ Seleziona tutti</button>' +
+      "</div>" +
       '<div style="display:flex;flex-wrap:wrap">';
-    g.clienti.forEach(function(cli) {
-      html += '<label class="flag-chip" style="margin:3px;padding:5px 10px;font-size:12px;width:calc(33% - 6px);border-left:2px solid ' + g.color + '55">' +
-        '<input type="checkbox" class="applica-cliente-checkbox" value="' + cli.id + '" data-tc="' + g.codice + '" onchange="_aggiornaApplicaSelezionaTuttiCounter();_aggiornaBottoniGruppo()">' +
-        '<span>' + g.icon + ' ' + (cli.nome || "") + '</span></label>';
+    g.clienti.forEach(function (cli) {
+      html +=
+        '<label class="flag-chip" style="margin:3px;padding:5px 10px;font-size:12px;width:calc(33% - 6px);border-left:2px solid ' +
+        g.color +
+        '55">' +
+        '<input type="checkbox" class="applica-cliente-checkbox" value="' +
+        cli.id +
+        '" data-tc="' +
+        g.codice +
+        '" onchange="_aggiornaApplicaSelezionaTuttiCounter();_aggiornaBottoniGruppo()">' +
+        "<span>" +
+        g.icon +
+        " " +
+        (cli.nome || "") +
+        "</span></label>";
     });
-    html += '</div></div>';
+    html += "</div></div>";
   });
 
   container.innerHTML = html;
@@ -634,7 +768,9 @@ function filtraClientiApplica() {
 
 function toggleSelezionaTuttiAdpApplicaBtn() {
   var tot = document.querySelectorAll(".applica-adp-checkbox").length;
-  var checked = document.querySelectorAll(".applica-adp-checkbox:checked").length;
+  var checked = document.querySelectorAll(
+    ".applica-adp-checkbox:checked",
+  ).length;
   var selezionaTutti = !(tot > 0 && checked === tot);
   document.querySelectorAll(".applica-adp-checkbox").forEach(function (cb) {
     cb.checked = selezionaTutti;
@@ -644,7 +780,9 @@ function toggleSelezionaTuttiAdpApplicaBtn() {
 
 function toggleSelezionaTuttiClientiApplicaBtn() {
   var tot = document.querySelectorAll(".applica-cliente-checkbox").length;
-  var checked = document.querySelectorAll(".applica-cliente-checkbox:checked").length;
+  var checked = document.querySelectorAll(
+    ".applica-cliente-checkbox:checked",
+  ).length;
   var selezionaTutti = !(tot > 0 && checked === tot);
   document.querySelectorAll(".applica-cliente-checkbox").forEach(function (cb) {
     cb.checked = selezionaTutti;
@@ -653,8 +791,12 @@ function toggleSelezionaTuttiClientiApplicaBtn() {
 }
 
 // Mantieni le vecchie funzioni per compatibilità
-function toggleSelezionaTuttiAdpApplica() { toggleSelezionaTuttiAdpApplicaBtn(); }
-function toggleSelezionaTuttiClientiApplica() { toggleSelezionaTuttiClientiApplicaBtn(); }
+function toggleSelezionaTuttiAdpApplica() {
+  toggleSelezionaTuttiAdpApplicaBtn();
+}
+function toggleSelezionaTuttiClientiApplica() {
+  toggleSelezionaTuttiClientiApplicaBtn();
+}
 function resetSelezioneAdpApplica() {
   document.querySelectorAll(".applica-adp-checkbox").forEach(function (cb) {
     cb.checked = false;
@@ -697,11 +839,22 @@ function eseguiApplicaAdempimenti() {
   if (_applicaModalita === "elimina") {
     var nAdp = adpIds.length;
     var nCli = clientiIds.length;
-    if (!confirm(
-      "Eliminerai " + nAdp + " adempiment" + (nAdp === 1 ? "o" : "i") +
-      " da " + nCli + " client" + (nCli === 1 ? "e" : "i") +
-      " per l'anno " + anno + ".\n\nI clienti che non hanno l'adempimento vengono ignorati.\n\nConfermi?"
-    )) return;
+    if (
+      !confirm(
+        "Eliminerai " +
+          nAdp +
+          " adempiment" +
+          (nAdp === 1 ? "o" : "i") +
+          " da " +
+          nCli +
+          " client" +
+          (nCli === 1 ? "e" : "i") +
+          " per l'anno " +
+          anno +
+          ".\n\nI clienti che non hanno l'adempimento vengono ignorati.\n\nConfermi?",
+      )
+    )
+      return;
     socket.emit("elimina:adempimenti_a_clienti", {
       adempimenti_ids: adpIds,
       clienti_ids: clientiIds,
@@ -770,29 +923,31 @@ var _dashFiltroObserver = null; // MutationObserver attivo
 // Usa le stesse funzioni di storage definite in clienti.js
 function _getStorageKeys() {
   return {
-    FILTRI: 'gestionale_filtri_tipologie',
-    NESSUNO: 'gestionale_filtri_nessuno',
-    PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+    FILTRI: "gestionale_filtri_tipologie",
+    NESSUNO: "gestionale_filtri_nessuno",
+    PANNELLO_APERTO: "gestionale_filtri_pannello_aperto",
   };
 }
 
 function _salvaFiltriDashboardSuStorage() {
   try {
-    const keys = typeof window._activeFiltroKeys !== "undefined" 
-      ? window._activeFiltroKeys 
-      : new Set();
-    const nessuno = typeof window._filtroManualeNessuno !== "undefined" 
-      ? window._filtroManualeNessuno 
-      : false;
-    
+    const keys =
+      typeof window._activeFiltroKeys !== "undefined"
+        ? window._activeFiltroKeys
+        : new Set();
+    const nessuno =
+      typeof window._filtroManualeNessuno !== "undefined"
+        ? window._filtroManualeNessuno
+        : false;
+
     const filtriData = {
       keys: Array.from(keys),
       nessuno: nessuno,
-      pannelloAperto: _dashTipFiltroPanelOpen
+      pannelloAperto: _dashTipFiltroPanelOpen,
     };
     localStorage.setItem(_getStorageKeys().FILTRI, JSON.stringify(filtriData));
   } catch (e) {
-    console.warn('[dashboard.js] Errore salvataggio filtri:', e);
+    console.warn("[dashboard.js] Errore salvataggio filtri:", e);
   }
 }
 
@@ -921,7 +1076,7 @@ function clientePassaFiltroTipologieDashboard(adempimento) {
 
   // Se non ci sono filtri o tutti sono selezionati, mostra tutto
   if (keys.size === 0 || isAll) return true;
-  
+
   // Se è stato selezionato "Nessuno" manualmente, nascondi tutto
   if (isNone) return false;
 
@@ -1101,14 +1256,22 @@ if (typeof socket !== "undefined") {
 
   socket.on("res:elimina:adempimenti_a_clienti", function (data) {
     if (data.success) {
-      var msg = "🗑️ Eliminati " + data.eliminati + " record da " + data.clienti + " clienti";
+      var msg =
+        "🗑️ Eliminati " +
+        data.eliminati +
+        " record da " +
+        data.clienti +
+        " clienti";
       if (data.nonTrovati > 0)
         msg += " (" + data.nonTrovati + " già assenti, ignorati)";
       showNotif(msg, "success");
       socket.emit("get:stats", { anno: state.anno });
       caricaClientiSenzaAdempimenti();
     } else {
-      showNotif("❌ Errore eliminazione: " + (data.error || "Operazione fallita"), "error");
+      showNotif(
+        "❌ Errore eliminazione: " + (data.error || "Operazione fallita"),
+        "error",
+      );
     }
   });
 }
@@ -1119,7 +1282,8 @@ window.openApplicaAdempimenti = openApplicaAdempimenti;
 window._applicaSetTipFiltro = _applicaSetTipFiltro;
 window._applicaToggleTipFiltro = _applicaToggleTipFiltro;
 window._applicaSelezionaTipologia = _applicaSelezionaTipologia;
-window._aggiornaApplicaSelezionaTuttiCounter = _aggiornaApplicaSelezionaTuttiCounter;
+window._aggiornaApplicaSelezionaTuttiCounter =
+  _aggiornaApplicaSelezionaTuttiCounter;
 window.filtraClientiApplica = filtraClientiApplica;
 window.toggleSelezionaTuttiAdpApplica = toggleSelezionaTuttiAdpApplica;
 window.toggleSelezionaTuttiClientiApplica = toggleSelezionaTuttiClientiApplica;

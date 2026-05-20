@@ -31,20 +31,20 @@ function toggleScadBulkMode() {
 }
 
 function _aggiornaUIBulkMode() {
-  var btnToggle  = document.getElementById("btn-scad-bulk-toggle");
+  var btnToggle = document.getElementById("btn-scad-bulk-toggle");
   var barraAzioni = document.getElementById("scad-bulk-barra");
 
   if (btnToggle) {
     if (_scadBulkMode) {
-      btnToggle.textContent    = "✖ Annulla selezione";
-      btnToggle.style.background   = "var(--surface3)";
-      btnToggle.style.color        = "var(--text2)";
-      btnToggle.style.borderColor  = "var(--border)";
+      btnToggle.textContent = "✖ Annulla selezione";
+      btnToggle.style.background = "var(--surface3)";
+      btnToggle.style.color = "var(--text2)";
+      btnToggle.style.borderColor = "var(--border)";
     } else {
-      btnToggle.textContent    = "☑ Seleziona per eliminare";
-      btnToggle.style.background   = "";
-      btnToggle.style.color        = "";
-      btnToggle.style.borderColor  = "";
+      btnToggle.textContent = "☑ Seleziona per eliminare";
+      btnToggle.style.background = "";
+      btnToggle.style.color = "";
+      btnToggle.style.borderColor = "";
     }
   }
 
@@ -66,43 +66,55 @@ function _aggiornaUIBulkMode() {
 
 function toggleSelezionaTuttiBulk() {
   var checkboxes = document.querySelectorAll(".scad-row-checkbox");
-  var tuttiChecked = Array.from(checkboxes).every(function (cb) { return cb.checked; });
-  checkboxes.forEach(function (cb) { cb.checked = !tuttiChecked; });
+  var tuttiChecked = Array.from(checkboxes).every(function (cb) {
+    return cb.checked;
+  });
+  checkboxes.forEach(function (cb) {
+    cb.checked = !tuttiChecked;
+  });
   _aggiornaBulkCounter();
 }
 
 function _aggiornaBulkCounter() {
-  var n       = document.querySelectorAll(".scad-row-checkbox:checked").length;
-  var btn     = document.getElementById("btn-scad-bulk-elimina");
+  var n = document.querySelectorAll(".scad-row-checkbox:checked").length;
+  var btn = document.getElementById("btn-scad-bulk-elimina");
   var counter = document.getElementById("scad-bulk-counter");
   if (counter) counter.textContent = n + " selezionat" + (n === 1 ? "o" : "i");
   if (btn) {
-    btn.disabled     = n === 0;
+    btn.disabled = n === 0;
     btn.style.opacity = n === 0 ? "0.5" : "1";
   }
 }
 
 function eliminaBulkScadenzario() {
   var checkboxes = document.querySelectorAll(".scad-row-checkbox:checked");
-  var ids = Array.from(checkboxes).map(function (cb) { return parseInt(cb.value); });
+  var ids = Array.from(checkboxes).map(function (cb) {
+    return parseInt(cb.value);
+  });
 
   if (ids.length === 0) {
     showNotif("Seleziona almeno un adempimento", "error");
     return;
   }
 
-  if (!confirm(
-    "Eliminerai " + ids.length + " adempiment" + (ids.length === 1 ? "o" : "i") +
-    " dal cliente.\n\nL'operazione è irreversibile. Confermi?"
-  )) return;
+  if (
+    !confirm(
+      "Eliminerai " +
+        ids.length +
+        " adempiment" +
+        (ids.length === 1 ? "o" : "i") +
+        " dal cliente.\n\nL'operazione è irreversibile. Confermi?",
+    )
+  )
+    return;
 
   var cliente = state.selectedCliente;
-  var anno    = state.anno;
+  var anno = state.anno;
 
   socket.emit("elimina:adempimenti_cliente_bulk", {
-    ids_righe:  ids,
+    ids_righe: ids,
     id_cliente: cliente ? cliente.id : null,
-    anno:       anno,
+    anno: anno,
   });
 }
 
@@ -113,22 +125,31 @@ document.addEventListener("DOMContentLoaded", function () {
   socket.on("res:elimina:adempimenti_cliente_bulk", function (data) {
     if (data.success) {
       showNotif(
-        "🗑️ Eliminat" + (data.eliminati === 1 ? "o" : "i") + " " + data.eliminati +
-        " adempiment" + (data.eliminati === 1 ? "o" : "i"),
-        "success"
+        "🗑️ Eliminat" +
+          (data.eliminati === 1 ? "o" : "i") +
+          " " +
+          data.eliminati +
+          " adempiment" +
+          (data.eliminati === 1 ? "o" : "i"),
+        "success",
       );
       _scadBulkMode = false;
       _aggiornaUIBulkMode();
       if (typeof loadScadenzario === "function") loadScadenzario();
     } else {
-      showNotif("❌ Errore: " + (data.error || "Eliminazione fallita"), "error");
+      showNotif(
+        "❌ Errore: " + (data.error || "Eliminazione fallita"),
+        "error",
+      );
     }
   });
 });
 
 // ─── PATCH renderScadenzarioTabella ──────────────────────────
 function patchScadBulk() {
-  var tabella = document.querySelector(".scad-table, #scad-tabella, table.adp-table");
+  var tabella = document.querySelector(
+    ".scad-table, #scad-tabella, table.adp-table",
+  );
   if (!tabella) return;
   if (tabella.dataset.bulkPatched) return;
   tabella.dataset.bulkPatched = "1";
@@ -144,19 +165,23 @@ function _iniettaColonnaCheckbox(tabella) {
   var thead = tabella.querySelector("thead tr");
   if (thead) {
     var th = document.createElement("th");
-    th.className  = "scad-bulk-checkbox-col";
+    th.className = "scad-bulk-checkbox-col";
     th.style.cssText = "width:36px;text-align:center;padding:4px;display:none";
-    th.innerHTML  = '<input type="checkbox" title="Seleziona tutti" onchange="toggleSelezionaTuttiBulk()" style="cursor:pointer;width:15px;height:15px">';
+    th.innerHTML =
+      '<input type="checkbox" title="Seleziona tutti" onchange="toggleSelezionaTuttiBulk()" style="cursor:pointer;width:15px;height:15px">';
     thead.insertBefore(th, thead.firstChild);
   }
 
   tabella.querySelectorAll("tbody tr[data-id]").forEach(function (tr) {
     var rigaId = tr.dataset.id;
     var td = document.createElement("td");
-    td.className  = "scad-bulk-checkbox-col";
-    td.style.cssText = "width:36px;text-align:center;padding:4px 8px;display:none;vertical-align:middle";
-    td.innerHTML  = '<input type="checkbox" class="scad-row-checkbox" value="' + rigaId +
-                    '" onchange="_aggiornaBulkCounter()" style="cursor:pointer;width:15px;height:15px">';
+    td.className = "scad-bulk-checkbox-col";
+    td.style.cssText =
+      "width:36px;text-align:center;padding:4px 8px;display:none;vertical-align:middle";
+    td.innerHTML =
+      '<input type="checkbox" class="scad-row-checkbox" value="' +
+      rigaId +
+      '" onchange="_aggiornaBulkCounter()" style="cursor:pointer;width:15px;height:15px">';
     tr.insertBefore(td, tr.firstChild);
   });
 }
@@ -166,8 +191,9 @@ function _iniettaBarraAzioni() {
   if (vecchia) vecchia.remove();
 
   var wrapper =
-    document.querySelector(".scad-wrapper, #scad-content-wrapper, .content-inner") ||
-    document.getElementById("content");
+    document.querySelector(
+      ".scad-wrapper, #scad-content-wrapper, .content-inner",
+    ) || document.getElementById("content");
   if (!wrapper) return;
 
   var barra = document.createElement("div");
@@ -194,7 +220,9 @@ function _iniettaBarraAzioni() {
     '<button class="btn btn-sm btn-secondary" onclick="toggleScadBulkMode()" style="font-size:12px">✖ Annulla</button>',
   ].join("");
 
-  var tabella = document.querySelector(".scad-table, #scad-tabella, table.adp-table");
+  var tabella = document.querySelector(
+    ".scad-table, #scad-tabella, table.adp-table",
+  );
   if (tabella && tabella.parentNode === wrapper) {
     wrapper.insertBefore(barra, tabella);
   } else {
@@ -208,14 +236,14 @@ function _iniettaBotoneTopbar() {
   if (!topbarActions) return;
 
   var btn = document.createElement("button");
-  btn.id            = "btn-scad-bulk-toggle";
-  btn.className     = "btn btn-sm no-print";
-  btn.style.cssText = "font-size:13px;border:1px solid var(--red);color:var(--red);background:transparent";
-  btn.textContent   = "☑ Seleziona per eliminare";
-  btn.onclick       = toggleScadBulkMode;
+  btn.id = "btn-scad-bulk-toggle";
+  btn.className = "btn btn-sm no-print";
+  btn.style.cssText =
+    "font-size:13px;border:1px solid var(--red);color:var(--red);background:transparent";
+  btn.textContent = "☑ Seleziona per eliminare";
+  btn.onclick = toggleScadBulkMode;
   topbarActions.appendChild(btn);
 }
-
 
 // ══════════════════════════════════════════════════════════════
 //  B) MODALE AGGIUNGI / ELIMINA ADEMPIMENTO
@@ -231,12 +259,18 @@ function resetAddAdpTab() {
   _addAdpTabAttiva = null;
   var panelAdd = document.getElementById("tab-panel-aggiungi");
   var panelDel = document.getElementById("tab-panel-elimina");
-  var btnAdd   = document.getElementById("tab-add-adp-btn");
-  var btnDel   = document.getElementById("tab-del-adp-btn");
+  var btnAdd = document.getElementById("tab-add-adp-btn");
+  var btnDel = document.getElementById("tab-del-adp-btn");
   if (panelAdd) panelAdd.style.display = "none";
   if (panelDel) panelDel.style.display = "none";
-  if (btnAdd) { btnAdd.style.background = "var(--surface2)"; btnAdd.style.color = "var(--text2)"; }
-  if (btnDel) { btnDel.style.background = "var(--surface2)"; btnDel.style.color = "var(--text2)"; }
+  if (btnAdd) {
+    btnAdd.style.background = "var(--surface2)";
+    btnAdd.style.color = "var(--text2)";
+  }
+  if (btnDel) {
+    btnDel.style.background = "var(--surface2)";
+    btnDel.style.color = "var(--text2)";
+  }
 }
 
 /**
@@ -248,21 +282,33 @@ function switchAddAdpTab(tab) {
 
   var panelAdd = document.getElementById("tab-panel-aggiungi");
   var panelDel = document.getElementById("tab-panel-elimina");
-  var btnAdd   = document.getElementById("tab-add-adp-btn");
-  var btnDel   = document.getElementById("tab-del-adp-btn");
+  var btnAdd = document.getElementById("tab-add-adp-btn");
+  var btnDel = document.getElementById("tab-del-adp-btn");
 
   if (!panelAdd || !panelDel) return;
 
   if (tab === "aggiungi") {
     panelAdd.style.display = "";
     panelDel.style.display = "none";
-    if (btnAdd) { btnAdd.style.background = "var(--accent)";   btnAdd.style.color = "#fff"; }
-    if (btnDel) { btnDel.style.background = "var(--surface2)"; btnDel.style.color = "var(--text2)"; }
+    if (btnAdd) {
+      btnAdd.style.background = "var(--accent)";
+      btnAdd.style.color = "#fff";
+    }
+    if (btnDel) {
+      btnDel.style.background = "var(--surface2)";
+      btnDel.style.color = "var(--text2)";
+    }
   } else {
     panelAdd.style.display = "none";
     panelDel.style.display = "";
-    if (btnAdd) { btnAdd.style.background = "var(--surface2)"; btnAdd.style.color = "var(--text2)"; }
-    if (btnDel) { btnDel.style.background = "var(--red)";      btnDel.style.color = "#fff"; }
+    if (btnAdd) {
+      btnAdd.style.background = "var(--surface2)";
+      btnAdd.style.color = "var(--text2)";
+    }
+    if (btnDel) {
+      btnDel.style.background = "var(--red)";
+      btnDel.style.color = "#fff";
+    }
     // Popola la lista "Elimina" ogni volta che si apre la tab
     var delSearch = document.getElementById("del-adp-search");
     if (delSearch) delSearch.value = "";
@@ -280,7 +326,9 @@ function switchAddAdpTab(tab) {
  * vengono eliminati tutti i suoi periodi per quel cliente/anno).
  */
 function filtraDelAdpList() {
-  var q = (document.getElementById("del-adp-search")?.value || "").toLowerCase().trim();
+  var q = (document.getElementById("del-adp-search")?.value || "")
+    .toLowerCase()
+    .trim();
   popolaDelAdpList(q);
 }
 
@@ -288,14 +336,15 @@ function popolaDelAdpList(filtro) {
   filtro = filtro || "";
   var container = document.getElementById("del-adp-list");
   var annoInput = document.getElementById("del-adp-anno");
-  var avviso    = document.getElementById("del-adp-avviso");
-  var btnElim   = document.getElementById("btn-esegui-elimina-adp");
-  var chkTutti  = document.getElementById("del-adp-seleziona-tutti");
+  var avviso = document.getElementById("del-adp-avviso");
+  var btnElim = document.getElementById("btn-esegui-elimina-adp");
+  var chkTutti = document.getElementById("del-adp-seleziona-tutti");
 
   if (!container) return;
 
   // Sincronizza l'anno con il campo "aggiungi"
-  var anno = parseInt(document.getElementById("add-adp-anno")?.value) || state.anno;
+  var anno =
+    parseInt(document.getElementById("add-adp-anno")?.value) || state.anno;
   if (annoInput) annoInput.value = anno;
 
   // Recupera le righe dello scadenzario del cliente per l'anno
@@ -310,57 +359,78 @@ function popolaDelAdpList(filtro) {
     if (!adpMap[adpId]) {
       adpMap[adpId] = {
         id_adempimento: adpId,
-        nome:      r.adempimento_nome,
-        codice:    r.adempimento_codice,
+        nome: r.adempimento_nome,
+        codice: r.adempimento_codice,
         ids_righe: [],
       };
     }
     adpMap[adpId].ids_righe.push(r.id);
   });
 
-  var adpList = Object.values(adpMap).sort(function(a,b){
+  var adpList = Object.values(adpMap).sort(function (a, b) {
     return a.nome.localeCompare(b.nome);
   });
 
   // Filtra per ricerca
   if (filtro) {
-    adpList = adpList.filter(function(a) {
-      return a.nome.toLowerCase().includes(filtro) || a.codice.toLowerCase().includes(filtro);
+    adpList = adpList.filter(function (a) {
+      return (
+        a.nome.toLowerCase().includes(filtro) ||
+        a.codice.toLowerCase().includes(filtro)
+      );
     });
   }
 
   if (avviso) avviso.style.display = adpList.length > 0 ? "" : "none";
-  if (chkTutti) { chkTutti.checked = false; chkTutti.indeterminate = false; }
+  if (chkTutti) {
+    chkTutti.checked = false;
+    chkTutti.indeterminate = false;
+  }
 
   if (adpList.length === 0) {
     container.innerHTML =
       '<div style="padding:14px;text-align:center;color:var(--text3);font-size:13px">' +
-      (filtro ? 'Nessun adempimento trovato' : 'Nessun adempimento presente per questo cliente / anno') +
-      '</div>';
-    if (btnElim) { btnElim.disabled = true; btnElim.style.opacity = "0.5"; }
+      (filtro
+        ? "Nessun adempimento trovato"
+        : "Nessun adempimento presente per questo cliente / anno") +
+      "</div>";
+    if (btnElim) {
+      btnElim.disabled = true;
+      btnElim.style.opacity = "0.5";
+    }
     return;
   }
 
   container.innerHTML = "";
   adpList.forEach(function (adp) {
     var label = document.createElement("label");
-    label.className   = "flag-chip";
+    label.className = "flag-chip";
     label.style.cssText =
       "display:flex;align-items:center;gap:8px;padding:7px 10px;" +
       "margin-bottom:4px;border-radius:6px;cursor:pointer;transition:background .12s";
     label.innerHTML =
       '<input type="checkbox" class="del-adp-checkbox"' +
-      ' data-ids="' + adp.ids_righe.join(",") + '"' +
-      ' data-id-adp="' + adp.id_adempimento + '"' +
+      ' data-ids="' +
+      adp.ids_righe.join(",") +
+      '"' +
+      ' data-id-adp="' +
+      adp.id_adempimento +
+      '"' +
       ' onchange="_aggiornaDelAdpCounter()"' +
       ' style="width:15px;height:15px;cursor:pointer">' +
-      '<span style="font-size:13px;font-weight:600">' + adp.nome + '</span>' +
+      '<span style="font-size:13px;font-weight:600">' +
+      adp.nome +
+      "</span>" +
       '<span style="font-size:11px;color:var(--text3);margin-left:auto;font-family:var(--mono)">' +
-        adp.codice +
-      '</span>' +
+      adp.codice +
+      "</span>" +
       '<span style="font-size:10px;color:var(--text3);white-space:nowrap">' +
-        '(' + adp.ids_righe.length + ' ' + (adp.ids_righe.length === 1 ? "periodo" : "periodi") + ')' +
-      '</span>';
+      "(" +
+      adp.ids_righe.length +
+      " " +
+      (adp.ids_righe.length === 1 ? "periodo" : "periodi") +
+      ")" +
+      "</span>";
     container.appendChild(label);
   });
 
@@ -368,25 +438,25 @@ function popolaDelAdpList(filtro) {
 }
 
 function _aggiornaDelAdpCounter() {
-  var n   = document.querySelectorAll(".del-adp-checkbox:checked").length;
+  var n = document.querySelectorAll(".del-adp-checkbox:checked").length;
   var btn = document.getElementById("btn-esegui-elimina-adp");
   var chk = document.getElementById("del-adp-seleziona-tutti");
 
   if (btn) {
-    btn.disabled      = n === 0;
+    btn.disabled = n === 0;
     btn.style.opacity = n === 0 ? "0.5" : "1";
   }
 
   if (chk) {
     var tot = document.querySelectorAll(".del-adp-checkbox").length;
-    chk.checked       = tot > 0 && n === tot;
+    chk.checked = tot > 0 && n === tot;
     chk.indeterminate = n > 0 && n < tot;
   }
 }
 
 function toggleSelezionaTuttiDelAdp() {
   var chkAll = document.getElementById("del-adp-seleziona-tutti");
-  var stato  = chkAll ? chkAll.checked : false;
+  var stato = chkAll ? chkAll.checked : false;
   document.querySelectorAll(".del-adp-checkbox").forEach(function (cb) {
     cb.checked = stato;
   });
@@ -420,43 +490,52 @@ function eseguiEliminaAdpCliente() {
     return;
   }
 
-  var nAdp     = checked.length;
+  var nAdp = checked.length;
   var nPeriodi = ids_righe.length;
-  var anno     = parseInt(document.getElementById("del-adp-anno")?.value) || state.anno;
+  var anno =
+    parseInt(document.getElementById("del-adp-anno")?.value) || state.anno;
   var msg =
-    "Eliminerai " + nAdp + " adempiment" + (nAdp === 1 ? "o" : "i") +
-    " (" + nPeriodi + " " + (nPeriodi === 1 ? "periodo" : "periodi") + ")" +
-    " per l'anno " + anno + ".\n\nL'operazione è irreversibile. Confermi?";
+    "Eliminerai " +
+    nAdp +
+    " adempiment" +
+    (nAdp === 1 ? "o" : "i") +
+    " (" +
+    nPeriodi +
+    " " +
+    (nPeriodi === 1 ? "periodo" : "periodi") +
+    ")" +
+    " per l'anno " +
+    anno +
+    ".\n\nL'operazione è irreversibile. Confermi?";
 
   if (!confirm(msg)) return;
 
   var cliente = state.selectedCliente;
 
   socket.emit("elimina:adempimenti_cliente_bulk", {
-    ids_righe:  ids_righe,
+    ids_righe: ids_righe,
     id_cliente: cliente ? cliente.id : null,
-    anno:       anno,
+    anno: anno,
   });
 
   closeModal("modal-add-adp");
   // ⭐ NON resetta la tab: mantiene l'ultima scelta (aggiungi/elimina)
 }
 
-
 // ══════════════════════════════════════════════════════════════
 //  ESPOSIZIONE GLOBALE
 // ══════════════════════════════════════════════════════════════
 
-window.toggleScadBulkMode          = toggleScadBulkMode;
-window.toggleSelezionaTuttiBulk    = toggleSelezionaTuttiBulk;
-window._aggiornaBulkCounter        = _aggiornaBulkCounter;
-window.eliminaBulkScadenzario      = eliminaBulkScadenzario;
-window.patchScadBulk               = patchScadBulk;
+window.toggleScadBulkMode = toggleScadBulkMode;
+window.toggleSelezionaTuttiBulk = toggleSelezionaTuttiBulk;
+window._aggiornaBulkCounter = _aggiornaBulkCounter;
+window.eliminaBulkScadenzario = eliminaBulkScadenzario;
+window.patchScadBulk = patchScadBulk;
 
-window.switchAddAdpTab             = switchAddAdpTab;
-window.resetAddAdpTab              = resetAddAdpTab;
-window.popolaDelAdpList            = popolaDelAdpList;
-window.filtraDelAdpList            = filtraDelAdpList;
-window._aggiornaDelAdpCounter      = _aggiornaDelAdpCounter;
-window.toggleSelezionaTuttiDelAdp  = toggleSelezionaTuttiDelAdp;
-window.eseguiEliminaAdpCliente     = eseguiEliminaAdpCliente;
+window.switchAddAdpTab = switchAddAdpTab;
+window.resetAddAdpTab = resetAddAdpTab;
+window.popolaDelAdpList = popolaDelAdpList;
+window.filtraDelAdpList = filtraDelAdpList;
+window._aggiornaDelAdpCounter = _aggiornaDelAdpCounter;
+window.toggleSelezionaTuttiDelAdp = toggleSelezionaTuttiDelAdp;
+window.eseguiEliminaAdpCliente = eseguiEliminaAdpCliente;

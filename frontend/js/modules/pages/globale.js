@@ -7,29 +7,34 @@ var _globTipFiltroPanelOpen = false;
 // ─── CONDIVISIONE STORAGE CON CLIENTI.JS ─────────────────────
 function _getGlobStorageKeys() {
   return {
-    FILTRI: 'gestionale_filtri_tipologie',
-    NESSUNO: 'gestionale_filtri_nessuno',
-    PANNELLO_APERTO: 'gestionale_filtri_pannello_aperto'
+    FILTRI: "gestionale_filtri_tipologie",
+    NESSUNO: "gestionale_filtri_nessuno",
+    PANNELLO_APERTO: "gestionale_filtri_pannello_aperto",
   };
 }
 
 function _salvaFiltriGlobaleSuStorage() {
   try {
-    const keys = typeof window._activeFiltroKeys !== "undefined" 
-      ? window._activeFiltroKeys 
-      : new Set();
-    const nessuno = typeof window._filtroManualeNessuno !== "undefined" 
-      ? window._filtroManualeNessuno 
-      : false;
-    
+    const keys =
+      typeof window._activeFiltroKeys !== "undefined"
+        ? window._activeFiltroKeys
+        : new Set();
+    const nessuno =
+      typeof window._filtroManualeNessuno !== "undefined"
+        ? window._filtroManualeNessuno
+        : false;
+
     const filtriData = {
       keys: Array.from(keys),
       nessuno: nessuno,
-      pannelloAperto: _globTipFiltroPanelOpen
+      pannelloAperto: _globTipFiltroPanelOpen,
     };
-    localStorage.setItem(_getGlobStorageKeys().FILTRI, JSON.stringify(filtriData));
+    localStorage.setItem(
+      _getGlobStorageKeys().FILTRI,
+      JSON.stringify(filtriData),
+    );
   } catch (e) {
-    console.warn('[globale.js] Errore salvataggio filtri:', e);
+    console.warn("[globale.js] Errore salvataggio filtri:", e);
   }
 }
 
@@ -42,7 +47,7 @@ function _caricaFiltriGlobaleDaStorage() {
       return true;
     }
   } catch (e) {
-    console.warn('[globale.js] Errore caricamento filtri:', e);
+    console.warn("[globale.js] Errore caricamento filtri:", e);
   }
   return false;
 }
@@ -178,12 +183,15 @@ function clientePassaFiltroTipologie(c) {
   var isNone = _isManualNessuno();
   var allKeys =
     typeof window._getAllKeys === "function" ? window._getAllKeys() : [];
-  
+
   // Se non ci sono filtri o tutti sono selezionati, mostra tutto
-  if (activeFiltroKeys.size === 0 || (allKeys.length > 0 && activeFiltroKeys.size === allKeys.length)) {
+  if (
+    activeFiltroKeys.size === 0 ||
+    (allKeys.length > 0 && activeFiltroKeys.size === allKeys.length)
+  ) {
     return true;
   }
-  
+
   // Se è stato selezionato "Nessuno" manualmente, nascondi tutto
   if (isNone) {
     return false;
@@ -377,21 +385,21 @@ function renderGlobalePage() {
   ) {
     initializeTipologieFilter();
   }
-  
+
   // Carica stato pannello da storage
   _caricaFiltriGlobaleDaStorage();
-  
+
   // Event listener per sincronizzazione filtri solo se siamo nella vista globale
-  window.addEventListener('filtriTipologieAggiornati', function(e) {
+  window.addEventListener("filtriTipologieAggiornati", function (e) {
     // Verifica che siamo effettivamente nella vista globale prima di aggiornare
-    if (document.getElementById('glob-tip-filtro-container')) {
+    if (document.getElementById("glob-tip-filtro-container")) {
       _globTipFiltroPanelOpen = e.detail.pannelloAperto;
       // Aggiorna solo il contatore, non fare refresh completo del pannello
       _aggiornaGlobTipFiltroCounter();
       if (state.scadGlobale) renderGlobaleTabella(state.scadGlobale);
     }
   });
-  
+
   if (typeof state.globaleSelectedCliente === "undefined")
     state.globaleSelectedCliente = "";
 
@@ -937,14 +945,16 @@ function renderGlobaleTabella(rawData) {
     clientiFiltrati.sort(function (a, b) {
       // Determina se il gruppo è Solo Scadenza dal primo periodo disponibile
       var primoA = a.periodi && a.periodi[0];
-      var isSemplice = primoA &&
+      var isSemplice =
+        primoA &&
         !parseInt(primoA.is_contabilita) &&
         !parseInt(primoA.has_rate) &&
         !parseInt(primoA.is_checkbox);
 
       if (isSemplice) {
         // Prendi la data scadenza più vicina di ciascun cliente
-        var minDateA = null, minDateB = null;
+        var minDateA = null,
+          minDateB = null;
         for (var pi = 0; pi < a.periodi.length; pi++) {
           if (a.periodi[pi].data_scadenza) {
             var d = new Date(a.periodi[pi].data_scadenza);

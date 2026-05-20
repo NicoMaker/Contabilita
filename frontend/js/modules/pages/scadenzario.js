@@ -301,7 +301,8 @@ function renderScadenzarioTabella(data) {
   const mancanti = getAdempimentiMancanti();
   // Il pulsante è disabilitato SOLO se abbiamo dati E sappiamo con certezza che non manca nulla
   // (state.adempimenti.length > 0 garantisce che il confronto sia affidabile)
-  const tuttiGenerati = hasDati && state.adempimenti.length > 0 && mancanti.length === 0;
+  const tuttiGenerati =
+    hasDati && state.adempimenti.length > 0 && mancanti.length === 0;
   const hasDatiDaGenerare = !tuttiGenerati;
 
   let generaBtnClass = "btn btn-sm btn-orange";
@@ -530,15 +531,23 @@ function generaScadenzario() {
     return;
   }
 
-  if (mancanti.length === 0 && state.scadenzario && state.scadenzario.length > 0) {
-    showNotif("✅ Tutti gli adempimenti sono già stati generati per quest'anno", "success");
+  if (
+    mancanti.length === 0 &&
+    state.scadenzario &&
+    state.scadenzario.length > 0
+  ) {
+    showNotif(
+      "✅ Tutti gli adempimenti sono già stati generati per quest'anno",
+      "success",
+    );
     return;
   }
 
   // Genera tutti gli adempimenti mancanti per il cliente corrente
-  const idAdpDaGenerare = mancanti.length > 0
-    ? mancanti.map((a) => a.id)
-    : state.adempimenti.map((a) => a.id);
+  const idAdpDaGenerare =
+    mancanti.length > 0
+      ? mancanti.map((a) => a.id)
+      : state.adempimenti.map((a) => a.id);
 
   if (typeof socket !== "undefined") {
     socket.emit("genera:tutti", {
@@ -546,7 +555,10 @@ function generaScadenzario() {
       adempimenti: idAdpDaGenerare,
       id_cliente: state.selectedCliente.id,
     });
-    showNotif(`⚡ Generazione di ${idAdpDaGenerare.length} adempiment${idAdpDaGenerare.length === 1 ? "o" : "i"} in corso...`, "info");
+    showNotif(
+      `⚡ Generazione di ${idAdpDaGenerare.length} adempiment${idAdpDaGenerare.length === 1 ? "o" : "i"} in corso...`,
+      "info",
+    );
   }
 }
 
@@ -745,13 +757,16 @@ function openAddAdp(id_cliente) {
       renderClienteInfoBox(c);
   // ⭐ Reset tab a stato neutro: obbligatorio cliccare Aggiungi o Elimina ogni volta
   if (typeof resetAddAdpTab === "function") {
-    setTimeout(function() { resetAddAdpTab(); }, 0);
+    setTimeout(function () {
+      resetAddAdpTab();
+    }, 0);
   }
   openModal("modal-add-adp");
 }
 
 function filtraAddAdpList() {
-  const q = document.getElementById("add-adp-search")?.value.toLowerCase().trim() || "";
+  const q =
+    document.getElementById("add-adp-search")?.value.toLowerCase().trim() || "";
   renderAddAdpSelection(q);
 }
 
@@ -775,8 +790,11 @@ function renderAddAdpSelection(filtro = "") {
   }
 
   const adempimentiFiltrati = filtro
-    ? state.adempimenti.filter(a =>
-        a.nome.toLowerCase().includes(filtro) || a.codice.toLowerCase().includes(filtro))
+    ? state.adempimenti.filter(
+        (a) =>
+          a.nome.toLowerCase().includes(filtro) ||
+          a.codice.toLowerCase().includes(filtro),
+      )
     : state.adempimenti;
 
   if (adempimentiFiltrati.length === 0) {

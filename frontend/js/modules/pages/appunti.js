@@ -2,7 +2,12 @@
 // APPUNTI.JS — Gestione Block Notes
 // ═══════════════════════════════════════════════════════════════
 
-let appuntiFilter = { search: "", completato: "", priorita: "tutte", id_cliente: "" };
+let appuntiFilter = {
+  search: "",
+  completato: "",
+  priorita: "tutte",
+  id_cliente: "",
+};
 
 function renderAppuntiPage() {
   console.log("📝 renderAppuntiPage chiamata");
@@ -38,7 +43,7 @@ function renderAppuntiPage() {
 function renderAppuntiTopbar() {
   const topbarActions = document.getElementById("topbar-actions");
   if (!topbarActions) return;
-  
+
   topbarActions.innerHTML = `
     <div class="search-wrap" style="width:200px">
       <span class="search-icon">🔍</span>
@@ -57,7 +62,7 @@ function renderAppuntiTopbar() {
     </select>
     <select class="select" id="appunti-filtro-cliente" onchange="filterAppunti()" style="width:200px">
       <option value="">👥 Tutti i clienti</option>
-      ${state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("")}
+      ${state.clienti.map((c) => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("")}
     </select>
     <button class="btn btn-primary" onclick="openNuovoAppunto()">+ Appunto</button>
     <button class="btn btn-print btn-sm" onclick="window.print()">🖨️</button>
@@ -65,7 +70,11 @@ function renderAppuntiTopbar() {
 }
 
 function renderAppuntiTabella(appunti) {
-  console.log("📊 renderAppuntiTabella chiamata con", appunti?.length, "appunti");
+  console.log(
+    "📊 renderAppuntiTabella chiamata con",
+    appunti?.length,
+    "appunti",
+  );
   const content = document.getElementById("content");
   if (!content) return;
 
@@ -82,18 +91,20 @@ function renderAppuntiTabella(appunti) {
     return;
   }
 
-  const rows = appunti.map(a => `
+  const rows = appunti
+    .map(
+      (a) => `
     <tr class="clickable" onclick="openAppunto(${a.id})" style="cursor:pointer">
       <td style="padding:12px 16px">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:18px">${a.completato ? "✅" : "📝"}</span>
           <div>
             <div style="font-weight:700">${escAttr(a.titolo)}</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">${a.contenuto ? (a.contenuto.length > 60 ? a.contenuto.substring(0,60)+"..." : a.contenuto) : ""}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${a.contenuto ? (a.contenuto.length > 60 ? a.contenuto.substring(0, 60) + "..." : a.contenuto) : ""}</div>
           </div>
         </div>
       </td>
-      <td style="padding:12px 16px">${a.cliente_nome ? `<span class="badge b-${(a.cliente_nome?.charAt(0)||"").toLowerCase()}">👤 ${a.cliente_nome}</span>` : `<span class="badge-info">📌 Generale</span>`}</td>
+      <td style="padding:12px 16px">${a.cliente_nome ? `<span class="badge b-${(a.cliente_nome?.charAt(0) || "").toLowerCase()}">👤 ${a.cliente_nome}</span>` : `<span class="badge-info">📌 Generale</span>`}</td>
       <td style="padding:12px 16px"><span class="badge-info" style="background:${prioritaIcon[a.priorita]}20;border-color:${prioritaIcon[a.priorita]}40">${prioritaIcon[a.priorita]} ${prioritaLabel[a.priorita]}</span></td>
       <td style="padding:12px 16px;font-family:var(--mono);font-size:12px">${a.data_scadenza ? formattaDataItaliana(a.data_scadenza) : "—"}</td>
       <td class="no-print" style="padding:12px 16px;white-space:nowrap" onclick="event.stopPropagation()">
@@ -102,7 +113,9 @@ function renderAppuntiTabella(appunti) {
         <button class="btn btn-xs btn-danger" onclick="deleteAppunto(${a.id})" title="Elimina">🗑️</button>
       </td>
     </tr>
-  `).join("");
+  `,
+    )
+    .join("");
 
   content.innerHTML = `
     <div class="table-wrap">
@@ -128,9 +141,12 @@ function renderAppuntiTabella(appunti) {
 
 function filterAppunti() {
   const search = document.getElementById("appunti-search")?.value || "";
-  const completato = document.getElementById("appunti-filtro-completato")?.value || "";
-  const priorita = document.getElementById("appunti-filtro-priorita")?.value || "tutte";
-  const id_cliente = document.getElementById("appunti-filtro-cliente")?.value || "";
+  const completato =
+    document.getElementById("appunti-filtro-completato")?.value || "";
+  const priorita =
+    document.getElementById("appunti-filtro-priorita")?.value || "tutte";
+  const id_cliente =
+    document.getElementById("appunti-filtro-cliente")?.value || "";
   appuntiFilter = { search, completato, priorita, id_cliente };
   socket.emit("get:appunti", appuntiFilter);
 }
@@ -146,14 +162,18 @@ function openNuovoAppunto() {
 
   const clienteSel = document.getElementById("appunto-cliente");
   if (clienteSel && state.clienti) {
-    clienteSel.innerHTML = `<option value="">-- Nessuno (appunto generale) --</option>` + 
-      state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("");
+    clienteSel.innerHTML =
+      `<option value="">-- Nessuno (appunto generale) --</option>` +
+      state.clienti
+        .map((c) => `<option value="${c.id}">${escAttr(c.nome)}</option>`)
+        .join("");
   }
 
   const scadenzaInput = document.getElementById("appunto-scadenza");
   if (scadenzaInput) {
     setTimeout(() => {
-      if (typeof gestisciInputData === "function") gestisciInputData(scadenzaInput);
+      if (typeof gestisciInputData === "function")
+        gestisciInputData(scadenzaInput);
       if (typeof creaDatePicker === "function") creaDatePicker(scadenzaInput);
     }, 100);
   }
@@ -164,24 +184,34 @@ function openAppunto(id) {
   socket.emit("get:appunto", { id });
   socket.once("res:appunto", ({ success, data }) => {
     if (!success || !data) return;
-    document.getElementById("modal-appunto-title").textContent = "Modifica Appunto";
+    document.getElementById("modal-appunto-title").textContent =
+      "Modifica Appunto";
     document.getElementById("appunto-id").value = data.id;
     document.getElementById("appunto-titolo").value = data.titolo || "";
     document.getElementById("appunto-contenuto").value = data.contenuto || "";
     document.getElementById("appunto-cliente").value = data.id_cliente || "";
-    document.getElementById("appunto-scadenza").value = formattaDataItaliana(data.data_scadenza) || "";
-    document.getElementById("appunto-priorita").value = data.priorita || "media";
+    document.getElementById("appunto-scadenza").value =
+      formattaDataItaliana(data.data_scadenza) || "";
+    document.getElementById("appunto-priorita").value =
+      data.priorita || "media";
 
     const clienteSel = document.getElementById("appunto-cliente");
     if (clienteSel && state.clienti) {
-      clienteSel.innerHTML = `<option value="">-- Nessuno (appunto generale) --</option>` + 
-        state.clienti.map(c => `<option value="${c.id}" ${c.id == data.id_cliente ? "selected" : ""}>${escAttr(c.nome)}</option>`).join("");
+      clienteSel.innerHTML =
+        `<option value="">-- Nessuno (appunto generale) --</option>` +
+        state.clienti
+          .map(
+            (c) =>
+              `<option value="${c.id}" ${c.id == data.id_cliente ? "selected" : ""}>${escAttr(c.nome)}</option>`,
+          )
+          .join("");
     }
 
     const scadenzaInput = document.getElementById("appunto-scadenza");
     if (scadenzaInput) {
       setTimeout(() => {
-        if (typeof gestisciInputData === "function") gestisciInputData(scadenzaInput);
+        if (typeof gestisciInputData === "function")
+          gestisciInputData(scadenzaInput);
         if (typeof creaDatePicker === "function") creaDatePicker(scadenzaInput);
       }, 100);
     }
@@ -195,22 +225,34 @@ function saveAppunto() {
     titolo: document.getElementById("appunto-titolo").value.trim(),
     contenuto: document.getElementById("appunto-contenuto").value.trim(),
     id_cliente: document.getElementById("appunto-cliente").value || null,
-    data_scadenza: daItalianaAISO(document.getElementById("appunto-scadenza").value) || null,
+    data_scadenza:
+      daItalianaAISO(document.getElementById("appunto-scadenza").value) || null,
     priorita: document.getElementById("appunto-priorita").value,
     completato: 0,
   };
-  if (!data.titolo) { showNotif("Il titolo è obbligatorio", "error"); return; }
-  if (id) { data.id = parseInt(id); socket.emit("update:appunto", data); }
-  else { socket.emit("create:appunto", data); }
+  if (!data.titolo) {
+    showNotif("Il titolo è obbligatorio", "error");
+    return;
+  }
+  if (id) {
+    data.id = parseInt(id);
+    socket.emit("update:appunto", data);
+  } else {
+    socket.emit("create:appunto", data);
+  }
   closeModal("modal-appunto");
 }
 
 function deleteAppunto(id) {
-  if (confirm("Eliminare questo appunto?")) socket.emit("delete:appunto", { id });
+  if (confirm("Eliminare questo appunto?"))
+    socket.emit("delete:appunto", { id });
 }
 
 function toggleAppuntoCompletato(id, completato) {
-  socket.emit("toggle:appunto_completato", { id, completato: completato ? 1 : 0 });
+  socket.emit("toggle:appunto_completato", {
+    id,
+    completato: completato ? 1 : 0,
+  });
 }
 
 function openCopiaAppunti() {
@@ -240,7 +282,7 @@ function openCopiaAppunti() {
           <label>Filtra per cliente (opzionale)</label>
           <select class="select" id="copia-appunti-cliente">
             <option value="">-- Tutti i clienti --</option>
-            ${state.clienti ? state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("") : ""}
+            ${state.clienti ? state.clienti.map((c) => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("") : ""}
           </select>
         </div>
         <div class="modal-actions">
@@ -249,15 +291,20 @@ function openCopiaAppunti() {
         </div>
       </div>`;
     document.body.appendChild(modal);
-    modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("open"); });
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("open");
+    });
   }
-  
+
   const clienteSel = document.getElementById("copia-appunti-cliente");
   if (clienteSel && state.clienti) {
-    clienteSel.innerHTML = `<option value="">-- Tutti i clienti --</option>` + 
-      state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("");
+    clienteSel.innerHTML =
+      `<option value="">-- Tutti i clienti --</option>` +
+      state.clienti
+        .map((c) => `<option value="${c.id}">${escAttr(c.nome)}</option>`)
+        .join("");
   }
-  
+
   openModal("modal-copia-appunti");
 }
 
@@ -265,44 +312,57 @@ function eseguiCopiaAppunti() {
   const anno_da = parseInt(document.getElementById("copia-appunti-da").value);
   const anno_a = parseInt(document.getElementById("copia-appunti-a").value);
   const id_cliente = document.getElementById("copia-appunti-cliente").value;
-  
+
   if (isNaN(anno_da) || isNaN(anno_a)) {
     showNotif("Anni non validi", "error");
     return;
   }
-  
-  socket.emit("copia:appunti_anno", { anno_da, anno_a, id_cliente: id_cliente || null });
+
+  socket.emit("copia:appunti_anno", {
+    anno_da,
+    anno_a,
+    id_cliente: id_cliente || null,
+  });
   closeModal("modal-copia-appunti");
 }
 
 // Socket listeners
 if (typeof socket !== "undefined") {
-  socket.on("res:appunti", ({ success, data }) => { 
+  socket.on("res:appunti", ({ success, data }) => {
     console.log("📡 res:appunti ricevuto", success, data?.length);
-    if (success && state.page === "appunti") { 
-      renderAppuntiTabella(data); 
-    } 
+    if (success && state.page === "appunti") {
+      renderAppuntiTabella(data);
+    }
   });
-  socket.on("res:create:appunto", ({ success }) => { 
-    if (success) { filterAppunti(); showNotif("Appunto creato con successo", "success"); } 
+  socket.on("res:create:appunto", ({ success }) => {
+    if (success) {
+      filterAppunti();
+      showNotif("Appunto creato con successo", "success");
+    }
   });
-  socket.on("res:update:appunto", ({ success }) => { 
-    if (success) { filterAppunti(); showNotif("Appunto aggiornato", "success"); } 
+  socket.on("res:update:appunto", ({ success }) => {
+    if (success) {
+      filterAppunti();
+      showNotif("Appunto aggiornato", "success");
+    }
   });
-  socket.on("res:delete:appunto", ({ success }) => { 
-    if (success) { filterAppunti(); showNotif("Appunto eliminato", "success"); } 
+  socket.on("res:delete:appunto", ({ success }) => {
+    if (success) {
+      filterAppunti();
+      showNotif("Appunto eliminato", "success");
+    }
   });
-  socket.on("res:toggle:appunto_completato", ({ success }) => { 
-    if (success) filterAppunti(); 
+  socket.on("res:toggle:appunto_completato", ({ success }) => {
+    if (success) filterAppunti();
   });
-  socket.on("res:copia:appunti_anno", ({ success, copiati }) => { 
-    if (success) { 
-      filterAppunti(); 
-      showNotif(`✅ Copiati ${copiati} appunti`, "success"); 
-    } 
+  socket.on("res:copia:appunti_anno", ({ success, copiati }) => {
+    if (success) {
+      filterAppunti();
+      showNotif(`✅ Copiati ${copiati} appunti`, "success");
+    }
   });
-  socket.on("broadcast:appunti_updated", () => { 
-    if (state.page === "appunti") filterAppunti(); 
+  socket.on("broadcast:appunti_updated", () => {
+    if (state.page === "appunti") filterAppunti();
   });
 }
 

@@ -76,7 +76,7 @@ function migrateDB() {
     `ALTER TABLE clienti ADD COLUMN periodicita TEXT`,
     `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
     `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
-    
+
     // Tabella appunti (SENZA colonna colore)
     `CREATE TABLE IF NOT EXISTS appunti (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +92,7 @@ function migrateDB() {
     `CREATE INDEX IF NOT EXISTS idx_appunti_cliente ON appunti(id_cliente)`,
     `CREATE INDEX IF NOT EXISTS idx_appunti_scadenza ON appunti(data_scadenza)`,
     `CREATE INDEX IF NOT EXISTS idx_appunti_completato ON appunti(completato)`,
-    
+
     // Ricreazione tabella adempimenti
     `CREATE TABLE IF NOT EXISTS adempimenti_new (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,7 +118,7 @@ function migrateDB() {
     `ALTER TABLE adempimenti_new RENAME TO adempimenti`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_adempimenti_codice_attivo ON adempimenti(codice) WHERE attivo = 1`,
   ];
-  
+
   migrations.forEach((sql) => {
     try {
       db.run(sql);
@@ -130,7 +130,9 @@ function migrateDB() {
 }
 
 module.exports = {
-  get db() { return db; },
+  get db() {
+    return db;
+  },
   initDB,
   saveDB,
   runQuery,

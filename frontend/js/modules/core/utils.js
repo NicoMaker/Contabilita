@@ -177,10 +177,10 @@ function getTipologiaColor(tipCodice) {
 // ─── SOTTOTIPO HELPERS ────────────────────────────────────────
 function getCol3Options(tipCodice, col2Value) {
   // Try to get data from JSON configuration first
-  if (typeof window !== 'undefined' && window.TIPOLOGIE_CONFIG) {
+  if (typeof window !== "undefined" && window.TIPOLOGIE_CONFIG) {
     return _getCol3OptionsFromJson(tipCodice, col2Value);
   }
-  
+
   // Fallback to hardcoded values for backward compatibility
   if (tipCodice === "SP" || tipCodice === "ASS")
     return [
@@ -205,24 +205,25 @@ function _getCol3OptionsFromJson(tipCodice, col2Value) {
   const cfg = window.TIPOLOGIE_CONFIG || {};
   const percorsi = cfg.percorsi?.[tipCodice] || [];
   const uniqueCol3 = new Map();
-  
-  percorsi.forEach(p => {
+
+  percorsi.forEach((p) => {
     if (p.col3Label) {
-      const col2Match = !col2Value || 
+      const col2Match =
+        !col2Value ||
         (p.col2Label === "Ditta Individuale" && col2Value === "ditta") ||
         (p.col2Label && p.col2Label.toLowerCase() === col2Value);
-      
+
       if (col2Match) {
         uniqueCol3.set(p.col3Label.toLowerCase(), p.col3Label);
       }
     }
   });
-  
+
   if (uniqueCol3.size === 0) return null;
-  
+
   return Array.from(uniqueCol3.entries()).map(([value, label]) => ({
     value,
-    label
+    label,
   }));
 }
 
@@ -436,21 +437,21 @@ function formattaNumeroItaliano(num) {
 
 /**
  * Formatta un numero per la visualizzazione nelle tabelle (senza €)
- * @param {number|string} num 
+ * @param {number|string} num
  * @returns {string}
  */
 function formattaNumeroVisualizzazione(num) {
   if (num === null || num === undefined || num === "") return "";
   if (num === 0) return "0,00";
-  
+
   const n = typeof num === "string" ? parseNumeroItaliano(num) : num;
   if (isNaN(n)) return "";
-  
+
   const negativo = n < 0;
   const assoluto = Math.abs(n);
   const parts = assoluto.toFixed(2).split(".");
   const interoFormattato = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  
+
   return (negativo ? "-" : "") + interoFormattato + "," + parts[1];
 }
 
@@ -499,10 +500,10 @@ function setupDecimalInput(input) {
 
     // Permetti solo cifre, punto e virgola
     value = value.replace(/[^0-9.,]/g, "");
-    
+
     // Converti eventuali virgole in punto (per coerenza durante digitazione)
     value = value.replace(/,/g, ".");
-    
+
     // Assicura un solo punto decimale
     const parts = value.split(".");
     if (parts.length > 2) {
@@ -560,26 +561,27 @@ function setupDecimalInput(input) {
   input.addEventListener("keydown", function (e) {
     // Blocca caratteri non validi
     const char = e.key;
-    const isValidChar = /^[0-9]$/.test(char) || 
-                        char === ',' || 
-                        char === '.' || 
-                        char === '-' ||
-                        char === 'Backspace' ||
-                        char === 'Delete' ||
-                        char === 'ArrowLeft' ||
-                        char === 'ArrowRight' ||
-                        char === 'Tab' ||
-                        char === 'Enter' ||
-                        char === 'Home' ||
-                        char === 'End';
-    
+    const isValidChar =
+      /^[0-9]$/.test(char) ||
+      char === "," ||
+      char === "." ||
+      char === "-" ||
+      char === "Backspace" ||
+      char === "Delete" ||
+      char === "ArrowLeft" ||
+      char === "ArrowRight" ||
+      char === "Tab" ||
+      char === "Enter" ||
+      char === "Home" ||
+      char === "End";
+
     if (!isValidChar) {
       e.preventDefault();
       return;
     }
 
     // Permetti il meno solo all'inizio e solo se non già presente
-    if (char === '-') {
+    if (char === "-") {
       if (this.selectionStart !== 0 || this.value.includes("-")) {
         e.preventDefault();
       }

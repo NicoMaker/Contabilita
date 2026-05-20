@@ -1,4 +1,9 @@
-const { runQuery, runQueryAndGetId, queryAll, queryOne } = require("../database");
+const {
+  runQuery,
+  runQueryAndGetId,
+  queryAll,
+  queryOne,
+} = require("../database");
 
 function getAppunti(filtri = {}) {
   let sql = `
@@ -31,43 +36,52 @@ function getAppunti(filtri = {}) {
 }
 
 function getAppunto(id) {
-  return queryOne(`
+  return queryOne(
+    `
     SELECT a.*, c.nome as cliente_nome
     FROM appunti a
     LEFT JOIN clienti c ON a.id_cliente = c.id
     WHERE a.id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 function createAppunto(data) {
-  return runQueryAndGetId(`
+  return runQueryAndGetId(
+    `
     INSERT INTO appunti (titolo, contenuto, id_cliente, data_scadenza, priorita, completato)
     VALUES (?,?,?,?,?,?)
-  `, [
-    data.titolo,
-    data.contenuto || null,
-    data.id_cliente || null,
-    data.data_scadenza || null,
-    data.priorita || "media",
-    data.completato ? 1 : 0
-  ]);
+  `,
+    [
+      data.titolo,
+      data.contenuto || null,
+      data.id_cliente || null,
+      data.data_scadenza || null,
+      data.priorita || "media",
+      data.completato ? 1 : 0,
+    ],
+  );
 }
 
 function updateAppunto(data) {
-  runQuery(`
+  runQuery(
+    `
     UPDATE appunti SET
       titolo = ?, contenuto = ?, id_cliente = ?, data_scadenza = ?,
       priorita = ?, completato = ?
     WHERE id = ?
-  `, [
-    data.titolo,
-    data.contenuto || null,
-    data.id_cliente || null,
-    data.data_scadenza || null,
-    data.priorita || "media",
-    data.completato ? 1 : 0,
-    data.id
-  ]);
+  `,
+    [
+      data.titolo,
+      data.contenuto || null,
+      data.id_cliente || null,
+      data.data_scadenza || null,
+      data.priorita || "media",
+      data.completato ? 1 : 0,
+      data.id,
+    ],
+  );
 }
 
 function deleteAppunto(id) {
@@ -75,7 +89,10 @@ function deleteAppunto(id) {
 }
 
 function toggleAppuntoCompletato(id, completato) {
-  runQuery(`UPDATE appunti SET completato = ? WHERE id = ?`, [completato ? 1 : 0, id]);
+  runQuery(`UPDATE appunti SET completato = ? WHERE id = ?`, [
+    completato ? 1 : 0,
+    id,
+  ]);
 }
 
 function copiaAppuntiDaAnno(anno_da, anno_a, id_cliente = null) {
@@ -84,37 +101,33 @@ function copiaAppuntiDaAnno(anno_da, anno_a, id_cliente = null) {
     WHERE strftime('%Y', data_scadenza) = ?
   `;
   const params = [String(anno_da)];
-  
+
   if (id_cliente) {
     sql += ` AND id_cliente = ?`;
     params.push(id_cliente);
   }
-  
+
   const appunti = queryAll(sql, params);
   let copiati = 0;
-  
-  appunti.forEach(ap => {
+
+  appunti.forEach((ap) => {
     let nuovaScadenza = null;
     if (ap.data_scadenza) {
       const date = new Date(ap.data_scadenza);
       date.setFullYear(anno_a);
-      nuovaScadenza = date.toISOString().split('T')[0];
+      nuovaScadenza = date.toISOString().split("T")[0];
     }
-    
-    runQuery(`
+
+    runQuery(
+      `
       INSERT INTO appunti (titolo, contenuto, id_cliente, data_scadenza, priorita, completato)
       VALUES (?,?,?,?,?,?)
-    `, [
-      ap.titolo,
-      ap.contenuto,
-      ap.id_cliente,
-      nuovaScadenza,
-      ap.priorita,
-      0
-    ]);
+    `,
+      [ap.titolo, ap.contenuto, ap.id_cliente, nuovaScadenza, ap.priorita, 0],
+    );
     copiati++;
   });
-  
+
   return copiati;
 }
 

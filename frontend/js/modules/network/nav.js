@@ -277,7 +277,8 @@ function renderPage(page) {
       renderAppuntiPage();
     } else {
       console.error("❌ renderAppuntiPage non definita!");
-      document.getElementById("content").innerHTML = `<div class="empty"><div class="empty-icon">❌</div><p>Errore: modulo appunti non caricato</p><button class="btn btn-primary" onclick="location.reload()">⟳ Ricarica</button></div>`;
+      document.getElementById("content").innerHTML =
+        `<div class="empty"><div class="empty-icon">❌</div><p>Errore: modulo appunti non caricato</p><button class="btn btn-primary" onclick="location.reload()">⟳ Ricarica</button></div>`;
     }
   }
 }
