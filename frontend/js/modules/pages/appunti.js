@@ -59,7 +59,6 @@ function renderAppuntiTopbar() {
       <option value="">👥 Tutti i clienti</option>
       ${state.clienti.map(c => `<option value="${c.id}">${escAttr(c.nome)}</option>`).join("")}
     </select>
-    <button class="btn btn-sm btn-primary" onclick="openCopiaAppunti()" style="background:var(--purple);border-color:var(--purple)">📋 Copia anno</button>
     <button class="btn btn-primary" onclick="openNuovoAppunto()">+ Appunto</button>
     <button class="btn btn-print btn-sm" onclick="window.print()">🖨️</button>
   `;
