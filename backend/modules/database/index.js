@@ -18,11 +18,9 @@ function runQuery(sql, params = []) {
   return db;
 }
 
-// ⭐ NUOVA FUNZIONE per eseguire query e ottenere l'ultimo ID
 function runQueryAndGetId(sql, params = []) {
   db.run(sql, params);
   saveDB();
-  // Ottieni l'ultimo ID inserito
   const stmt = db.prepare("SELECT last_insert_rowid() as id");
   stmt.step();
   const result = stmt.getAsObject();
@@ -76,8 +74,9 @@ function migrateDB() {
     `ALTER TABLE clienti ADD COLUMN periodicita TEXT`,
     `ALTER TABLE clienti ADD COLUMN col2_value TEXT`,
     `ALTER TABLE clienti ADD COLUMN col3_value TEXT`,
-    // Migrazione per risolvere il problema del vincolo UNIQUE sul codice
-    // In SQLite non possiamo modificare direttamente un vincolo UNIQUE, quindi ricreiamo la tabella
+    // ⭐ NUOVO: anno_validita — se impostato, l'adempimento esiste solo per quell'anno
+    `ALTER TABLE adempimenti ADD COLUMN anno_validita INTEGER DEFAULT NULL`,
+    // Ricreazione tabella adempimenti senza vincolo UNIQUE sul codice
     `CREATE TABLE IF NOT EXISTS adempimenti_new (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       codice TEXT NOT NULL,
@@ -88,9 +87,14 @@ function migrateDB() {
       has_rate INTEGER DEFAULT 0,
       is_checkbox INTEGER DEFAULT 0,
       rate_labels TEXT,
+      anno_validita INTEGER DEFAULT NULL,
       attivo INTEGER DEFAULT 1
     )`,
-    `INSERT INTO adempimenti_new SELECT * FROM adempimenti`,
+    `INSERT OR IGNORE INTO adempimenti_new
+       SELECT id, codice, nome, descrizione, scadenza_tipo,
+              is_contabilita, has_rate, is_checkbox, rate_labels,
+              anno_validita, attivo
+       FROM adempimenti`,
     `DROP TABLE adempimenti`,
     `ALTER TABLE adempimenti_new RENAME TO adempimenti`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_adempimenti_codice_attivo ON adempimenti(codice) WHERE attivo = 1`,
@@ -112,7 +116,7 @@ module.exports = {
   initDB,
   saveDB,
   runQuery,
-  runQueryAndGetId, // ⭐ ESPORTA LA NUOVA FUNZIONE
+  runQueryAndGetId,
   queryAll,
   queryOne,
 };

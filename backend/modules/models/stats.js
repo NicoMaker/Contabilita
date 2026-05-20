@@ -4,9 +4,11 @@ function getStats(anno) {
   const totClienti = queryOne(
     `SELECT COUNT(*) as c FROM clienti WHERE attivo=1`,
   ).c;
+
+  // ⭐ Filtra adempimenti: includi solo quelli senza anno_validita o con anno_validita == anno
   const adpStats = queryAll(
     `
-    SELECT 
+    SELECT
       a.codice,
       a.nome,
       COUNT(ac.id) as totale,
@@ -16,23 +18,27 @@ function getStats(anno) {
     FROM adempimenti a
     LEFT JOIN adempimenti_cliente ac ON a.id=ac.id_adempimento AND ac.anno=?
     WHERE a.attivo=1
+      AND (a.anno_validita IS NULL OR a.anno_validita = ?)
     GROUP BY a.id
     ORDER BY a.nome
   `,
-    [anno],
+    [anno, anno],
   );
 
   const totali = queryOne(
     `
-    SELECT 
+    SELECT
       COUNT(*) as totale,
-      SUM(CASE WHEN stato='completato' THEN 1 ELSE 0 END) as completati,
-      SUM(CASE WHEN stato='da_fare' THEN 1 ELSE 0 END) as da_fare,
-      SUM(CASE WHEN stato='in_corso' THEN 1 ELSE 0 END) as in_corso,
-      SUM(CASE WHEN stato='n_a' THEN 1 ELSE 0 END) as na
-    FROM adempimenti_cliente WHERE anno=?
+      SUM(CASE WHEN ac.stato='completato' THEN 1 ELSE 0 END) as completati,
+      SUM(CASE WHEN ac.stato='da_fare' THEN 1 ELSE 0 END) as da_fare,
+      SUM(CASE WHEN ac.stato='in_corso' THEN 1 ELSE 0 END) as in_corso,
+      SUM(CASE WHEN ac.stato='n_a' THEN 1 ELSE 0 END) as na
+    FROM adempimenti_cliente ac
+    JOIN adempimenti a ON a.id = ac.id_adempimento
+    WHERE ac.anno=?
+      AND (a.anno_validita IS NULL OR a.anno_validita = ?)
   `,
-    [anno],
+    [anno, anno],
   );
 
   return {

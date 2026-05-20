@@ -9,7 +9,7 @@ function getAdempimentiCliente(id_cliente, anno) {
     `
     SELECT DISTINCT 
       a.id, a.codice, a.nome, a.descrizione, a.scadenza_tipo,
-      a.is_contabilita, a.has_rate, a.is_checkbox, a.rate_labels
+      a.is_contabilita, a.has_rate, a.is_checkbox, a.rate_labels, a.anno_validita
     FROM adempimenti a
     INNER JOIN adempimenti_cliente ac ON a.id = ac.id_adempimento
     WHERE ac.id_cliente = ? AND ac.anno = ? AND a.attivo = 1
@@ -29,9 +29,12 @@ function createAdempimento(data) {
   }
 
   const rl = data.rate_labels ? JSON.stringify(data.rate_labels) : null;
+  // ⭐ anno_validita: null = valido per tutti gli anni, intero = solo per quell'anno
+  const annoValidita = data.anno_validita ? parseInt(data.anno_validita) : null;
+
   runQuery(
-    `INSERT INTO adempimenti (codice, nome, descrizione, scadenza_tipo, is_contabilita, has_rate, is_checkbox, rate_labels) 
-     VALUES (?,?,?,?,?,?,?,?)`,
+    `INSERT INTO adempimenti (codice, nome, descrizione, scadenza_tipo, is_contabilita, has_rate, is_checkbox, rate_labels, anno_validita) 
+     VALUES (?,?,?,?,?,?,?,?,?)`,
     [
       data.codice,
       data.nome,
@@ -41,6 +44,7 @@ function createAdempimento(data) {
       data.has_rate || 0,
       data.is_checkbox || 0,
       rl,
+      annoValidita,
     ],
   );
   return queryOne(`SELECT last_insert_rowid() as id`).id;
@@ -48,10 +52,14 @@ function createAdempimento(data) {
 
 function updateAdempimento(data) {
   const rl = data.rate_labels ? JSON.stringify(data.rate_labels) : null;
+  // ⭐ anno_validita: null = valido per tutti gli anni, intero = solo per quell'anno
+  const annoValidita = data.anno_validita ? parseInt(data.anno_validita) : null;
+
   runQuery(
     `UPDATE adempimenti SET 
       codice = ?, nome = ?, descrizione = ?, scadenza_tipo = ?, 
-      is_contabilita = ?, has_rate = ?, is_checkbox = ?, rate_labels = ? 
+      is_contabilita = ?, has_rate = ?, is_checkbox = ?, rate_labels = ?,
+      anno_validita = ?
      WHERE id = ?`,
     [
       data.codice,
@@ -62,6 +70,7 @@ function updateAdempimento(data) {
       data.has_rate || 0,
       data.is_checkbox || 0,
       rl,
+      annoValidita,
       data.id,
     ],
   );
@@ -246,18 +255,8 @@ function checkAdempimentiClienteEsistenti(id_cliente, anno) {
 
 function getMeseNome(mese) {
   const mesi = [
-    "Gen",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mag",
-    "Giu",
-    "Lug",
-    "Ago",
-    "Set",
-    "Ott",
-    "Nov",
-    "Dic",
+    "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
+    "Lug", "Ago", "Set", "Ott", "Nov", "Dic",
   ];
   return mesi[mese - 1] || "Mese";
 }
@@ -339,12 +338,7 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
         inseriti++;
       } else {
         mantenuti++;
-        dettagli.push({
-          tipo: "trimestre",
-          valore: t,
-          id_esistente: esiste.id,
-          azione: "mantenuto",
-        });
+        dettagli.push({ tipo: "trimestre", valore: t, id_esistente: esiste.id, azione: "mantenuto" });
       }
     }
   } else if (adp.scadenza_tipo === "semestrale") {
@@ -358,12 +352,7 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
         inseriti++;
       } else {
         mantenuti++;
-        dettagli.push({
-          tipo: "semestre",
-          valore: s,
-          id_esistente: esiste.id,
-          azione: "mantenuto",
-        });
+        dettagli.push({ tipo: "semestre", valore: s, id_esistente: esiste.id, azione: "mantenuto" });
       }
     }
   } else if (adp.scadenza_tipo === "mensile") {
@@ -377,12 +366,7 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
         inseriti++;
       } else {
         mantenuti++;
-        dettagli.push({
-          tipo: "mese",
-          valore: m,
-          id_esistente: esiste.id,
-          azione: "mantenuto",
-        });
+        dettagli.push({ tipo: "mese", valore: m, id_esistente: esiste.id, azione: "mantenuto" });
       }
     }
   } else {
@@ -397,12 +381,7 @@ function inserisciAdempimentoSeAssenteConDettagli(id_cliente, adp, anno) {
       inseriti++;
     } else {
       mantenuti++;
-      dettagli.push({
-        tipo: "annuale",
-        valore: null,
-        id_esistente: esiste.id,
-        azione: "mantenuto",
-      });
+      dettagli.push({ tipo: "annuale", valore: null, id_esistente: esiste.id, azione: "mantenuto" });
     }
   }
   return { inseriti, mantenuti, dettagli };
@@ -422,11 +401,7 @@ function generaAdempimentoPerTutti(id_adp, anno) {
     inseriti += risultato.inseriti;
     mantenuti += risultato.mantenuti;
     if (risultato.dettagli.length > 0) {
-      dettagli.push({
-        cliente: c.nome,
-        cliente_id: c.id,
-        dettagli: risultato.dettagli,
-      });
+      dettagli.push({ cliente: c.nome, cliente_id: c.id, dettagli: risultato.dettagli });
     }
   });
 
@@ -457,11 +432,7 @@ function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
         continue;
       }
 
-      const risultato = inserisciAdempimentoSeAssenteConDettagli(
-        clienteId,
-        adp,
-        anno,
-      );
+      const risultato = inserisciAdempimentoSeAssenteConDettagli(clienteId, adp, anno);
       totaleInseriti += risultato.inseriti;
       totaleSkipped += risultato.mantenuti;
     }
@@ -475,10 +446,6 @@ function applicaAdempimentiAClienti(adempimenti_ids, clienti_ids, anno) {
   };
 }
 
-// ─── ELIMINA ADEMPIMENTI DA CLIENTI (BULK) ────────────────────
-// Per ogni combinazione adempimento×cliente elimina TUTTI i record
-// dell'anno (mese/trimestre/semestre). Se il cliente non ha
-// quell'adempimento viene ignorato senza errori.
 function eliminaAdempimentiDaClienti(adempimenti_ids, clienti_ids, anno) {
   let eliminati = 0;
   let nonTrovati = 0;
@@ -504,9 +471,6 @@ function eliminaAdempimentiDaClienti(adempimenti_ids, clienti_ids, anno) {
   return { eliminati, nonTrovati };
 }
 
-// ─── ELIMINA ADEMPIMENTI BULK PER UN SINGOLO CLIENTE ──────────
-// Riceve un array di id di adempimenti_cliente (le righe precise, non
-// id_adempimento) e le elimina tutte in una sola operazione.
 function eliminaAdempimentiClienteBulk(ids_righe) {
   let eliminati = 0;
   for (const id of ids_righe) {
@@ -527,6 +491,7 @@ module.exports = {
   deleteAdempimento,
   generaAdempimentoPerTutti,
   inserisciAdempimentoSeAssente,
+  inserisciAdempimentoSeAssenteConDettagli,
   canDeleteAdempimento,
   createAdempimentoPersonalizzato,
   checkAdempimentiClienteEsistenti,

@@ -178,7 +178,8 @@ module.exports = function setupSocketHandlers(io) {
     socket.on("create:adempimento", (data) => {
       try {
         const newId = adempimentiModel.createAdempimento(data);
-        const anno = new Date().getFullYear();
+        // ⭐ Se anno_validita è impostato, genera solo per quell'anno; altrimenti anno corrente
+        const anno = data.anno_validita ? parseInt(data.anno_validita) : new Date().getFullYear();
         const tot = adempimentiModel.generaAdempimentoPerTutti(newId, anno);
         io.emit("broadcast:adempimenti_updated");
         io.emit("broadcast:scadenzario_updated", { anno });

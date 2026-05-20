@@ -10,7 +10,7 @@ function _annoFromRow(anno) {
 
 function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
   let sql = `
-    SELECT 
+    SELECT
       ac.*,
       a.codice as adempimento_codice,
       a.nome as adempimento_nome,
@@ -19,6 +19,7 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
       a.has_rate,
       a.rate_labels,
       a.is_checkbox,
+      a.anno_validita,
       c.id as cliente_id,
       c.nome as cliente_nome,
       c.codice_fiscale as cliente_cf,
@@ -36,11 +37,11 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
-    LEFT JOIN clienti_config_annuale cfg 
+    LEFT JOIN clienti_config_annuale cfg
       ON cfg.id_cliente = c.id AND cfg.anno = ?
-    LEFT JOIN clienti_config_annuale cfg_last 
+    LEFT JOIN clienti_config_annuale cfg_last
       ON cfg_last.id = (
-        SELECT id FROM clienti_config_annuale 
+        SELECT id FROM clienti_config_annuale
         WHERE id_cliente = c.id AND anno <= ?
         ORDER BY anno DESC LIMIT 1
       )
@@ -49,8 +50,9 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
     LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
     LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
     WHERE ac.id_cliente = ? AND ac.anno = ?
+      AND (a.anno_validita IS NULL OR a.anno_validita = ?)
   `;
-  const params = [anno, anno, id_cliente, anno];
+  const params = [anno, anno, id_cliente, anno, anno];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -68,7 +70,7 @@ function getScadenzarioConDettagliCliente(id_cliente, anno, filtri = {}) {
 
 function getScadenzarioGlobale(anno, filtri = {}) {
   let sql = `
-    SELECT 
+    SELECT
       ac.*,
       a.codice as adempimento_codice,
       a.nome as adempimento_nome,
@@ -77,6 +79,7 @@ function getScadenzarioGlobale(anno, filtri = {}) {
       a.has_rate,
       a.rate_labels,
       a.is_checkbox,
+      a.anno_validita,
       c.id as cliente_id,
       c.nome as cliente_nome,
       c.codice_fiscale as cliente_cf,
@@ -94,11 +97,11 @@ function getScadenzarioGlobale(anno, filtri = {}) {
     FROM adempimenti_cliente ac
     JOIN adempimenti a ON ac.id_adempimento = a.id
     JOIN clienti c ON ac.id_cliente = c.id
-    LEFT JOIN clienti_config_annuale cfg 
+    LEFT JOIN clienti_config_annuale cfg
       ON cfg.id_cliente = c.id AND cfg.anno = ?
-    LEFT JOIN clienti_config_annuale cfg_last 
+    LEFT JOIN clienti_config_annuale cfg_last
       ON cfg_last.id = (
-        SELECT id FROM clienti_config_annuale 
+        SELECT id FROM clienti_config_annuale
         WHERE id_cliente = c.id AND anno <= ?
         ORDER BY anno DESC LIMIT 1
       )
@@ -107,8 +110,9 @@ function getScadenzarioGlobale(anno, filtri = {}) {
     LEFT JOIN tipologie_cliente t_last ON t_last.id = cfg_last.id_tipologia
     LEFT JOIN sottotipologie   s_last ON s_last.id  = cfg_last.id_sottotipologia
     WHERE ac.anno = ? AND c.attivo = 1
+      AND (a.anno_validita IS NULL OR a.anno_validita = ?)
   `;
-  const params = [anno, anno, anno];
+  const params = [anno, anno, anno, anno];
 
   if (filtri.stato && filtri.stato !== "tutti") {
     sql += ` AND ac.stato = ?`;
@@ -129,7 +133,12 @@ function getScadenzarioGlobale(anno, filtri = {}) {
 }
 
 function generaScadenzarioInterno(id_cliente, anno) {
-  const adps = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
+  // ⭐ Solo adempimenti senza anno_validita o con anno_validita == anno
+  const adps = queryAll(
+    `SELECT * FROM adempimenti WHERE attivo = 1
+     AND (anno_validita IS NULL OR anno_validita = ?)`,
+    [anno]
+  );
   let tot = 0;
   adps.forEach((a) => {
     tot += inserisciAdempimentoSeAssente(id_cliente, a, anno);
@@ -143,12 +152,19 @@ function generaTuttiClientiAnno(anno, adempimentiSelezionati = null) {
 
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
     const placeholders = adempimentiSelezionati.map(() => "?").join(",");
+    // ⭐ Filtra anche qui per anno_validita
     adempimenti = queryAll(
-      `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
-      adempimentiSelezionati,
+      `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})
+       AND (anno_validita IS NULL OR anno_validita = ?)`,
+      [...adempimentiSelezionati, anno],
     );
   } else {
-    adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
+    // ⭐ Filtra per anno_validita
+    adempimenti = queryAll(
+      `SELECT * FROM adempimenti WHERE attivo = 1
+       AND (anno_validita IS NULL OR anno_validita = ?)`,
+      [anno]
+    );
   }
 
   let totaleInseriti = 0;
@@ -188,11 +204,16 @@ function rigeneraTuttiClientiAnno(anno, adempimentiSelezionati = null) {
   if (adempimentiSelezionati && adempimentiSelezionati.length > 0) {
     const placeholders = adempimentiSelezionati.map(() => "?").join(",");
     adempimenti = queryAll(
-      `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})`,
-      adempimentiSelezionati,
+      `SELECT * FROM adempimenti WHERE attivo = 1 AND id IN (${placeholders})
+       AND (anno_validita IS NULL OR anno_validita = ?)`,
+      [...adempimentiSelezionati, anno],
     );
   } else {
-    adempimenti = queryAll(`SELECT * FROM adempimenti WHERE attivo = 1`);
+    adempimenti = queryAll(
+      `SELECT * FROM adempimenti WHERE attivo = 1
+       AND (anno_validita IS NULL OR anno_validita = ?)`,
+      [anno]
+    );
   }
 
   let tot = 0;
@@ -211,6 +232,16 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
   );
   let tot = 0;
   righe.forEach((r) => {
+    // ⭐ Non copiare adempimenti vincolati a un anno specifico diverso da anno_a
+    const adp = queryOne(
+      `SELECT anno_validita FROM adempimenti WHERE id = ?`,
+      [r.id_adempimento]
+    );
+    if (adp && adp.anno_validita !== null && adp.anno_validita !== undefined
+        && String(adp.anno_validita) !== String(anno_a)) {
+      return; // skip: era valido solo per anno_da
+    }
+
     const ex = queryOne(
       `SELECT id FROM adempimenti_cliente WHERE id_cliente = ? AND id_adempimento = ? AND anno = ? AND COALESCE(mese,0) = COALESCE(?,0) AND COALESCE(trimestre,0) = COALESCE(?,0) AND COALESCE(semestre,0) = COALESCE(?,0)`,
       [id_cliente, r.id_adempimento, anno_a, r.mese, r.trimestre, r.semestre],
@@ -218,7 +249,7 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
     if (!ex) {
       try {
         runQuery(
-          `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, trimestre, semestre, stato, data_scadenza, data_completamento, note, importo, importo_saldo, importo_acconto1, importo_acconto2, importo_iva, importo_contabilita, cont_completata) 
+          `INSERT INTO adempimenti_cliente (id_cliente, id_adempimento, anno, mese, trimestre, semestre, stato, data_scadenza, data_completamento, note, importo, importo_saldo, importo_acconto1, importo_acconto2, importo_iva, importo_contabilita, cont_completata)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           [
             r.id_cliente,
@@ -227,10 +258,10 @@ function copiaScadenzarioCliente(id_cliente, anno_da, anno_a) {
             r.mese,
             r.trimestre,
             r.semestre,
-            "da_fare",          // stato sempre da_fare
+            "da_fare",
             r.data_scadenza,
-            null,               // data_completamento azzerata
-            null,               // ⭐ note NON copiate
+            null,     // data_completamento azzerata
+            null,     // ⭐ note NON copiate
             r.importo,
             r.importo_saldo,
             r.importo_acconto1,
@@ -257,10 +288,10 @@ function copiaTuttiClienti(anno_da, anno_a) {
 
 function updateAdempimentoStato(data) {
   runQuery(
-    `UPDATE adempimenti_cliente SET 
+    `UPDATE adempimenti_cliente SET
       stato = ?, data_scadenza = ?, data_completamento = ?, note = ?,
       importo = ?, importo_saldo = ?, importo_acconto1 = ?, importo_acconto2 = ?,
-      importo_iva = ?, importo_contabilita = ?, cont_completata = ? 
+      importo_iva = ?, importo_contabilita = ?, cont_completata = ?
     WHERE id = ?`,
     [
       data.stato,

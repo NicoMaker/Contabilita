@@ -148,6 +148,7 @@ function renderAdempimentiTabella(adempimenti) {
           <span style="color:var(--text3);font-size:10px">(${scadFreq[a.scadenza_tipo] || ""})</span>
         </span>
         ${flagsBadges.join("")}
+        ${a.anno_validita ? `<span class="adp-flag-badge" style="color:#f59e0b;background:#f59e0b18;border-color:#f59e0b44;font-size:11px" title="Valido solo per l'anno ${a.anno_validita}">📆 Solo ${a.anno_validita}</span>` : ""}
       </div>
     </div>`;
     })
@@ -186,6 +187,7 @@ function openNuovoAdpDef() {
   setVal("adp-rate-l1", "Saldo");
   setVal("adp-rate-l2", "1° Acconto");
   setVal("adp-rate-l3", "2° Acconto");
+  setVal("adp-def-anno-validita", "");
   openModal("modal-adp-def");
 }
 
@@ -199,6 +201,7 @@ function editAdpDef(id) {
   setVal("adp-def-nome", a.nome);
   setVal("adp-def-desc", a.descrizione || "");
   setVal("adp-def-scadenza", a.scadenza_tipo || "annuale");
+  setVal("adp-def-anno-validita", a.anno_validita || "");
 
   const isCont = a.is_contabilita === 1;
   const isRate = a.has_rate === 1;
@@ -269,6 +272,7 @@ function saveAdpDef() {
     nome,
     descrizione: String(getVal("adp-def-desc")).trim() || null,
     scadenza_tipo: getVal("adp-def-scadenza"),
+    anno_validita: (function(){ const v = String(getVal("adp-def-anno-validita")).trim(); const n = parseInt(v, 10); return (v.length === 4 && n >= 2000 && n <= 2099) ? n : null; })(),
     is_contabilita: 0,
     has_rate: 0,
     is_checkbox: 0,
