@@ -17,6 +17,9 @@ erDiagram
         string referente
         integer attivo
         integer contabilita
+        string periodicita
+        string col2_value
+        string col3_value
         string created_at
         string updated_at
     }
@@ -96,10 +99,22 @@ erDiagram
         integer completato
     }
 
+    pagina_bianca {
+        integer id PK
+        string tipo
+        string titolo
+        string contenuto
+        string allegati
+        integer id_cliente FK
+        string data_creazione
+        string data_modifica
+    }
+
     %% Relazioni
     clienti ||--o{ adempimenti_cliente : "esegue"
     clienti ||--o{ clienti_config_annuale : "configurato in"
     clienti ||--o{ appunti : "ha"
+    clienti ||--o{ pagina_bianca : "ha"
     
     tipologie_cliente ||--o{ sottotipologie : "contiene"
     tipologie_cliente ||--o{ clienti_config_annuale : "definita in"
